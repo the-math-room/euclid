@@ -89,6 +89,15 @@ Made the pure-core, imperative-shell boundary explicit:
 - Browser, DOM, storage, network, time, randomness, and React effects belong in `apps/web/src`.
 - Architecture tests now reject common ambient effects and module-level mutable state in package production code.
 
+Added the first view-level interactions:
+
+- Selection in the web shell.
+- Screen rotation as an explicit rendering view transform.
+- Rotated grid and primitives.
+- Point labels that remain oriented to the user instead of rotating with the construction plane.
+
+Rotation lives in `packages/rendering/src` as view interpretation, not in geometry construction meaning.
+
 ## Tooling
 
 Added the project development baseline:

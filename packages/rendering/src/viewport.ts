@@ -5,33 +5,67 @@ export type ViewportSize = Readonly<{
   height: number;
 }>;
 
+export type ViewRotation = Readonly<{
+  turns: number;
+}>;
+
+export type ViewTransform = Readonly<{
+  size: ViewportSize;
+  rotation: ViewRotation;
+}>;
+
 export type WorldFrame = Readonly<{
   size: ViewportSize;
   center: Point2;
   scale: number;
+  rotation: ViewRotation;
 }>;
 
-export function worldFrameFor(primitives: readonly EvaluatedPrimitive[], size: ViewportSize): WorldFrame {
+export function worldFrameFor(
+  primitives: readonly EvaluatedPrimitive[],
+  transform: ViewTransform,
+): WorldFrame {
   const points = primitives.flatMap(pointsInPrimitive);
   const bounds = boundsOf(points);
+  const center = {
+    x: (bounds.min.x + bounds.max.x) / 2,
+    y: (bounds.min.y + bounds.max.y) / 2,
+  };
   const width = Math.max(bounds.max.x - bounds.min.x, 1);
   const height = Math.max(bounds.max.y - bounds.min.y, 1);
-  const scale = Math.min((size.width * 0.72) / width, (size.height * 0.72) / height);
+  const scale = Math.min((transform.size.width * 0.72) / width, (transform.size.height * 0.72) / height);
 
   return {
-    size,
-    center: {
-      x: (bounds.min.x + bounds.max.x) / 2,
-      y: (bounds.min.y + bounds.max.y) / 2,
-    },
+    size: transform.size,
+    center,
     scale,
+    rotation: transform.rotation,
   };
 }
 
 export function projectPoint(frame: WorldFrame, point: Point2): Point2 {
+  const rotated = rotatePoint(
+    {
+      x: point.x - frame.center.x,
+      y: point.y - frame.center.y,
+    },
+    frame.rotation,
+  );
+
   return {
-    x: frame.size.width / 2 + (point.x - frame.center.x) * frame.scale,
-    y: frame.size.height / 2 - (point.y - frame.center.y) * frame.scale,
+    x: frame.size.width / 2 + rotated.x * frame.scale,
+    y: frame.size.height / 2 - rotated.y * frame.scale,
+  };
+}
+
+function rotatePoint(point: Point2, rotation: ViewRotation): Point2 {
+  const radians = rotation.turns * Math.PI * 2;
+  const cos = Math.cos(radians);
+  const sin = Math.sin(radians);
+
+  return {
+    x: point.x * cos - point.y * sin,
+    y: point.x * sin + point.y * cos,
   };
 }
 

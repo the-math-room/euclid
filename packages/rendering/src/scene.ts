@@ -1,17 +1,24 @@
 import type { Evaluation, Point2 } from "@euclid/geometry";
-import { projectPoint, type ViewportSize, worldFrameFor } from "./viewport";
+import { projectPoint, type ViewTransform, type ViewportSize, worldFrameFor } from "./viewport";
 
 export type RenderScene = Readonly<{
   size: ViewportSize;
+  grid: readonly RenderGridLine[];
   items: readonly RenderItem[];
+}>;
+
+export type RenderGridLine = Readonly<{
+  id: string;
+  from: Point2;
+  to: Point2;
 }>;
 
 export type RenderItem =
   | Readonly<{
       id: string;
       kind: "point";
-      label: string;
-      position: Point2;
+      mark: Point2;
+      label: RenderLabel;
     }>
   | Readonly<{
       id: string;
@@ -26,25 +33,39 @@ export type RenderItem =
       radius: number;
     }>;
 
-export function sceneForEvaluation(evaluation: Evaluation, size: ViewportSize): RenderScene {
-  const frame = worldFrameFor(evaluation.primitives, size);
+export type RenderLabel = Readonly<{
+  text: string;
+  anchor: Point2;
+}>;
+
+export function sceneForEvaluation(evaluation: Evaluation, transform: ViewTransform): RenderScene {
+  const frame = worldFrameFor(evaluation.primitives, transform);
 
   return {
-    size,
+    size: transform.size,
+    grid: gridLinesForFrame(frame),
     items: evaluation.primitives.map((primitive) => {
       if (primitive.kind === "point") {
+        const mark = projectPoint(frame, primitive.position);
+
         return {
           id: primitive.id,
           kind: "point",
-          label: primitive.label,
-          position: projectPoint(frame, primitive.position),
+          mark,
+          label: {
+            text: primitive.label,
+            anchor: {
+              x: mark.x + 10,
+              y: mark.y - 10,
+            },
+          },
         };
       }
 
       if (primitive.kind === "line") {
         const a = projectPoint(frame, primitive.through[0]);
         const b = projectPoint(frame, primitive.through[1]);
-        const [from, to] = extendLineToViewport(a, b, size);
+        const [from, to] = extendLineToViewport(a, b, transform.size);
 
         return {
           id: primitive.id,
@@ -65,6 +86,32 @@ export function sceneForEvaluation(evaluation: Evaluation, size: ViewportSize): 
       };
     }),
   };
+}
+
+function gridLinesForFrame(frame: ReturnType<typeof worldFrameFor>): readonly RenderGridLine[] {
+  const worldSpan = Math.hypot(frame.size.width, frame.size.height) / frame.scale;
+  const step = 1;
+  const minX = Math.floor((frame.center.x - worldSpan) / step) * step;
+  const maxX = Math.ceil((frame.center.x + worldSpan) / step) * step;
+  const minY = Math.floor((frame.center.y - worldSpan) / step) * step;
+  const maxY = Math.ceil((frame.center.y + worldSpan) / step) * step;
+  const verticals = rangeInclusive(minX, maxX, step).map((x) => ({
+    id: `x-${x}`,
+    from: projectPoint(frame, { x, y: minY }),
+    to: projectPoint(frame, { x, y: maxY }),
+  }));
+  const horizontals = rangeInclusive(minY, maxY, step).map((y) => ({
+    id: `y-${y}`,
+    from: projectPoint(frame, { x: minX, y }),
+    to: projectPoint(frame, { x: maxX, y }),
+  }));
+
+  return [...verticals, ...horizontals];
+}
+
+function rangeInclusive(min: number, max: number, step: number): readonly number[] {
+  const count = Math.floor((max - min) / step) + 1;
+  return Array.from({ length: count }, (_, index) => min + index * step);
 }
 
 function extendLineToViewport(a: Point2, b: Point2, size: ViewportSize): readonly [Point2, Point2] {

@@ -87,6 +87,60 @@ button {
   border-color: #e3c057;
 }
 
+.view-panel h2 {
+  margin: 0 0 12px;
+  color: #dfe8e4;
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.rotation-control {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) 34px;
+  gap: 10px;
+  align-items: end;
+}
+
+.icon-button {
+  display: inline-grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  color: #dfe8e4;
+  background: #304347;
+  border: 1px solid #486164;
+  border-radius: 7px;
+  cursor: pointer;
+}
+
+.icon-button:hover {
+  color: #172026;
+  background: #e3c057;
+  border-color: #e3c057;
+}
+
+.rotation-control label {
+  display: grid;
+  gap: 8px;
+  color: #aebdba;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.rotation-control input {
+  width: 100%;
+  accent-color: #e3c057;
+}
+
+.rotation-value {
+  display: block;
+  margin-top: 8px;
+  color: #f6f2ec;
+  font-size: 0.9rem;
+}
+
 .inspector h2 {
   margin: 0 0 12px;
   color: #dfe8e4;
@@ -104,16 +158,75 @@ button {
 }
 
 .inspector li {
-  display: flex;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 9px 0;
   border-bottom: 1px solid rgb(255 255 255 / 0.1);
 }
 
-.inspector code {
+.object-button {
+  display: flex;
+  width: 100%;
+  min-height: 40px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 9px 0;
+  color: #f6f2ec;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+
+.object-button:hover,
+.object-button[aria-pressed="true"] {
+  color: #e3c057;
+}
+
+.object-button code {
   color: #aebdba;
   font-size: 0.75rem;
+}
+
+.object-button[aria-pressed="true"] code {
+  color: #e3c057;
+}
+
+.details-panel h2 {
+  margin: 0 0 12px;
+  color: #dfe8e4;
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.empty-selection {
+  margin: 0;
+  color: #aebdba;
+  font-size: 0.9rem;
+}
+
+.details-list {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+}
+
+.details-list div {
+  display: grid;
+  gap: 3px;
+}
+
+.details-list dt {
+  color: #aebdba;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.details-list dd {
+  margin: 0;
+  color: #f6f2ec;
+  font-size: 0.9rem;
+  overflow-wrap: anywhere;
 }
 
 .workspace {
@@ -138,15 +251,22 @@ button {
   stroke-width: 1;
 }
 
+.primitive {
+  cursor: pointer;
+  outline: none;
+}
+
 .primitive.line {
   stroke: #246a73;
   stroke-width: 2.5;
+  pointer-events: stroke;
 }
 
 .primitive.circle {
   fill: none;
   stroke: #ba4a3a;
   stroke-width: 2.5;
+  pointer-events: stroke;
 }
 
 .primitive.point circle {
@@ -162,6 +282,26 @@ button {
   paint-order: stroke;
   stroke: #fbfaf6;
   stroke-width: 5px;
+  pointer-events: none;
+}
+
+.primitive.selected.line,
+.primitive.line:focus-visible {
+  stroke: #e3c057;
+  stroke-width: 4;
+}
+
+.primitive.selected.circle,
+.primitive.circle:focus-visible {
+  stroke: #e3c057;
+  stroke-width: 4;
+}
+
+.primitive.selected.point circle,
+.primitive.point:focus-visible circle {
+  fill: #e3c057;
+  stroke: #172026;
+  stroke-width: 3;
 }
 
 @media (max-width: 720px) {
