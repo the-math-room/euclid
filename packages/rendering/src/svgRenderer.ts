@@ -3,6 +3,7 @@ import { SVG_THEME_STYLES } from "./theme";
 
 export type SvgRendererOptions = Readonly<{
   selectedId?: string;
+  selectedIds?: ReadonlySet<string>;
   embedStyles?: boolean;
 }>;
 
@@ -10,7 +11,7 @@ export type SvgRendererOptions = Readonly<{
  * Renders a RenderScene to a standalone SVG string.
  */
 export function renderSceneToSvgString(scene: RenderScene, options: SvgRendererOptions = {}): string {
-  const { selectedId, embedStyles = true } = options;
+  const { selectedId, selectedIds, embedStyles = true } = options;
   const parts: string[] = [];
 
   parts.push(
@@ -30,7 +31,7 @@ export function renderSceneToSvgString(scene: RenderScene, options: SvgRendererO
 
   // Draw items
   for (const item of scene.items) {
-    const isSelected = item.id === selectedId;
+    const isSelected = selectedIds ? selectedIds.has(item.id) : item.id === selectedId;
     const baseClass = `primitive ${item.kind}`;
     const className = isSelected ? `${baseClass} selected` : baseClass;
 

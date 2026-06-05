@@ -318,6 +318,52 @@ button {
   cursor: grabbing;
 }
 
+.multi-selection-summary {
+  display: grid;
+  gap: 12px;
+}
+
+.multi-selection-count {
+  margin: 0;
+  color: #dfe8e4;
+  font-size: 0.9rem;
+}
+
+.multi-selection-count strong {
+  color: #e3c057;
+}
+
+.multi-selection-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.multi-selection-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 10px;
+  background: #233235;
+  border: 1px solid #304347;
+  border-radius: 6px;
+  font-size: 0.85rem;
+}
+
+.multi-selection-list li span {
+  color: #f6f2ec;
+  font-weight: 500;
+}
+
+.multi-selection-list li code {
+  color: #aebdba;
+  font-size: 0.72rem;
+}
+
 @media (max-width: 720px) {
   .app-shell {
     grid-template-columns: 1fr;

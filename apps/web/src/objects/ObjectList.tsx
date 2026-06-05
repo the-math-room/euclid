@@ -2,12 +2,12 @@ import type { Construction, ConstructionId } from "@euclid/geometry";
 
 export function ObjectList({
   constructions,
-  selectedId,
+  selectedIds,
   onSelect,
 }: {
   constructions: readonly Construction[];
-  selectedId: ConstructionId | undefined;
-  onSelect: (id: ConstructionId) => void;
+  selectedIds: ReadonlySet<ConstructionId>;
+  onSelect: (id: ConstructionId, modifiers?: { ctrlKey?: boolean; shiftKey?: boolean }) => void;
 }) {
   return (
     <section className="inspector" aria-label="Construction objects">
@@ -18,8 +18,13 @@ export function ObjectList({
             <button
               type="button"
               className="object-button"
-              aria-pressed={construction.id === selectedId}
-              onClick={() => onSelect(construction.id)}
+              aria-pressed={selectedIds.has(construction.id)}
+              onClick={(event) =>
+                onSelect(construction.id, {
+                  ctrlKey: event.ctrlKey,
+                  shiftKey: event.shiftKey,
+                })
+              }
             >
               <span>{construction.label}</span>
               <code>{construction.kind}</code>

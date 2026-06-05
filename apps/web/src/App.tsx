@@ -16,12 +16,10 @@ const sceneSize = { width: 920, height: 620 };
 const defaultView = defaultScreenViewFor(evaluated, sceneSize);
 
 export function App() {
-  const [selectedId, setSelectedId] = useState<ConstructionId | undefined>();
+  const [selectedIds, setSelectedIds] = useState<ReadonlySet<ConstructionId>>(new Set());
+  const [lastSelectedId, setLastSelectedId] = useState<ConstructionId | undefined>();
   const camera = useCameraController(defaultView);
-  const selectedConstruction = useMemo(
-    () => document.program.constructions.find((construction) => construction.id === selectedId),
-    [selectedId],
-  );
+
   const scene = useMemo(
     () =>
       sceneForEvaluation(evaluated, {
@@ -30,6 +28,50 @@ export function App() {
       }),
     [camera.camera],
   );
+
+  const handleSelect = (
+    id: ConstructionId | undefined,
+    modifiers?: { ctrlKey?: boolean; shiftKey?: boolean },
+  ) => {
+    if (id === undefined) {
+      setSelectedIds(new Set());
+      setLastSelectedId(undefined);
+      return;
+    }
+
+    const { ctrlKey, shiftKey } = modifiers || {};
+
+    if (shiftKey && lastSelectedId !== undefined) {
+      const constructions = document.program.constructions;
+      const lastIndex = constructions.findIndex((c) => c.id === lastSelectedId);
+      const currentIndex = constructions.findIndex((c) => c.id === id);
+
+      if (lastIndex !== -1 && currentIndex !== -1) {
+        const start = Math.min(lastIndex, currentIndex);
+        const end = Math.max(lastIndex, currentIndex);
+        const rangeIds = constructions.slice(start, end + 1).map((c) => c.id);
+
+        setSelectedIds(new Set(rangeIds));
+        return;
+      }
+    }
+
+    if (ctrlKey || shiftKey) {
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        if (next.has(id)) {
+          next.delete(id);
+        } else {
+          next.add(id);
+        }
+        return next;
+      });
+      setLastSelectedId(id);
+    } else {
+      setSelectedIds(new Set([id]));
+      setLastSelectedId(id);
+    }
+  };
 
   return (
     <main className="app-shell">
@@ -60,16 +102,16 @@ export function App() {
         <ViewControls camera={camera} />
         <ObjectList
           constructions={document.program.constructions}
-          selectedId={selectedId}
-          onSelect={setSelectedId}
+          selectedIds={selectedIds}
+          onSelect={handleSelect}
         />
-        <SelectionDetails construction={selectedConstruction} />
+        <SelectionDetails selectedIds={selectedIds} constructions={document.program.constructions} />
       </aside>
 
       <WorkspaceView
         scene={scene}
-        selectedId={selectedId}
-        onSelect={setSelectedId}
+        selectedIds={selectedIds}
+        onSelect={handleSelect}
         onPanBy={camera.moveSceneBy}
       />
     </main>

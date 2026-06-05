@@ -33,6 +33,7 @@ export type CanvasRenderingContext2DLike = {
 
 export type CanvasRendererOptions = Readonly<{
   selectedId?: string;
+  selectedIds?: ReadonlySet<string>;
   hoveredId?: string;
   drawBackground?: boolean;
 }>;
@@ -45,7 +46,7 @@ export function drawSceneToCanvas(
   scene: RenderScene,
   options: CanvasRendererOptions = {},
 ): void {
-  const { selectedId, hoveredId, drawBackground = true } = options;
+  const { selectedId, selectedIds, hoveredId, drawBackground = true } = options;
 
   ctx.save();
 
@@ -69,7 +70,7 @@ export function drawSceneToCanvas(
 
   // 3. Draw items in pre-sorted order (circles -> lines -> points)
   for (const item of scene.items) {
-    const isSelected = item.id === selectedId;
+    const isSelected = selectedIds ? selectedIds.has(item.id) : item.id === selectedId;
     const isHovered = item.id === hoveredId;
 
     if (item.kind === "line") {

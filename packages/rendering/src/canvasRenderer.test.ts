@@ -68,4 +68,24 @@ describe("canvas renderer", () => {
     expect(ctx.fillText).toHaveBeenCalledWith("A", 110, 90); // Label draw
     expect(ctx.restore).toHaveBeenCalled();
   });
+
+  it("applies active styles when items are multi-selected", () => {
+    const ctx = createMockContext();
+    const circleScene: RenderScene = {
+      size: { width: 400, height: 300 },
+      grid: [],
+      items: [
+        {
+          id: "cr-C",
+          kind: "circle",
+          center: { x: 200, y: 200 },
+          radius: 50,
+        },
+      ],
+    };
+    drawSceneToCanvas(ctx, circleScene, { selectedIds: new Set(["cr-C"]) });
+
+    expect(ctx.strokeStyle).toBe("#e3c057"); // THEME.colors.circleActive
+    expect(ctx.lineWidth).toBe(4); // active circle stroke width
+  });
 });

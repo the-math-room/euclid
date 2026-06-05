@@ -29,13 +29,13 @@ function getCanvasProjection(
 
 export function WorkspaceView({
   scene,
-  selectedId,
+  selectedIds,
   onSelect,
   onPanBy,
 }: {
   scene: RenderScene;
-  selectedId: ConstructionId | undefined;
-  onSelect: (id: ConstructionId | undefined) => void;
+  selectedIds: ReadonlySet<ConstructionId>;
+  onSelect: (id: ConstructionId | undefined, modifiers?: { ctrlKey?: boolean; shiftKey?: boolean }) => void;
   onPanBy: (delta: Point2) => void;
 }) {
   const [renderMode, setRenderMode] = useState<"svg" | "canvas">("svg");
@@ -97,8 +97,8 @@ export function WorkspaceView({
     ctx.translate(dx, dy);
     ctx.scale(scale, scale);
 
-    drawSceneToCanvas(ctx, scene, { selectedId, hoveredId });
-  }, [scene, selectedId, hoveredId, dimensions, renderMode]);
+    drawSceneToCanvas(ctx, scene, { selectedIds, hoveredId });
+  }, [scene, selectedIds, hoveredId, dimensions, renderMode]);
 
   // Maps CSS client pixels back to scene space coordinates preserving aspect ratio
   const getSceneCoords = (event: React.PointerEvent<HTMLCanvasElement>): Point2 => {
@@ -132,7 +132,7 @@ export function WorkspaceView({
     const item = findItemAtPosition(scene, coords);
 
     if (item) {
-      onSelect(item.id);
+      onSelect(item.id, { ctrlKey: event.ctrlKey, shiftKey: event.shiftKey });
       setPanDrag(undefined);
     } else {
       setPanDrag({
@@ -261,8 +261,8 @@ export function WorkspaceView({
             <RenderItemView
               key={item.id}
               item={item}
-              selected={item.id === selectedId}
-              onSelect={() => onSelect(item.id)}
+              selected={selectedIds.has(item.id)}
+              onSelect={(modifiers) => onSelect(item.id, modifiers)}
             />
           ))}
         </svg>
@@ -280,7 +280,11 @@ export function WorkspaceView({
             <ul>
               {scene.items.map((item) => (
                 <li key={item.id}>
-                  <button onClick={() => onSelect(item.id)}>
+                  <button
+                    onClick={(event) =>
+                      onSelect(item.id, { ctrlKey: event.ctrlKey, shiftKey: event.shiftKey })
+                    }
+                  >
                     Select {item.kind} {item.kind === "point" ? item.label.text : item.id}
                   </button>
                 </li>
@@ -300,7 +304,7 @@ function RenderItemView({
 }: {
   item: RenderItem;
   selected: boolean;
-  onSelect: () => void;
+  onSelect: (modifiers?: { ctrlKey?: boolean; shiftKey?: boolean }) => void;
 }) {
   const className = selected ? `primitive ${item.kind} selected` : `primitive ${item.kind}`;
   const label = `${item.kind} ${item.kind === "point" ? item.label.text : item.id}`;
@@ -315,7 +319,7 @@ function RenderItemView({
         aria-label={label}
         onClick={(event) => {
           event.stopPropagation();
-          onSelect();
+          onSelect({ ctrlKey: event.ctrlKey, shiftKey: event.shiftKey });
         }}
         onKeyDown={(event) => {
           if (event.key === "Enter" || event.key === " ") {
@@ -346,7 +350,7 @@ function RenderItemView({
         y2={item.to.y}
         onClick={(event) => {
           event.stopPropagation();
-          onSelect();
+          onSelect({ ctrlKey: event.ctrlKey, shiftKey: event.shiftKey });
         }}
         onKeyDown={(event) => {
           if (event.key === "Enter" || event.key === " ") {
@@ -370,7 +374,7 @@ function RenderItemView({
       r={item.radius}
       onClick={(event) => {
         event.stopPropagation();
-        onSelect();
+        onSelect({ ctrlKey: event.ctrlKey, shiftKey: event.shiftKey });
       }}
       onKeyDown={(event) => {
         if (event.key === "Enter" || event.key === " ") {

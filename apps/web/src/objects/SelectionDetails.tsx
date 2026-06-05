@@ -1,13 +1,35 @@
-import type { Construction } from "@euclid/geometry";
+import type { Construction, ConstructionId } from "@euclid/geometry";
 
-export function SelectionDetails({ construction }: { construction: Construction | undefined }) {
+export function SelectionDetails({
+  selectedIds,
+  constructions,
+}: {
+  selectedIds: ReadonlySet<ConstructionId>;
+  constructions: readonly Construction[];
+}) {
+  const selectedConstructions = constructions.filter((c) => selectedIds.has(c.id));
+
   return (
     <section className="details-panel" aria-label="Selected construction">
       <h2>Selection</h2>
-      {construction ? (
-        <ConstructionDetails construction={construction} />
-      ) : (
+      {selectedConstructions.length === 0 ? (
         <p className="empty-selection">No object selected</p>
+      ) : selectedConstructions.length === 1 ? (
+        <ConstructionDetails construction={selectedConstructions[0]} />
+      ) : (
+        <div className="multi-selection-summary">
+          <p className="multi-selection-count">
+            <strong>{selectedConstructions.length}</strong> objects selected
+          </p>
+          <ul className="multi-selection-list">
+            {selectedConstructions.map((c) => (
+              <li key={c.id}>
+                <span>{c.label}</span>
+                <code>{c.kind}</code>
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
     </section>
   );

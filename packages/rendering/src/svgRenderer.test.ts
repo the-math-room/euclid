@@ -66,4 +66,17 @@ describe("svg renderer", () => {
     const svgStr = renderSceneToSvgString(mockScene, { embedStyles: false });
     expect(svgStr).not.toContain("<style>");
   });
+
+  it("handles selected IDs set", () => {
+    const svgStr = renderSceneToSvgString(mockScene, {
+      selectedIds: new Set(["pt-A", "cr-C"]),
+    });
+    expect(svgStr).toContain('<g class="primitive point selected" data-id="pt-A">');
+    expect(svgStr).toContain(
+      '<line class="primitive line" x1="10" y1="10" x2="90" y2="90" data-id="ln-B" />',
+    );
+    expect(svgStr).toContain(
+      '<circle class="primitive circle selected" cx="200" cy="200" r="50" data-id="cr-C" />',
+    );
+  });
 });
