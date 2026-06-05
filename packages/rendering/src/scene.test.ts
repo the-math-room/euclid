@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { evaluateConstruction, type ConstructionProgram } from "@euclid/geometry";
-import { sceneForEvaluation } from "./scene";
+import { defaultScreenViewFor, sceneForEvaluation } from "./scene";
+import { panCamera, rotateCamera, zoomCamera, type ScreenView, type ViewportSize } from "./viewport";
 
 const program: ConstructionProgram = {
   constructions: [
@@ -48,10 +49,7 @@ const program: ConstructionProgram = {
 describe("sceneForEvaluation", () => {
   it("turns evaluated geometry into renderable scene data", () => {
     const evaluation = evaluateConstruction(program);
-    const scene = sceneForEvaluation(evaluation, {
-      size: { width: 920, height: 620 },
-      rotation: { turns: 0 },
-    });
+    const scene = sceneForEvaluation(evaluation, screenViewFor(evaluation, { width: 920, height: 620 }));
 
     expect(scene.size).toEqual({ width: 920, height: 620 });
     expect(scene.grid.length).toBeGreaterThan(0);
@@ -67,10 +65,7 @@ describe("sceneForEvaluation", () => {
 
   it("does not expose geometry primitives as the rendering representation", () => {
     const evaluation = evaluateConstruction(program);
-    const scene = sceneForEvaluation(evaluation, {
-      size: { width: 920, height: 620 },
-      rotation: { turns: 0 },
-    });
+    const scene = sceneForEvaluation(evaluation, screenViewFor(evaluation, { width: 920, height: 620 }));
     const line = scene.items.find((item) => item.kind === "line");
 
     expect(line).toEqual(
@@ -100,13 +95,11 @@ describe("sceneForEvaluation", () => {
         },
       ],
     });
-    const unrotated = sceneForEvaluation(evaluation, {
-      size: { width: 100, height: 100 },
-      rotation: { turns: 0 },
-    });
+    const view = screenViewFor(evaluation, { width: 100, height: 100 });
+    const unrotated = sceneForEvaluation(evaluation, view);
     const rotated = sceneForEvaluation(evaluation, {
-      size: { width: 100, height: 100 },
-      rotation: { turns: 0.25 },
+      ...view,
+      camera: rotateCamera(view.camera, { turns: 0.25 }),
     });
     const unrotatedPoint = pointIn(unrotated, "A");
     const rotatedPoint = pointIn(rotated, "A");
@@ -134,18 +127,74 @@ describe("sceneForEvaluation", () => {
         },
       ],
     });
-    const unrotated = sceneForEvaluation(evaluation, {
-      size: { width: 100, height: 100 },
-      rotation: { turns: 0 },
-    });
+    const view = screenViewFor(evaluation, { width: 100, height: 100 });
+    const unrotated = sceneForEvaluation(evaluation, view);
     const rotated = sceneForEvaluation(evaluation, {
-      size: { width: 100, height: 100 },
-      rotation: { turns: 0.125 },
+      ...view,
+      camera: rotateCamera(view.camera, { turns: 0.125 }),
     });
     const screenCenter = { x: 50, y: 50 };
 
     expect(distance(pointIn(rotated, "A").mark, screenCenter)).toBeCloseTo(
       distance(pointIn(unrotated, "A").mark, screenCenter),
+    );
+  });
+
+  it("pans the camera in screen space", () => {
+    const evaluation = evaluateConstruction({
+      constructions: [
+        {
+          id: "A",
+          kind: "free-point",
+          label: "A",
+          position: { x: 1, y: 0 },
+        },
+        {
+          id: "B",
+          kind: "free-point",
+          label: "B",
+          position: { x: 0, y: 0 },
+        },
+      ],
+    });
+    const view = screenViewFor(evaluation, { width: 100, height: 100 });
+    const unpanned = sceneForEvaluation(evaluation, view);
+    const panned = sceneForEvaluation(evaluation, {
+      ...view,
+      camera: panCamera(view.camera, { x: 12, y: -8 }),
+    });
+
+    expect(pointIn(panned, "A").mark.x - pointIn(unpanned, "A").mark.x).toBe(-12);
+    expect(pointIn(panned, "A").mark.y - pointIn(unpanned, "A").mark.y).toBe(8);
+  });
+
+  it("zooms around the panned screen center", () => {
+    const evaluation = evaluateConstruction({
+      constructions: [
+        {
+          id: "A",
+          kind: "free-point",
+          label: "A",
+          position: { x: 1, y: 0 },
+        },
+        {
+          id: "B",
+          kind: "free-point",
+          label: "B",
+          position: { x: 0, y: 0 },
+        },
+      ],
+    });
+    const view = screenViewFor(evaluation, { width: 100, height: 100 });
+    const base = sceneForEvaluation(evaluation, view);
+    const zoomed = sceneForEvaluation(evaluation, {
+      ...view,
+      camera: zoomCamera(view.camera, 2),
+    });
+    const screenCenter = { x: 50, y: 50 };
+
+    expect(distance(pointIn(zoomed, "A").mark, screenCenter)).toBeCloseTo(
+      distance(pointIn(base, "A").mark, screenCenter) * 2,
     );
   });
 });
@@ -164,4 +213,11 @@ function pointIn(scene: ReturnType<typeof sceneForEvaluation>, id: string): Poin
 
 function distance(a: { x: number; y: number }, b: { x: number; y: number }): number {
   return Math.hypot(a.x - b.x, a.y - b.y);
+}
+
+function screenViewFor(
+  evaluation: Parameters<typeof defaultScreenViewFor>[0],
+  size: ViewportSize,
+): ScreenView {
+  return defaultScreenViewFor(evaluation, size);
 }

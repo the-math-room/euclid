@@ -5,6 +5,7 @@ Owns renderable scene data derived from evaluated geometry.
 ## Owns
 
 - Viewport projection.
+- 2D camera model for pan, zoom, and rotation.
 - Conversion from evaluated primitives to render scene items.
 - Rendering-level tests that are independent from React.
 

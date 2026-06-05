@@ -5,26 +5,35 @@ export type ViewportSize = Readonly<{
   height: number;
 }>;
 
+export type Viewport = Readonly<{
+  size: ViewportSize;
+}>;
+
 export type ViewRotation = Readonly<{
   turns: number;
 }>;
 
-export type ViewTransform = Readonly<{
-  size: ViewportSize;
+export type ViewCamera = Readonly<{
+  center: Point2;
   rotation: ViewRotation;
+  scale: number;
+  screenOffset: Point2;
+}>;
+
+export type ScreenView = Readonly<{
+  viewport: Viewport;
+  camera: ViewCamera;
 }>;
 
 export type WorldFrame = Readonly<{
-  size: ViewportSize;
+  viewport: Viewport;
   center: Point2;
   scale: number;
   rotation: ViewRotation;
+  screenOffset: Point2;
 }>;
 
-export function worldFrameFor(
-  primitives: readonly EvaluatedPrimitive[],
-  transform: ViewTransform,
-): WorldFrame {
+export function fitCameraFor(primitives: readonly EvaluatedPrimitive[], viewport: Viewport): ViewCamera {
   const points = primitives.flatMap(pointsInPrimitive);
   const bounds = boundsOf(points);
   const center = {
@@ -33,13 +42,49 @@ export function worldFrameFor(
   };
   const width = Math.max(bounds.max.x - bounds.min.x, 1);
   const height = Math.max(bounds.max.y - bounds.min.y, 1);
-  const scale = Math.min((transform.size.width * 0.72) / width, (transform.size.height * 0.72) / height);
+  const scale = Math.min((viewport.size.width * 0.72) / width, (viewport.size.height * 0.72) / height);
 
   return {
-    size: transform.size,
     center,
+    rotation: { turns: 0 },
     scale,
-    rotation: transform.rotation,
+    screenOffset: { x: 0, y: 0 },
+  };
+}
+
+export function worldFrameFor(view: ScreenView): WorldFrame {
+  return {
+    viewport: view.viewport,
+    center: view.camera.center,
+    scale: view.camera.scale,
+    rotation: view.camera.rotation,
+    screenOffset: view.camera.screenOffset,
+  };
+}
+
+export function rotateCamera(camera: ViewCamera, rotationDelta: ViewRotation): ViewCamera {
+  return {
+    ...camera,
+    rotation: {
+      turns: normalizeTurns(camera.rotation.turns + rotationDelta.turns),
+    },
+  };
+}
+
+export function zoomCamera(camera: ViewCamera, factor: number): ViewCamera {
+  return {
+    ...camera,
+    scale: camera.scale * factor,
+  };
+}
+
+export function panCamera(camera: ViewCamera, cameraScreenDelta: Point2): ViewCamera {
+  return {
+    ...camera,
+    screenOffset: {
+      x: camera.screenOffset.x - cameraScreenDelta.x,
+      y: camera.screenOffset.y - cameraScreenDelta.y,
+    },
   };
 }
 
@@ -53,8 +98,8 @@ export function projectPoint(frame: WorldFrame, point: Point2): Point2 {
   );
 
   return {
-    x: frame.size.width / 2 + rotated.x * frame.scale,
-    y: frame.size.height / 2 - rotated.y * frame.scale,
+    x: frame.viewport.size.width / 2 + frame.screenOffset.x + rotated.x * frame.scale,
+    y: frame.viewport.size.height / 2 + frame.screenOffset.y - rotated.y * frame.scale,
   };
 }
 
@@ -67,6 +112,20 @@ function rotatePoint(point: Point2, rotation: ViewRotation): Point2 {
     x: point.x * cos - point.y * sin,
     y: point.x * sin + point.y * cos,
   };
+}
+
+function normalizeTurns(turns: number): number {
+  const normalized = turns % 1;
+
+  if (normalized > 0.5) {
+    return normalized - 1;
+  }
+
+  if (normalized < -0.5) {
+    return normalized + 1;
+  }
+
+  return normalized;
 }
 
 function pointsInPrimitive(primitive: EvaluatedPrimitive): readonly Point2[] {

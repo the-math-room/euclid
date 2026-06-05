@@ -26,6 +26,14 @@ Source order is not semantic order. A document is evaluated by its dependency gr
 
 Cross-layer imports use package-style entrypoints such as `@euclid/geometry`.
 
+The rendering layer models the 2D head-on view as a camera:
+
+- **Viewport**: screen extent.
+- **View camera**: world center, rotation, scale, and screen offset.
+- **Screen view**: viewport plus camera.
+
+Pan, zoom, and rotation are camera operations. They are not SVG transform shortcuts and do not alter construction meaning.
+
 The dependency direction is intentionally one-way:
 
 ```text

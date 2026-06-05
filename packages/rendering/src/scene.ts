@@ -1,5 +1,5 @@
 import type { Evaluation, Point2 } from "@euclid/geometry";
-import { projectPoint, type ViewTransform, type ViewportSize, worldFrameFor } from "./viewport";
+import { fitCameraFor, projectPoint, type ScreenView, type ViewportSize, worldFrameFor } from "./viewport";
 
 export type RenderScene = Readonly<{
   size: ViewportSize;
@@ -38,11 +38,20 @@ export type RenderLabel = Readonly<{
   anchor: Point2;
 }>;
 
-export function sceneForEvaluation(evaluation: Evaluation, transform: ViewTransform): RenderScene {
-  const frame = worldFrameFor(evaluation.primitives, transform);
+export function defaultScreenViewFor(evaluation: Evaluation, size: ViewportSize): ScreenView {
+  const viewport = { size };
 
   return {
-    size: transform.size,
+    viewport,
+    camera: fitCameraFor(evaluation.primitives, viewport),
+  };
+}
+
+export function sceneForEvaluation(evaluation: Evaluation, view: ScreenView): RenderScene {
+  const frame = worldFrameFor(view);
+
+  return {
+    size: view.viewport.size,
     grid: gridLinesForFrame(frame),
     items: evaluation.primitives.map((primitive) => {
       if (primitive.kind === "point") {
@@ -65,7 +74,7 @@ export function sceneForEvaluation(evaluation: Evaluation, transform: ViewTransf
       if (primitive.kind === "line") {
         const a = projectPoint(frame, primitive.through[0]);
         const b = projectPoint(frame, primitive.through[1]);
-        const [from, to] = extendLineToViewport(a, b, transform.size);
+        const [from, to] = extendLineToViewport(a, b, view.viewport.size);
 
         return {
           id: primitive.id,
@@ -89,7 +98,7 @@ export function sceneForEvaluation(evaluation: Evaluation, transform: ViewTransf
 }
 
 function gridLinesForFrame(frame: ReturnType<typeof worldFrameFor>): readonly RenderGridLine[] {
-  const worldSpan = Math.hypot(frame.size.width, frame.size.height) / frame.scale;
+  const worldSpan = Math.hypot(frame.viewport.size.width, frame.viewport.size.height) / frame.scale;
   const step = 1;
   const minX = Math.floor((frame.center.x - worldSpan) / step) * step;
   const maxX = Math.ceil((frame.center.x + worldSpan) / step) * step;

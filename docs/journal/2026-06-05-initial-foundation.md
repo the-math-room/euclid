@@ -98,6 +98,15 @@ Added the first view-level interactions:
 
 Rotation lives in `packages/rendering/src` as view interpretation, not in geometry construction meaning.
 
+Promoted pan, zoom, and rotation into an algebraic 2D camera model:
+
+- `Viewport`.
+- `ViewCamera`.
+- `ScreenView`.
+- pure camera operations for pan, zoom, and rotation.
+
+The app shell stores a camera and applies camera operations; rendering interprets evaluated geometry through the camera.
+
 ## Tooling
 
 Added the project development baseline:

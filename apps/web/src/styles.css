@@ -95,7 +95,14 @@ button {
   text-transform: uppercase;
 }
 
-.rotation-control {
+.view-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 12px;
+}
+
+.rotation-control,
+.zoom-control {
   display: grid;
   grid-template-columns: 34px minmax(0, 1fr) 34px;
   gap: 10px;
@@ -120,7 +127,12 @@ button {
   border-color: #e3c057;
 }
 
-.rotation-control label {
+.zoom-control {
+  margin-top: 14px;
+}
+
+.rotation-control label,
+.zoom-control label {
   display: grid;
   gap: 8px;
   color: #aebdba;
@@ -129,7 +141,8 @@ button {
   text-transform: uppercase;
 }
 
-.rotation-control input {
+.rotation-control input,
+.zoom-control input {
   width: 100%;
   accent-color: #e3c057;
 }
@@ -139,6 +152,13 @@ button {
   margin-top: 8px;
   color: #f6f2ec;
   font-size: 0.9rem;
+}
+
+.pan-control {
+  display: grid;
+  grid-template-columns: repeat(4, 34px);
+  gap: 8px;
+  margin-top: 14px;
 }
 
 .inspector h2 {
@@ -249,6 +269,17 @@ button {
 .grid line {
   stroke: #e2ddd3;
   stroke-width: 1;
+  pointer-events: none;
+}
+
+.pan-surface {
+  fill: transparent;
+  cursor: grab;
+  touch-action: none;
+}
+
+.pan-surface:active {
+  cursor: grabbing;
 }
 
 .primitive {
