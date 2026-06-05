@@ -1,4 +1,4 @@
-import type { EvaluatedPrimitive, Point2 } from "./model";
+import type { EvaluatedPrimitive, Point2 } from "../geometry/model";
 
 export type ViewportSize = Readonly<{
   width: number;

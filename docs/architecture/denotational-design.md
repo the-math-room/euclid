@@ -7,11 +7,29 @@ The core distinction:
 - **Syntax**: typed construction records authored by users and tools.
 - **Semantics**: evaluated Euclidean primitives derived from those records.
 - **Dependency graph**: explicit references between construction records.
-- **Presentation**: SVG, canvas, DOM controls, exports, and editor affordances.
+- **Document**: versioned persisted data containing a construction program.
+- **Rendering**: renderable scene data derived from evaluated primitives.
+- **Presentation**: React, SVG, DOM controls, exports, and editor affordances.
 
-React owns interaction and presentation. The geometry core owns meaning.
+React owns composition and presentation. The geometry core owns meaning. Rendering converts evaluated meaning into scene data but does not own construction semantics.
 
 Source order is not semantic order. A document is evaluated by its dependency graph, and invalid graph structure produces diagnostics rather than partial implicit behavior.
+
+## Layer Map
+
+- `src/geometry`: construction syntax, dependency graph, and evaluation semantics.
+- `src/document`: versioned document data and seed/example documents.
+- `src/rendering`: viewport projection and renderable scene descriptions.
+- `src/app`: React components that compose documents, evaluation, rendering, and controls.
+
+The dependency direction is intentionally one-way:
+
+```text
+app -> document -> geometry
+app -> rendering -> geometry
+```
+
+Geometry does not know about documents, rendering, interaction, or React. Rendering does not know about documents or React. Document code does not know about rendering or React.
 
 ## Current Domain
 
@@ -32,6 +50,7 @@ To add a construction:
 3. Add its dependency extraction to `src/geometry/dependencies.ts`.
 4. Implement the meaning in `src/geometry/evaluate.ts`.
 5. Keep invalid dependencies explicit as diagnostics.
-6. Render the new primitive in the UI interpretation.
+6. Add scene conversion in `src/rendering/scene.ts`.
+7. Render the new scene item in `src/app/WorkspaceView.tsx`.
 
 The target style is algebraic and boring: explicit data, explicit cases, no implicit mutation.
