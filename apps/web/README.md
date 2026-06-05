@@ -29,6 +29,10 @@ This app is the imperative shell. It may perform browser effects, but it should 
 - `src/main.tsx`: browser entrypoint.
 - `src/App.tsx`: app composition.
 - `src/WorkspaceView.tsx`: SVG interpretation of render scene data.
+- `src/view/useCameraController.ts`: camera interaction state and shell adapters.
+- `src/view/ViewControls.tsx`: camera controls.
+- `src/objects/ObjectList.tsx`: construction list selection.
+- `src/objects/SelectionDetails.tsx`: selected construction details.
 - `src/styles.css`: app styling.
 
 ## Change Pattern

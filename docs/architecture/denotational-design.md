@@ -34,6 +34,8 @@ The rendering layer models the 2D head-on view as a camera:
 
 Pan, zoom, and rotation are camera operations. They are not SVG transform shortcuts and do not alter construction meaning.
 
+Camera pan commands describe camera motion. Direct manipulation gestures may invert pointer deltas before applying camera motion so the scene follows the pointer.
+
 The dependency direction is intentionally one-way:
 
 ```text

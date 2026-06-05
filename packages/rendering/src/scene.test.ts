@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { evaluateConstruction, type ConstructionProgram } from "@euclid/geometry";
 import { defaultScreenViewFor, sceneForEvaluation } from "./scene";
-import { panCamera, rotateCamera, zoomCamera, type ScreenView, type ViewportSize } from "./viewport";
+import { moveCameraInScreen, rotateCamera, zoomCamera, type ScreenView, type ViewportSize } from "./viewport";
 
 const program: ConstructionProgram = {
   constructions: [
@@ -161,7 +161,7 @@ describe("sceneForEvaluation", () => {
     const unpanned = sceneForEvaluation(evaluation, view);
     const panned = sceneForEvaluation(evaluation, {
       ...view,
-      camera: panCamera(view.camera, { x: 12, y: -8 }),
+      camera: moveCameraInScreen(view.camera, { x: 12, y: -8 }),
     });
 
     expect(pointIn(panned, "A").mark.x - pointIn(unpanned, "A").mark.x).toBe(-12);

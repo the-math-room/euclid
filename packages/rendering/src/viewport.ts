@@ -78,12 +78,12 @@ export function zoomCamera(camera: ViewCamera, factor: number): ViewCamera {
   };
 }
 
-export function panCamera(camera: ViewCamera, cameraScreenDelta: Point2): ViewCamera {
+export function moveCameraInScreen(camera: ViewCamera, screenDelta: Point2): ViewCamera {
   return {
     ...camera,
     screenOffset: {
-      x: camera.screenOffset.x - cameraScreenDelta.x,
-      y: camera.screenOffset.y - cameraScreenDelta.y,
+      x: camera.screenOffset.x - screenDelta.x,
+      y: camera.screenOffset.y - screenDelta.y,
     },
   };
 }

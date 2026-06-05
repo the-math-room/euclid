@@ -107,6 +107,20 @@ Promoted pan, zoom, and rotation into an algebraic 2D camera model:
 
 The app shell stores a camera and applies camera operations; rendering interprets evaluated geometry through the camera.
 
+Clarified camera pan semantics:
+
+- `moveCameraInScreen` describes camera motion.
+- Moving the camera left makes the scene appear to move right.
+- Dragging the scene in the app is direct manipulation, so the app shell negates drag deltas before applying camera motion.
+
+Split the web app shell into focused modules:
+
+- `useCameraController` owns camera interaction state and shell adapters.
+- `ViewControls` renders camera controls.
+- `ObjectList` renders selectable constructions.
+- `SelectionDetails` renders the selected construction inspector.
+- `App` is back to composition instead of owning every handler and panel.
+
 ## Tooling
 
 Added the project development baseline:
