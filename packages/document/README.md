@@ -32,3 +32,26 @@ Functions in this package should be memoizable in theory.
 ## Change Pattern
 
 When changing persistence, keep the document version explicit and add codec tests for accepted and rejected input.
+
+## Instructions for LLM Agents
+
+### 1. Architectural Guardrails (Enforced by Tests)
+
+- **Zero UI/React/External Imports**: This package must NOT import React, DOM, or UI styling/icons libraries.
+- **Pure Functions Only**: Do not use global mutable state or module-level variables. All functions must be deterministic and side-effect free.
+- **No Console Logging**: The use of `console` APIs in production files is prohibited and will cause Vitest architecture checks to fail.
+- **Strict Layering**: May import `@euclid/geometry` but must NOT import `@euclid/rendering` or app packages.
+
+### 2. History & Persistence Boundaries
+
+- **Document History**: Design document state transitions (`DocumentHistory`) as pure functional state wrappers (e.g. `undo`, `redo`, `pushState`, `canUndo`, `canRedo`) in [history.ts](file:///home/johna/Projects/euclid/packages/document/src/history.ts).
+- **History Snapshot Deduplication**: Ensure consecutive identical document states are filtered out when pushing to history to prevent duplicate state history snapshots.
+- **Codec Schema Validation**: Keep document parsing/serialization validation checks defined explicitly in [codec.ts](file:///home/johna/Projects/euclid/packages/document/src/codec.ts).
+
+### 3. Verification Command
+
+Always run the validation suite before finishing:
+
+```bash
+npm run check
+```

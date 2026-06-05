@@ -108,6 +108,7 @@ const forbiddenAmbientNames = new Set([
   "window",
   "document",
   "crypto",
+  "console",
 ]);
 
 const forbiddenAmbientProperties = new Set(["Math.random"]);

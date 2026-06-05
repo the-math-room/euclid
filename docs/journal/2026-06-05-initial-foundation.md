@@ -175,11 +175,32 @@ Results:
 - Vitest passed across evaluator, document, rendering, and architecture guardrails.
 - Production build passed.
 
+## Interactive Operations & Undo/Redo (Later on 2026-06-05)
+
+Implemented interactive drawing capabilities, cascading deletions, multi-renderer alignment, and a pure-functional Undo/Redo history container.
+
+### Dual-View Rendering & Event Handling:
+
+- Added a high-performance **HTML5 Canvas Renderer** parallel to the existing **SVG Renderer**, using common drawing abstractions (`packages/rendering/src/canvasRenderer.ts`).
+- Resolved click interaction edge-cases in SVG mode by lifting event handlers to the outer SVG viewport element and adding `overflow: visible` to prevent edge clipping.
+- Added mouse selection modifiers: `Ctrl+Click` toggles single objects in the selection set, and `Shift+Click` selects ranges of items.
+
+### Add/Delete Interactive Operations:
+
+- Implemented **Add Point** tool.
+- Implemented cascading **Delete Object(s)**. Traverses the dependency graph recursively via a pure `transitiveDependentsOf` helper (`packages/geometry/src/dependencies.ts`) to compute and remove downstream dependent geometry.
+- Added keyboard listener for the `Delete`/`Backspace` keys to trigger selection deletion.
+
+### Undo/Redo Architecture:
+
+- Designed a pure-functional document history snapshot engine in `packages/document/src/history.ts`.
+- Integrated global keyboard listener in the web app for `Ctrl+Z` / `Ctrl+Y` / `Ctrl+Shift+Z` (with macOS Command key adapters).
+- Grouped toolbar controls under **Modes** and **Edit** sub-sections with compact `36x36px` dimensions to prevent sidebar layout overflow.
+
 ## Open Questions
 
 - What should the persistent construction document format look like?
 - How exact should geometry be: floating point, symbolic, algebraic, or hybrid?
 - What interaction model best fits powerful Euclidean construction: modal tools, command palette, direct manipulation, or a command language?
-- How should undo/redo be represented: command log, event log, or document snapshots?
 - How visible should the dependency graph be to users?
 - At what point would React stop helping and start obscuring the core application model?

@@ -1,9 +1,9 @@
-import { Circle, MousePointer2, Ruler, Waypoints } from "lucide-react";
-import { seedDocument } from "@euclid/document";
-import { evaluateConstruction } from "@euclid/geometry";
+import { Circle, MousePointer2, Ruler, Waypoints, Undo2, Redo2, Trash2 } from "lucide-react";
+import { seedDocument, createHistory, pushState, undo, redo, canUndo, canRedo } from "@euclid/document";
+import { evaluateConstruction, deleteConstructions, generateNextPointLabel } from "@euclid/geometry";
 import type { Construction, ConstructionId, Point2 } from "@euclid/geometry";
 import { defaultScreenViewFor, sceneForEvaluation, unprojectPoint, worldFrameFor } from "@euclid/rendering";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect, useCallback } from "react";
 import { ObjectList } from "./objects/ObjectList";
 import { SelectionDetails } from "./objects/SelectionDetails";
 import { useCameraController } from "./view/useCameraController";
@@ -15,32 +15,14 @@ const evaluated = evaluateConstruction(document.program);
 const sceneSize = { width: 920, height: 620 };
 const defaultView = defaultScreenViewFor(evaluated, sceneSize);
 
-function generateNextPointLabel(constructions: readonly Construction[]): string {
-  const existingLabels = new Set(constructions.map((c) => c.label));
-  for (let i = 0; i < 26; i++) {
-    const label = String.fromCharCode(65 + i); // 'A' through 'Z'
-    if (!existingLabels.has(label)) {
-      return label;
-    }
-  }
-  let suffix = 1;
-  while (true) {
-    for (let i = 0; i < 26; i++) {
-      const label = String.fromCharCode(65 + i) + suffix;
-      if (!existingLabels.has(label)) {
-        return label;
-      }
-    }
-    suffix++;
-  }
-}
-
 export function App() {
-  const [program, setProgram] = useState(document.program);
+  const [history, setHistory] = useState(() => createHistory(document.program));
   const [selectedIds, setSelectedIds] = useState<ReadonlySet<ConstructionId>>(new Set());
   const [lastSelectedId, setLastSelectedId] = useState<ConstructionId | undefined>();
   const [activeTool, setActiveTool] = useState<"select" | "point" | "line" | "circle">("select");
   const camera = useCameraController(defaultView);
+
+  const program = history.present;
 
   const currentEvaluated = useMemo(() => evaluateConstruction(program), [program]);
 
@@ -52,6 +34,24 @@ export function App() {
       }),
     [currentEvaluated, camera.camera],
   );
+
+  const updateProgram = useCallback((nextProgram: { constructions: readonly Construction[] }) => {
+    setHistory((prev) => pushState(prev, nextProgram));
+  }, []);
+
+  const handleUndo = useCallback(() => {
+    if (!canUndo(history)) return;
+    setHistory((prev) => undo(prev));
+    setSelectedIds(new Set());
+    setLastSelectedId(undefined);
+  }, [history]);
+
+  const handleRedo = useCallback(() => {
+    if (!canRedo(history)) return;
+    setHistory((prev) => redo(prev));
+    setSelectedIds(new Set());
+    setLastSelectedId(undefined);
+  }, [history]);
 
   const handleSelect = (
     id: ConstructionId | undefined,
@@ -112,13 +112,53 @@ export function App() {
       position: worldPosition,
     };
 
-    setProgram((prev) => ({
-      constructions: [...prev.constructions, newPoint],
-    }));
+    updateProgram({
+      constructions: [...program.constructions, newPoint],
+    });
 
     setSelectedIds(new Set([newPoint.id]));
     setLastSelectedId(newPoint.id);
   };
+
+  const handleDeleteSelected = useCallback(() => {
+    if (selectedIds.size === 0) return;
+    updateProgram({
+      constructions: deleteConstructions(program.constructions, selectedIds),
+    });
+    setSelectedIds(new Set());
+    setLastSelectedId(undefined);
+  }, [selectedIds, program.constructions, updateProgram]);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+      const isMac = navigator.platform.toUpperCase().indexOf("MAC") >= 0;
+      const modifier = isMac ? event.metaKey : event.ctrlKey;
+
+      if (modifier && event.key.toLowerCase() === "z") {
+        event.preventDefault();
+        if (event.shiftKey) {
+          handleRedo();
+        } else {
+          handleUndo();
+        }
+      } else if (
+        (modifier && event.key.toLowerCase() === "y") ||
+        (isMac && modifier && event.shiftKey && event.key.toLowerCase() === "z")
+      ) {
+        event.preventDefault();
+        handleRedo();
+      } else if (event.key === "Delete" || event.key === "Backspace") {
+        handleDeleteSelected();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [handleUndo, handleRedo, handleDeleteSelected]);
 
   return (
     <main className="app-shell">
@@ -131,44 +171,89 @@ export function App() {
           </div>
         </div>
 
-        <nav className="tool-grid" aria-label="Tools">
-          <button
-            type="button"
-            className={`tool-button ${activeTool === "select" ? "active" : ""}`}
-            title="Select"
-            onClick={() => setActiveTool("select")}
-          >
-            <MousePointer2 size={19} aria-hidden />
-          </button>
-          <button
-            type="button"
-            className={`tool-button ${activeTool === "point" ? "active" : ""}`}
-            title="Point"
-            onClick={() => setActiveTool("point")}
-          >
-            <Waypoints size={19} aria-hidden />
-          </button>
-          <button
-            type="button"
-            className={`tool-button ${activeTool === "line" ? "active" : ""}`}
-            title="Line"
-            onClick={() => setActiveTool("line")}
-          >
-            <Ruler size={19} aria-hidden />
-          </button>
-          <button
-            type="button"
-            className={`tool-button ${activeTool === "circle" ? "active" : ""}`}
-            title="Circle"
-            onClick={() => setActiveTool("circle")}
-          >
-            <Circle size={19} aria-hidden />
-          </button>
-        </nav>
+        <div className="toolbar">
+          <div className="toolbar-section">
+            <h2 className="toolbar-label">Modes</h2>
+            <nav className="toolbar-buttons" aria-label="Drawing Modes">
+              <button
+                type="button"
+                className={`tool-button ${activeTool === "select" ? "active" : ""}`}
+                title="Select"
+                onClick={() => setActiveTool("select")}
+              >
+                <MousePointer2 size={16} aria-hidden />
+              </button>
+              <button
+                type="button"
+                className={`tool-button ${activeTool === "point" ? "active" : ""}`}
+                title="Point"
+                onClick={() => setActiveTool("point")}
+              >
+                <Waypoints size={16} aria-hidden />
+              </button>
+              <button
+                type="button"
+                className={`tool-button ${activeTool === "line" ? "active" : ""}`}
+                title="Line"
+                onClick={() => setActiveTool("line")}
+              >
+                <Ruler size={16} aria-hidden />
+              </button>
+              <button
+                type="button"
+                className={`tool-button ${activeTool === "circle" ? "active" : ""}`}
+                title="Circle"
+                onClick={() => setActiveTool("circle")}
+              >
+                <Circle size={16} aria-hidden />
+              </button>
+            </nav>
+          </div>
+
+          <div className="toolbar-section">
+            <h2 className="toolbar-label">Edit</h2>
+            <div className="toolbar-buttons" aria-label="Edit Actions">
+              <button
+                type="button"
+                className="tool-button"
+                onClick={handleUndo}
+                disabled={!canUndo(history)}
+                title="Undo (Ctrl+Z)"
+                aria-label="Undo"
+              >
+                <Undo2 size={16} aria-hidden />
+              </button>
+              <button
+                type="button"
+                className="tool-button"
+                onClick={handleRedo}
+                disabled={!canRedo(history)}
+                title="Redo (Ctrl+Y)"
+                aria-label="Redo"
+              >
+                <Redo2 size={16} aria-hidden />
+              </button>
+              <button
+                type="button"
+                className="tool-button delete-button-toolbar"
+                onClick={handleDeleteSelected}
+                disabled={selectedIds.size === 0}
+                title="Delete Selected (Delete/Backspace)"
+                aria-label="Delete selected objects"
+              >
+                <Trash2 size={16} aria-hidden />
+              </button>
+            </div>
+          </div>
+        </div>
 
         <ViewControls camera={camera} />
         <ObjectList constructions={program.constructions} selectedIds={selectedIds} onSelect={handleSelect} />
-        <SelectionDetails selectedIds={selectedIds} constructions={program.constructions} />
+        <SelectionDetails
+          selectedIds={selectedIds}
+          constructions={program.constructions}
+          onDelete={handleDeleteSelected}
+        />
       </aside>
 
       <WorkspaceView

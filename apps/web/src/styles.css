@@ -62,22 +62,50 @@ button {
   font-size: 0.84rem;
 }
 
-.tool-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 42px);
-  gap: 10px;
+.toolbar {
+  background: #1d292b;
+  border: 1px solid rgb(255 255 255 / 0.06);
+  border-radius: 8px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 14px;
+  margin-bottom: 24px;
+}
+
+.toolbar-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.toolbar-label {
+  margin: 0;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #8ba4a7;
+  letter-spacing: 0.05em;
+}
+
+.toolbar-buttons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .tool-button {
   display: inline-grid;
-  width: 42px;
-  height: 42px;
+  width: 36px;
+  height: 36px;
   place-items: center;
   color: #dfe8e4;
   background: #304347;
   border: 1px solid #486164;
-  border-radius: 7px;
+  border-radius: 6px;
   cursor: pointer;
+  transition: all 0.15s ease;
 }
 
 .tool-button:hover,
@@ -85,6 +113,19 @@ button {
   color: #172026;
   background: #e3c057;
   border-color: #e3c057;
+}
+
+.tool-button:disabled {
+  color: #486164;
+  background: #28373b;
+  border-color: #384b4f;
+  cursor: not-allowed;
+}
+
+.delete-button-toolbar:hover:not(:disabled) {
+  color: #ffffff;
+  background: #dc2626;
+  border-color: #dc2626;
 }
 
 .view-panel h2 {
@@ -125,6 +166,13 @@ button {
   color: #172026;
   background: #e3c057;
   border-color: #e3c057;
+}
+
+.icon-button:disabled {
+  color: #486164;
+  background: #28373b;
+  border-color: #384b4f;
+  cursor: not-allowed;
 }
 
 .zoom-control {
@@ -216,6 +264,25 @@ button {
   font-size: 0.82rem;
   font-weight: 700;
   text-transform: uppercase;
+}
+
+.delete-button {
+  display: inline-grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  color: #aebdba;
+  background: transparent;
+  border: 1px solid rgb(255 255 255 / 0.15);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.delete-button:hover {
+  color: #ff5252;
+  background: rgb(255 82 82 / 0.1);
+  border-color: #ff5252;
 }
 
 .empty-selection {

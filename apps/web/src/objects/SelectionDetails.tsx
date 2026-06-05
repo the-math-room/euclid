@@ -1,17 +1,40 @@
+import { Trash2 } from "lucide-react";
 import type { Construction, ConstructionId } from "@euclid/geometry";
 
 export function SelectionDetails({
   selectedIds,
   constructions,
+  onDelete,
 }: {
   selectedIds: ReadonlySet<ConstructionId>;
   constructions: readonly Construction[];
+  onDelete: () => void;
 }) {
   const selectedConstructions = constructions.filter((c) => selectedIds.has(c.id));
 
   return (
     <section className="details-panel" aria-label="Selected construction">
-      <h2>Selection</h2>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: "12px",
+        }}
+      >
+        <h2 style={{ margin: 0 }}>Selection</h2>
+        {selectedConstructions.length > 0 && (
+          <button
+            type="button"
+            className="delete-button"
+            onClick={onDelete}
+            title="Delete selection (Delete / Backspace)"
+            aria-label="Delete selection"
+          >
+            <Trash2 size={16} />
+          </button>
+        )}
+      </div>
       {selectedConstructions.length === 0 ? (
         <p className="empty-selection">No object selected</p>
       ) : selectedConstructions.length === 1 ? (

@@ -30,3 +30,38 @@ export function dependencyGraphFor(constructions: readonly Construction[]): Depe
     ),
   };
 }
+
+export function transitiveDependentsOf(
+  constructions: readonly Construction[],
+  ids: ReadonlySet<ConstructionId>,
+): ReadonlySet<ConstructionId> {
+  const dependents = new Set<ConstructionId>();
+  const toInspect = Array.from(ids);
+
+  while (toInspect.length > 0) {
+    const currentId = toInspect.pop();
+    if (currentId === undefined) {
+      continue;
+    }
+    for (const construction of constructions) {
+      if (dependents.has(construction.id) || ids.has(construction.id)) {
+        continue;
+      }
+      const deps = dependencyIds(construction);
+      if (deps.includes(currentId)) {
+        dependents.add(construction.id);
+        toInspect.push(construction.id);
+      }
+    }
+  }
+
+  return dependents;
+}
+
+export function deleteConstructions(
+  constructions: readonly Construction[],
+  idsToDelete: ReadonlySet<ConstructionId>,
+): readonly Construction[] {
+  const dependents = transitiveDependentsOf(constructions, idsToDelete);
+  return constructions.filter((c) => !idsToDelete.has(c.id) && !dependents.has(c.id));
+}

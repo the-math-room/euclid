@@ -39,3 +39,26 @@ Direct manipulation in the web app is different: dragging the scene right should
 ## Change Pattern
 
 When adding a new evaluated primitive, add a render scene representation and tests before wiring it into the web app.
+
+## Instructions for LLM Agents
+
+### 1. Architectural Guardrails (Enforced by Tests)
+
+- **Zero React/DOM/UI Imports**: This package must NOT import React, DOM, or Lucide icon libraries.
+- **Pure Functions Only**: Do not use global mutable state or module-level variables. All functions must be deterministic and side-effect free.
+- **No Console Logging**: The use of `console` APIs in production files is prohibited and will cause Vitest architecture checks to fail.
+- **Strict Layering**: May import `@euclid/geometry` but must NOT import `@euclid/document` or app packages.
+
+### 2. Projections & Render-scene Abstractions
+
+- **No UI Coupling**: This package converts geometry primitives to abstract renderable shapes (`SceneItem`). The React component layer handles actual SVG/Canvas DOM rendering.
+- **Dual-View Rendering Support**: Ensure canvas rendering helpers in [canvasRenderer.ts](file:///home/johna/Projects/euclid/packages/rendering/src/canvasRenderer.ts) and SVG render logic remain mathematically aligned.
+- **Camera Math**: Direct panning operations must be handled using the pure algebraic camera functions in [viewport.ts](file:///home/johna/Projects/euclid/packages/rendering/src/viewport.ts).
+
+### 3. Verification Command
+
+Always run the validation suite before finishing:
+
+```bash
+npm run check
+```
