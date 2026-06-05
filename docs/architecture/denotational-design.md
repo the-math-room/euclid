@@ -13,14 +13,18 @@ The core distinction:
 
 React owns composition and presentation. The geometry core owns meaning. Rendering converts evaluated meaning into scene data but does not own construction semantics.
 
+Package-layer functions should be memoizable in theory: their meaning comes from explicit inputs, not ambient effects or hidden mutable module state.
+
 Source order is not semantic order. A document is evaluated by its dependency graph, and invalid graph structure produces diagnostics rather than partial implicit behavior.
 
 ## Layer Map
 
-- `src/geometry`: construction syntax, dependency graph, and evaluation semantics.
-- `src/document`: versioned document data and seed/example documents.
-- `src/rendering`: viewport projection and renderable scene descriptions.
-- `src/app`: React components that compose documents, evaluation, rendering, and controls.
+- `packages/geometry/src`: construction syntax, dependency graph, and evaluation semantics.
+- `packages/document/src`: versioned document data and seed/example documents.
+- `packages/rendering/src`: viewport projection and renderable scene descriptions.
+- `apps/web/src`: React components that compose documents, evaluation, rendering, and controls.
+
+Cross-layer imports use package-style entrypoints such as `@euclid/geometry`.
 
 The dependency direction is intentionally one-way:
 
@@ -45,12 +49,12 @@ This is deliberately small. It gives future construction operations a clear patt
 
 To add a construction:
 
-1. Add a case to `Construction` in `src/geometry/model.ts`.
+1. Add a case to `Construction` in `packages/geometry/src/model.ts`.
 2. Add the evaluated primitive shape if needed.
-3. Add its dependency extraction to `src/geometry/dependencies.ts`.
-4. Implement the meaning in `src/geometry/evaluate.ts`.
+3. Add its dependency extraction to `packages/geometry/src/dependencies.ts`.
+4. Implement the meaning in `packages/geometry/src/evaluate.ts`.
 5. Keep invalid dependencies explicit as diagnostics.
-6. Add scene conversion in `src/rendering/scene.ts`.
-7. Render the new scene item in `src/app/WorkspaceView.tsx`.
+6. Add scene conversion in `packages/rendering/src/scene.ts`.
+7. Render the new scene item in `apps/web/src/WorkspaceView.tsx`.
 
 The target style is algebraic and boring: explicit data, explicit cases, no implicit mutation.

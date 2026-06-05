@@ -43,12 +43,51 @@ Added architecture guardrail tests:
 
 Split the scaffold into clearer layers:
 
-- `src/document` now owns versioned document data and the seed document.
-- `src/rendering` now owns viewport projection and renderable scene descriptions.
-- `src/app` now renders scene data through React/SVG rather than computing primitive projection directly.
-- `src/geometry` no longer contains seed document data or viewport projection code.
+- `packages/document/src` now owns versioned document data and the seed document.
+- `packages/rendering/src` now owns viewport projection and renderable scene descriptions.
+- `apps/web/src` now renders scene data through React/SVG rather than computing primitive projection directly.
+- `packages/geometry/src` no longer contains seed document data or viewport projection code.
 
 Strengthened import-boundary tests so geometry, document, and rendering code keep their dependency directions explicit.
+
+Reshaped the source tree toward a future monorepo/package split without adding workspace tooling yet:
+
+- `apps/web/src`.
+- `packages/geometry/src`.
+- `packages/document/src`.
+- `packages/rendering/src`.
+- `tests/architecture`.
+
+Added package entrypoints at each `packages/*/src/index.ts` so cross-layer imports can begin behaving like package imports.
+
+Added package-style aliases:
+
+- `@euclid/geometry`.
+- `@euclid/document`.
+- `@euclid/rendering`.
+
+Recorded the package-shaped layout in `docs/decisions/0002-package-shaped-layout.md`.
+
+Added a minimal document persistence boundary:
+
+- `serializeEuclidDocument`.
+- `parseEuclidDocument`.
+
+The parser currently validates the document envelope and schema version without introducing a schema dependency.
+
+Added LLM-oriented navigation docs:
+
+- Package READMEs for geometry, document, rendering, and the web app.
+- `docs/llm/REPO_MAP.md` for attention routing.
+- `docs/how-to/add-a-construction.md` as the construction extension checklist.
+
+Refactored architecture boundary tests around a declarative layer policy table so future layer changes are easier to review and extend.
+
+Made the pure-core, imperative-shell boundary explicit:
+
+- Package production code should be memoizable in theory.
+- Browser, DOM, storage, network, time, randomness, and React effects belong in `apps/web/src`.
+- Architecture tests now reject common ambient effects and module-level mutable state in package production code.
 
 ## Tooling
 
@@ -101,7 +140,7 @@ Results:
 - Prettier format check passed.
 - App typecheck passed.
 - Test typecheck passed.
-- Vitest passed with nine tests across evaluator and architecture guardrails.
+- Vitest passed across evaluator, document, rendering, and architecture guardrails.
 - Production build passed.
 
 ## Open Questions

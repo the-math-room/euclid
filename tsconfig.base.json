@@ -10,6 +10,11 @@
     "forceConsistentCasingInFileNames": true,
     "module": "ESNext",
     "moduleResolution": "Bundler",
+    "paths": {
+      "@euclid/document": ["./packages/document/src"],
+      "@euclid/geometry": ["./packages/geometry/src"],
+      "@euclid/rendering": ["./packages/rendering/src"]
+    },
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true

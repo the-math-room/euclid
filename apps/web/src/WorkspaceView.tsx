@@ -1,4 +1,4 @@
-import type { RenderItem, RenderScene } from "../rendering/scene";
+import type { RenderItem, RenderScene } from "@euclid/rendering";
 
 export function WorkspaceView({ scene }: { scene: RenderScene }) {
   return (

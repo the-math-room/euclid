@@ -1,4 +1,4 @@
-import type { Evaluation, Point2 } from "../geometry/model";
+import type { Evaluation, Point2 } from "@euclid/geometry";
 import { projectPoint, type ViewportSize, worldFrameFor } from "./viewport";
 
 export type RenderScene = Readonly<{

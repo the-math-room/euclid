@@ -1,7 +1,7 @@
 import { Circle, MousePointer2, Ruler, Waypoints } from "lucide-react";
-import { seedDocument } from "../document/seed";
-import { evaluateConstruction } from "../geometry/evaluate";
-import { sceneForEvaluation } from "../rendering/scene";
+import { seedDocument } from "@euclid/document";
+import { evaluateConstruction } from "@euclid/geometry";
+import { sceneForEvaluation } from "@euclid/rendering";
 import { WorkspaceView } from "./WorkspaceView";
 
 const document = seedDocument;

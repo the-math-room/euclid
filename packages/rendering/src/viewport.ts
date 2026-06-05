@@ -1,4 +1,4 @@
-import type { EvaluatedPrimitive, Point2 } from "../geometry/model";
+import type { EvaluatedPrimitive, Point2 } from "@euclid/geometry";
 
 export type ViewportSize = Readonly<{
   width: number;

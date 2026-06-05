@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { evaluateConstruction } from "../geometry/evaluate";
-import type { ConstructionProgram } from "../geometry/model";
+import { evaluateConstruction, type ConstructionProgram } from "@euclid/geometry";
 import { sceneForEvaluation } from "./scene";
 
 const program: ConstructionProgram = {

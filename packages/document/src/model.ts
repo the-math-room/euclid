@@ -1,4 +1,4 @@
-import type { ConstructionProgram } from "../geometry/model";
+import type { ConstructionProgram } from "@euclid/geometry";
 
 export type EuclidDocument = Readonly<{
   schemaVersion: 1;

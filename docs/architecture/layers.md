@@ -1,0 +1,80 @@
+# Layer Policy
+
+Euclid is still a single npm project, but the source tree is shaped as if the core layers could become separate packages.
+
+## Current Layout
+
+```text
+apps/web/src
+packages/geometry/src
+packages/document/src
+packages/rendering/src
+tests/architecture
+```
+
+## Dependency Direction
+
+Allowed production dependencies:
+
+```text
+apps/web -> packages/document
+apps/web -> packages/geometry
+apps/web -> packages/rendering
+packages/document -> packages/geometry
+packages/rendering -> packages/geometry
+```
+
+Forbidden dependencies:
+
+```text
+packages/geometry -> packages/document
+packages/geometry -> packages/rendering
+packages/geometry -> apps/web
+packages/document -> packages/rendering
+packages/document -> apps/web
+packages/rendering -> packages/document
+packages/rendering -> apps/web
+```
+
+React and UI libraries belong in `apps/web`, not in package layers.
+
+Package layers are the pure core. Browser and React effects belong in the web app shell. See `docs/architecture/pure-core.md`.
+
+## Test Boundaries
+
+Tests should generally obey the same layer boundaries as production code.
+
+- Geometry tests may import geometry.
+- Document tests may import document and geometry.
+- Rendering tests may import rendering and geometry.
+- App tests may compose app, document, geometry, and rendering.
+- Architecture tests may inspect every layer.
+
+This prevents test fixtures from becoming hidden cross-layer dependencies.
+
+## Future Package Split
+
+Each package has a `src/index.ts` entrypoint. Cross-layer imports should use the target package entrypoint rather than internal files when practical.
+
+Preferred:
+
+```ts
+import { evaluateConstruction } from "@euclid/geometry";
+```
+
+Avoid:
+
+```ts
+import { evaluateConstruction } from "../../geometry/src/evaluate";
+```
+
+This keeps a future move to npm workspaces or separate packages mostly mechanical:
+
+```text
+packages/geometry
+packages/document
+packages/rendering
+apps/web
+```
+
+Do not add package build steps, publishing metadata, or workspace tooling until the boundaries need independent versioning or independent builds.
