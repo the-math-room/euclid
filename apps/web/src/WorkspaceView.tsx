@@ -8,13 +8,46 @@ import {
 import type { ConstructionId, Point2 } from "@euclid/geometry";
 import { useEffect, useRef, useState } from "react";
 
-type PanDrag = Readonly<{
-  pointerId: number;
-  last: Point2;
-  moved: boolean;
+// ---------------------------------------------------------------------------
+// Multi-touch gesture tracking
+// ---------------------------------------------------------------------------
+
+type ActivePointer = Readonly<{
+  id: number;
+  x: number;
+  y: number;
 }>;
 
-// Helper to compute uniform scale and center offset matching SVG viewBox preserveAspectRatio="xMidYMid meet"
+type GestureState = {
+  /** All currently active pointers, keyed by pointerId */
+  pointers: Map<number, ActivePointer>;
+  /** Previous screen position per pointer, for incremental delta computation */
+  lastPos: Map<number, Point2>;
+  /** Screen position at gesture start — used to detect taps vs. drags */
+  dragStartX: number;
+  dragStartY: number;
+  /** Whether the gesture has moved enough to count as a drag (not a tap) */
+  hasMoved: boolean;
+  /** Distance between fingers at the start of a pinch gesture */
+  pinchStartDistance: number;
+  /** Camera zoom at the start of a pinch gesture */
+  pinchStartZoom: number;
+  /** Last midpoint between fingers, used for pan-during-pinch */
+  pinchLastMidpoint: Point2;
+};
+
+function pointerDistance(a: ActivePointer, b: ActivePointer): number {
+  return Math.hypot(a.x - b.x, a.y - b.y);
+}
+
+function pointerMidpoint(a: ActivePointer, b: ActivePointer): Point2 {
+  return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+}
+
+// ---------------------------------------------------------------------------
+// Canvas projection helpers
+// ---------------------------------------------------------------------------
+
 function getCanvasProjection(
   layoutWidth: number,
   layoutHeight: number,
@@ -27,11 +60,30 @@ function getCanvasProjection(
   return { scale, dx, dy };
 }
 
+function clientToSceneCoords(
+  clientX: number,
+  clientY: number,
+  rect: DOMRect,
+  sceneWidth: number,
+  sceneHeight: number,
+): Point2 {
+  const x = clientX - rect.left;
+  const y = clientY - rect.top;
+  const { scale, dx, dy } = getCanvasProjection(rect.width, rect.height, sceneWidth, sceneHeight);
+  return { x: (x - dx) / scale, y: (y - dy) / scale };
+}
+
+// ---------------------------------------------------------------------------
+// WorkspaceView component
+// ---------------------------------------------------------------------------
+
 export function WorkspaceView({
   scene,
   selectedIds,
   onSelect,
   onPanBy,
+  onZoom,
+  currentZoom,
   activeTool,
   onAddPoint,
 }: {
@@ -39,36 +91,50 @@ export function WorkspaceView({
   selectedIds: ReadonlySet<ConstructionId>;
   onSelect: (id: ConstructionId | undefined, modifiers?: { ctrlKey?: boolean; shiftKey?: boolean }) => void;
   onPanBy: (delta: Point2) => void;
+  onZoom: (zoom: number) => void;
+  currentZoom: number;
   activeTool: "select" | "point" | "line" | "circle";
   onAddPoint: (coords: Point2) => void;
 }) {
   const [renderMode, setRenderMode] = useState<"svg" | "canvas">("svg");
-  const [panDrag, setPanDrag] = useState<PanDrag | undefined>();
 
-  // Canvas rendering state & hooks
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const svgRef = useRef<SVGSVGElement>(null);
   const [dimensions, setDimensions] = useState<{ width: number; height: number } | null>(null);
   const [hoveredId, setHoveredId] = useState<ConstructionId | undefined>();
 
-  // Track size changes of the canvas to adjust viewport scale
+  // All gesture state lives in a ref — never causes re-renders
+  const gestureRef = useRef<GestureState>({
+    pointers: new Map(),
+    lastPos: new Map(),
+    dragStartX: 0,
+    dragStartY: 0,
+    hasMoved: false,
+    pinchStartDistance: 0,
+    pinchStartZoom: 1,
+    pinchLastMidpoint: { x: 0, y: 0 },
+  });
+
+  // Keep currentZoom accessible inside event handlers without stale closure
+  const currentZoomRef = useRef(currentZoom);
+  useEffect(() => {
+    currentZoomRef.current = currentZoom;
+  }, [currentZoom]);
+
+  // Track size changes of canvas for DPI-correct rendering
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas || renderMode !== "canvas") return;
-
     const observer = new ResizeObserver((entries) => {
       for (const entry of entries) {
-        setDimensions({
-          width: entry.contentRect.width,
-          height: entry.contentRect.height,
-        });
+        setDimensions({ width: entry.contentRect.width, height: entry.contentRect.height });
       }
     });
-
     observer.observe(canvas);
     return () => observer.disconnect();
   }, [renderMode]);
 
-  // Render the scene onto the canvas context when state/props change
+  // Render scene to canvas
   useEffect(() => {
     const canvas = canvasRef.current;
     if (
@@ -77,21 +143,14 @@ export function WorkspaceView({
       dimensions.width === 0 ||
       dimensions.height === 0 ||
       renderMode !== "canvas"
-    ) {
+    )
       return;
-    }
-
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
-
     const dpr = window.devicePixelRatio || 1;
     canvas.width = dimensions.width * dpr;
     canvas.height = dimensions.height * dpr;
-
-    // Apply high-DPI scaling
     ctx.scale(dpr, dpr);
-
-    // Compute and apply aspect ratio preservation scaling & translation centering
     const { scale, dx, dy } = getCanvasProjection(
       dimensions.width,
       dimensions.height,
@@ -100,109 +159,141 @@ export function WorkspaceView({
     );
     ctx.translate(dx, dy);
     ctx.scale(scale, scale);
-
     drawSceneToCanvas(ctx, scene, { selectedIds, hoveredId });
   }, [scene, selectedIds, hoveredId, dimensions, renderMode]);
 
-  // Maps CSS client pixels back to scene space coordinates preserving aspect ratio
-  const getSceneCoords = (event: { clientX: number; clientY: number }, rect: DOMRect): Point2 => {
-    const clientX = event.clientX - rect.left;
-    const clientY = event.clientY - rect.top;
+  // ---------------------------------------------------------------------------
+  // Unified pointer event handlers — shared by SVG and Canvas
+  // ---------------------------------------------------------------------------
 
-    const { scale, dx, dy } = getCanvasProjection(
-      rect.width,
-      rect.height,
-      scene.size.width,
-      scene.size.height,
+  const onPointerDown = (event: React.PointerEvent<Element>) => {
+    (event.currentTarget as Element & { setPointerCapture?: (id: number) => void }).setPointerCapture?.(
+      event.pointerId,
     );
 
-    return {
-      x: (clientX - dx) / scale,
-      y: (clientY - dy) / scale,
-    };
-  };
+    const g = gestureRef.current;
+    const p: ActivePointer = { id: event.pointerId, x: event.clientX, y: event.clientY };
+    g.pointers.set(event.pointerId, p);
+    g.lastPos.set(event.pointerId, { x: event.clientX, y: event.clientY });
 
-  const handlePointerDown = (event: React.PointerEvent<HTMLCanvasElement>) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    canvas.setPointerCapture(event.pointerId);
-
-    const rect = canvas.getBoundingClientRect();
-    const coords = getSceneCoords(event, rect);
-    const item = findItemAtPosition(scene, coords);
-
-    if (item && activeTool === "select") {
-      onSelect(item.id, { ctrlKey: event.ctrlKey, shiftKey: event.shiftKey });
-      setPanDrag(undefined);
-    } else {
-      setPanDrag({
-        pointerId: event.pointerId,
-        last: { x: event.clientX, y: event.clientY },
-        moved: false,
-      });
+    if (g.pointers.size === 1) {
+      g.dragStartX = event.clientX;
+      g.dragStartY = event.clientY;
+      g.hasMoved = false;
+    } else if (g.pointers.size === 2) {
+      const [a, b] = Array.from(g.pointers.values()) as [ActivePointer, ActivePointer];
+      g.pinchStartDistance = pointerDistance(a, b);
+      g.pinchStartZoom = currentZoomRef.current;
+      g.pinchLastMidpoint = pointerMidpoint(a, b);
+      g.hasMoved = true; // cancel pending tap from finger 1
     }
   };
 
-  const handlePointerMove = (event: React.PointerEvent<HTMLCanvasElement>) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+  const onPointerMove = (event: React.PointerEvent<Element>) => {
+    const g = gestureRef.current;
+    if (!g.pointers.has(event.pointerId)) return;
 
-    if (panDrag && panDrag.pointerId === event.pointerId) {
-      const next = { x: event.clientX, y: event.clientY };
-      const delta = {
-        x: next.x - panDrag.last.x,
-        y: next.y - panDrag.last.y,
+    const prev = g.lastPos.get(event.pointerId);
+    g.pointers.set(event.pointerId, { id: event.pointerId, x: event.clientX, y: event.clientY });
+    g.lastPos.set(event.pointerId, { x: event.clientX, y: event.clientY });
+
+    if (g.pointers.size >= 2) {
+      // --- Pinch: zoom + mid-pan ---
+      const [a, b] = Array.from(g.pointers.values()) as [ActivePointer, ActivePointer];
+      const currentDist = pointerDistance(a, b);
+      const midpoint = pointerMidpoint(a, b);
+
+      const panDelta: Point2 = {
+        x: midpoint.x - g.pinchLastMidpoint.x,
+        y: midpoint.y - g.pinchLastMidpoint.y,
       };
+      if (panDelta.x !== 0 || panDelta.y !== 0) onPanBy(panDelta);
 
-      if (delta.x !== 0 || delta.y !== 0) {
-        onPanBy(delta);
-        setPanDrag({
-          pointerId: panDrag.pointerId,
-          last: next,
-          moved: true,
-        });
+      if (g.pinchStartDistance > 0) {
+        onZoom(g.pinchStartZoom * (currentDist / g.pinchStartDistance));
       }
-    } else {
-      const rect = canvas.getBoundingClientRect();
-      const coords = getSceneCoords(event, rect);
-      const item = findItemAtPosition(scene, coords);
-      if (activeTool === "point") {
-        setHoveredId(undefined);
-        canvas.style.cursor = "crosshair";
-      } else {
-        if (item) {
-          setHoveredId(item.id);
-          canvas.style.cursor = "pointer";
-        } else {
-          setHoveredId(undefined);
-          canvas.style.cursor = "grab";
-        }
-      }
-    }
-  };
 
-  const handlePointerUp = (event: React.PointerEvent<HTMLCanvasElement>) => {
-    if (panDrag?.pointerId === event.pointerId) {
-      if (!panDrag.moved) {
+      g.pinchLastMidpoint = midpoint;
+    } else if (prev) {
+      // --- Single-finger drag: pan ---
+      const dx = event.clientX - prev.x;
+      const dy = event.clientY - prev.y;
+      const totalDist = Math.hypot(event.clientX - g.dragStartX, event.clientY - g.dragStartY);
+      if (totalDist > 4) g.hasMoved = true;
+      if (g.hasMoved && (dx !== 0 || dy !== 0)) onPanBy({ x: dx, y: dy });
+
+      // Mouse-only: update hover highlight on canvas
+      if (event.pointerType === "mouse" && renderMode === "canvas") {
         const canvas = canvasRef.current;
         if (canvas) {
           const rect = canvas.getBoundingClientRect();
-          const coords = getSceneCoords(event, rect);
+          const coords = clientToSceneCoords(
+            event.clientX,
+            event.clientY,
+            rect,
+            scene.size.width,
+            scene.size.height,
+          );
+          const item = findItemAtPosition(scene, coords);
           if (activeTool === "point") {
-            onAddPoint(coords);
+            setHoveredId(undefined);
+            canvas.style.cursor = "crosshair";
           } else {
-            onSelect(undefined);
+            setHoveredId(item?.id);
+            canvas.style.cursor = item ? "pointer" : "grab";
           }
         }
       }
-      setPanDrag(undefined);
     }
   };
 
-  const handlePointerCancel = () => {
-    setPanDrag(undefined);
+  const onPointerUp = (event: React.PointerEvent<Element>) => {
+    const g = gestureRef.current;
+    const wasOnlyPointer = g.pointers.size === 1;
+    const wasTap = !g.hasMoved;
+
+    g.pointers.delete(event.pointerId);
+    g.lastPos.delete(event.pointerId);
+
+    if (wasOnlyPointer && wasTap) {
+      // Tap: identify coordinates against the correct coordinate space
+      const el = event.currentTarget as Element;
+      const rect = el.getBoundingClientRect();
+      const coords = clientToSceneCoords(
+        event.clientX,
+        event.clientY,
+        rect,
+        scene.size.width,
+        scene.size.height,
+      );
+
+      if (activeTool === "point") {
+        onAddPoint(coords);
+      } else {
+        const item = findItemAtPosition(scene, coords);
+        if (item) {
+          onSelect(item.id, { ctrlKey: event.ctrlKey, shiftKey: event.shiftKey });
+        } else {
+          onSelect(undefined);
+        }
+      }
+    }
+
+    // Transitioning from 2-finger to 1-finger: reset drag origin
+    if (g.pointers.size === 1) {
+      const remaining = Array.from(g.pointers.values())[0];
+      g.dragStartX = remaining.x;
+      g.dragStartY = remaining.y;
+      g.hasMoved = false;
+    }
   };
+
+  const onPointerCancel = (event: React.PointerEvent<Element>) => {
+    gestureRef.current.pointers.delete(event.pointerId);
+    gestureRef.current.lastPos.delete(event.pointerId);
+  };
+
+  const sharedPointerProps = { onPointerDown, onPointerMove, onPointerUp, onPointerCancel };
 
   return (
     <section className="workspace" aria-label="Euclidean construction workspace">
@@ -226,52 +317,12 @@ export function WorkspaceView({
       <div className="workspace-viewport">
         {renderMode === "svg" ? (
           <svg
+            ref={svgRef}
             className={`workspace-svg ${activeTool === "point" ? "tool-point" : ""}`}
             viewBox={`0 0 ${scene.size.width} ${scene.size.height}`}
             role="img"
             aria-label="Seed Euclidean construction (SVG)"
-            onPointerDown={(event) => {
-              event.currentTarget.setPointerCapture(event.pointerId);
-              setPanDrag({
-                pointerId: event.pointerId,
-                last: { x: event.clientX, y: event.clientY },
-                moved: false,
-              });
-            }}
-            onPointerMove={(event) => {
-              if (!panDrag || panDrag.pointerId !== event.pointerId) {
-                return;
-              }
-
-              const next = { x: event.clientX, y: event.clientY };
-              const delta = {
-                x: next.x - panDrag.last.x,
-                y: next.y - panDrag.last.y,
-              };
-
-              if (delta.x !== 0 || delta.y !== 0) {
-                onPanBy(delta);
-                setPanDrag({
-                  pointerId: panDrag.pointerId,
-                  last: next,
-                  moved: true,
-                });
-              }
-            }}
-            onPointerUp={(event) => {
-              if (panDrag?.pointerId === event.pointerId && !panDrag.moved) {
-                if (activeTool === "point") {
-                  const rect = event.currentTarget.getBoundingClientRect();
-                  const coords = getSceneCoords(event, rect);
-                  onAddPoint(coords);
-                } else {
-                  onSelect(undefined);
-                }
-              }
-
-              setPanDrag(undefined);
-            }}
-            onPointerCancel={() => setPanDrag(undefined)}
+            {...sharedPointerProps}
           >
             <style dangerouslySetInnerHTML={{ __html: SVG_THEME_STYLES }} />
             <rect className="pan-surface" width={scene.size.width} height={scene.size.height} />
@@ -290,14 +341,7 @@ export function WorkspaceView({
             ))}
           </svg>
         ) : (
-          <canvas
-            ref={canvasRef}
-            aria-label="Seed Euclidean construction (Canvas)"
-            onPointerDown={handlePointerDown}
-            onPointerMove={handlePointerMove}
-            onPointerUp={handlePointerUp}
-            onPointerCancel={handlePointerCancel}
-          >
+          <canvas ref={canvasRef} aria-label="Seed Euclidean construction (Canvas)" {...sharedPointerProps}>
             <div style={{ display: "none" }}>
               <h3>Geometric Constructions</h3>
               <ul>
@@ -333,27 +377,37 @@ function RenderItemView({
   const className = selected ? `primitive ${item.kind} selected` : `primitive ${item.kind}`;
   const label = `${item.kind} ${item.kind === "point" ? item.label.text : item.id}`;
 
+  // Stop propagation on pointer events so item taps don't bubble to the SVG/canvas
+  // background handler (which would misinterpret them as background taps).
+  const stopProp = (e: React.PointerEvent) => e.stopPropagation();
+  const handlePointerUp = (e: React.PointerEvent) => {
+    e.stopPropagation();
+    onSelect({ ctrlKey: e.ctrlKey, shiftKey: e.shiftKey });
+  };
+
+  const sharedProps = {
+    className,
+    role: "button" as const,
+    tabIndex: 0,
+    "aria-pressed": selected,
+    "aria-label": label,
+    onClick: (e: React.MouseEvent) => {
+      e.stopPropagation();
+      onSelect({ ctrlKey: e.ctrlKey, shiftKey: e.shiftKey });
+    },
+    onKeyDown: (e: React.KeyboardEvent) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        onSelect();
+      }
+    },
+    onPointerDown: stopProp,
+    onPointerUp: handlePointerUp,
+  };
+
   if (item.kind === "point") {
     return (
-      <g
-        className={className}
-        role="button"
-        tabIndex={0}
-        aria-pressed={selected}
-        aria-label={label}
-        onClick={(event) => {
-          event.stopPropagation();
-          onSelect({ ctrlKey: event.ctrlKey, shiftKey: event.shiftKey });
-        }}
-        onKeyDown={(event) => {
-          if (event.key === "Enter" || event.key === " ") {
-            event.preventDefault();
-            onSelect();
-          }
-        }}
-        onPointerDown={(event) => event.stopPropagation()}
-        onPointerUp={(event) => event.stopPropagation()}
-      >
+      <g {...sharedProps}>
         <circle cx={item.mark.x} cy={item.mark.y} r="5" />
         <text x={item.label.anchor.x} y={item.label.anchor.y}>
           {item.label.text}
@@ -363,57 +417,10 @@ function RenderItemView({
   }
 
   if (item.kind === "line") {
-    return (
-      <line
-        className={className}
-        role="button"
-        tabIndex={0}
-        aria-pressed={selected}
-        aria-label={label}
-        x1={item.from.x}
-        y1={item.from.y}
-        x2={item.to.x}
-        y2={item.to.y}
-        onClick={(event) => {
-          event.stopPropagation();
-          onSelect({ ctrlKey: event.ctrlKey, shiftKey: event.shiftKey });
-        }}
-        onKeyDown={(event) => {
-          if (event.key === "Enter" || event.key === " ") {
-            event.preventDefault();
-            onSelect();
-          }
-        }}
-        onPointerDown={(event) => event.stopPropagation()}
-        onPointerUp={(event) => event.stopPropagation()}
-      />
-    );
+    return <line {...sharedProps} x1={item.from.x} y1={item.from.y} x2={item.to.x} y2={item.to.y} />;
   }
 
-  return (
-    <circle
-      className={className}
-      role="button"
-      tabIndex={0}
-      aria-pressed={selected}
-      aria-label={label}
-      cx={item.center.x}
-      cy={item.center.y}
-      r={item.radius}
-      onClick={(event) => {
-        event.stopPropagation();
-        onSelect({ ctrlKey: event.ctrlKey, shiftKey: event.shiftKey });
-      }}
-      onKeyDown={(event) => {
-        if (event.key === "Enter" || event.key === " ") {
-          event.preventDefault();
-          onSelect();
-        }
-      }}
-      onPointerDown={(event) => event.stopPropagation()}
-      onPointerUp={(event) => event.stopPropagation()}
-    />
-  );
+  return <circle {...sharedProps} cx={item.center.x} cy={item.center.y} r={item.radius} />;
 }
 
 function Grid({ lines }: { lines: RenderScene["grid"] }) {

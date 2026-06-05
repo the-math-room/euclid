@@ -261,6 +261,8 @@ export function App() {
         selectedIds={selectedIds}
         onSelect={handleSelect}
         onPanBy={camera.moveSceneBy}
+        onZoom={camera.setZoom}
+        currentZoom={camera.zoom}
         activeTool={activeTool}
         onAddPoint={handleAddPoint}
       />
