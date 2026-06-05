@@ -256,16 +256,28 @@ button {
   background: linear-gradient(90deg, rgb(35 50 53 / 0.05), transparent 30%), #f4f1ea;
 }
 
-.workspace svg,
-.workspace canvas {
+.workspace-viewport {
+  position: relative;
   display: block;
   width: 100%;
-  height: calc(100vh - 40px);
+  height: calc(100vh - 100px);
   min-height: 420px;
   background: #fbfaf6;
   border: 1px solid #d8d2c6;
   border-radius: 8px;
   box-shadow: 0 4px 12px rgb(0 0 0 / 0.05);
+  overflow: hidden;
+}
+
+.workspace-viewport svg,
+.workspace-viewport canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.workspace-svg {
+  overflow: visible;
 }
 
 .renderer-toggle {
@@ -378,8 +390,12 @@ button {
     padding: 12px;
   }
 
-  .workspace svg,
-  .workspace canvas {
+  .workspace-viewport {
     height: 68vh;
   }
+}
+
+.workspace-svg.tool-point,
+.workspace-svg.tool-point .pan-surface {
+  cursor: crosshair;
 }

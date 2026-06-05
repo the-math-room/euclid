@@ -32,11 +32,15 @@ export function WorkspaceView({
   selectedIds,
   onSelect,
   onPanBy,
+  activeTool,
+  onAddPoint,
 }: {
   scene: RenderScene;
   selectedIds: ReadonlySet<ConstructionId>;
   onSelect: (id: ConstructionId | undefined, modifiers?: { ctrlKey?: boolean; shiftKey?: boolean }) => void;
   onPanBy: (delta: Point2) => void;
+  activeTool: "select" | "point" | "line" | "circle";
+  onAddPoint: (coords: Point2) => void;
 }) {
   const [renderMode, setRenderMode] = useState<"svg" | "canvas">("svg");
   const [panDrag, setPanDrag] = useState<PanDrag | undefined>();
@@ -101,11 +105,7 @@ export function WorkspaceView({
   }, [scene, selectedIds, hoveredId, dimensions, renderMode]);
 
   // Maps CSS client pixels back to scene space coordinates preserving aspect ratio
-  const getSceneCoords = (event: React.PointerEvent<HTMLCanvasElement>): Point2 => {
-    const canvas = canvasRef.current;
-    if (!canvas) return { x: 0, y: 0 };
-
-    const rect = canvas.getBoundingClientRect();
+  const getSceneCoords = (event: { clientX: number; clientY: number }, rect: DOMRect): Point2 => {
     const clientX = event.clientX - rect.left;
     const clientY = event.clientY - rect.top;
 
@@ -128,10 +128,11 @@ export function WorkspaceView({
 
     canvas.setPointerCapture(event.pointerId);
 
-    const coords = getSceneCoords(event);
+    const rect = canvas.getBoundingClientRect();
+    const coords = getSceneCoords(event, rect);
     const item = findItemAtPosition(scene, coords);
 
-    if (item) {
+    if (item && activeTool === "select") {
       onSelect(item.id, { ctrlKey: event.ctrlKey, shiftKey: event.shiftKey });
       setPanDrag(undefined);
     } else {
@@ -163,14 +164,20 @@ export function WorkspaceView({
         });
       }
     } else {
-      const coords = getSceneCoords(event);
+      const rect = canvas.getBoundingClientRect();
+      const coords = getSceneCoords(event, rect);
       const item = findItemAtPosition(scene, coords);
-      if (item) {
-        setHoveredId(item.id);
-        canvas.style.cursor = "pointer";
-      } else {
+      if (activeTool === "point") {
         setHoveredId(undefined);
-        canvas.style.cursor = "grab";
+        canvas.style.cursor = "crosshair";
+      } else {
+        if (item) {
+          setHoveredId(item.id);
+          canvas.style.cursor = "pointer";
+        } else {
+          setHoveredId(undefined);
+          canvas.style.cursor = "grab";
+        }
       }
     }
   };
@@ -178,7 +185,16 @@ export function WorkspaceView({
   const handlePointerUp = (event: React.PointerEvent<HTMLCanvasElement>) => {
     if (panDrag?.pointerId === event.pointerId) {
       if (!panDrag.moved) {
-        onSelect(undefined);
+        const canvas = canvasRef.current;
+        if (canvas) {
+          const rect = canvas.getBoundingClientRect();
+          const coords = getSceneCoords(event, rect);
+          if (activeTool === "point") {
+            onAddPoint(coords);
+          } else {
+            onSelect(undefined);
+          }
+        }
       }
       setPanDrag(undefined);
     }
@@ -207,18 +223,13 @@ export function WorkspaceView({
         </button>
       </div>
 
-      {renderMode === "svg" ? (
-        <svg
-          className="workspace-svg"
-          viewBox={`0 0 ${scene.size.width} ${scene.size.height}`}
-          role="img"
-          aria-label="Seed Euclidean construction (SVG)"
-        >
-          <style dangerouslySetInnerHTML={{ __html: SVG_THEME_STYLES }} />
-          <rect
-            className="pan-surface"
-            width={scene.size.width}
-            height={scene.size.height}
+      <div className="workspace-viewport">
+        {renderMode === "svg" ? (
+          <svg
+            className={`workspace-svg ${activeTool === "point" ? "tool-point" : ""}`}
+            viewBox={`0 0 ${scene.size.width} ${scene.size.height}`}
+            role="img"
+            aria-label="Seed Euclidean construction (SVG)"
             onPointerDown={(event) => {
               event.currentTarget.setPointerCapture(event.pointerId);
               setPanDrag({
@@ -249,50 +260,63 @@ export function WorkspaceView({
             }}
             onPointerUp={(event) => {
               if (panDrag?.pointerId === event.pointerId && !panDrag.moved) {
-                onSelect(undefined);
+                if (activeTool === "point") {
+                  const rect = event.currentTarget.getBoundingClientRect();
+                  const coords = getSceneCoords(event, rect);
+                  onAddPoint(coords);
+                } else {
+                  onSelect(undefined);
+                }
               }
 
               setPanDrag(undefined);
             }}
             onPointerCancel={() => setPanDrag(undefined)}
-          />
-          <Grid lines={scene.grid} />
-          {scene.items.map((item) => (
-            <RenderItemView
-              key={item.id}
-              item={item}
-              selected={selectedIds.has(item.id)}
-              onSelect={(modifiers) => onSelect(item.id, modifiers)}
-            />
-          ))}
-        </svg>
-      ) : (
-        <canvas
-          ref={canvasRef}
-          aria-label="Seed Euclidean construction (Canvas)"
-          onPointerDown={handlePointerDown}
-          onPointerMove={handlePointerMove}
-          onPointerUp={handlePointerUp}
-          onPointerCancel={handlePointerCancel}
-        >
-          <div style={{ display: "none" }}>
-            <h3>Geometric Constructions</h3>
-            <ul>
-              {scene.items.map((item) => (
-                <li key={item.id}>
-                  <button
-                    onClick={(event) =>
-                      onSelect(item.id, { ctrlKey: event.ctrlKey, shiftKey: event.shiftKey })
-                    }
-                  >
-                    Select {item.kind} {item.kind === "point" ? item.label.text : item.id}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </canvas>
-      )}
+          >
+            <style dangerouslySetInnerHTML={{ __html: SVG_THEME_STYLES }} />
+            <rect className="pan-surface" width={scene.size.width} height={scene.size.height} />
+            <Grid lines={scene.grid} />
+            {scene.items.map((item) => (
+              <RenderItemView
+                key={item.id}
+                item={item}
+                selected={selectedIds.has(item.id)}
+                onSelect={(modifiers) => {
+                  if (activeTool === "select") {
+                    onSelect(item.id, modifiers);
+                  }
+                }}
+              />
+            ))}
+          </svg>
+        ) : (
+          <canvas
+            ref={canvasRef}
+            aria-label="Seed Euclidean construction (Canvas)"
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
+            onPointerCancel={handlePointerCancel}
+          >
+            <div style={{ display: "none" }}>
+              <h3>Geometric Constructions</h3>
+              <ul>
+                {scene.items.map((item) => (
+                  <li key={item.id}>
+                    <button
+                      onClick={(event) =>
+                        onSelect(item.id, { ctrlKey: event.ctrlKey, shiftKey: event.shiftKey })
+                      }
+                    >
+                      Select {item.kind} {item.kind === "point" ? item.label.text : item.id}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </canvas>
+        )}
+      </div>
     </section>
   );
 }
@@ -327,6 +351,8 @@ function RenderItemView({
             onSelect();
           }
         }}
+        onPointerDown={(event) => event.stopPropagation()}
+        onPointerUp={(event) => event.stopPropagation()}
       >
         <circle cx={item.mark.x} cy={item.mark.y} r="5" />
         <text x={item.label.anchor.x} y={item.label.anchor.y}>
@@ -358,6 +384,8 @@ function RenderItemView({
             onSelect();
           }
         }}
+        onPointerDown={(event) => event.stopPropagation()}
+        onPointerUp={(event) => event.stopPropagation()}
       />
     );
   }
@@ -382,6 +410,8 @@ function RenderItemView({
           onSelect();
         }
       }}
+      onPointerDown={(event) => event.stopPropagation()}
+      onPointerUp={(event) => event.stopPropagation()}
     />
   );
 }

@@ -1,6 +1,15 @@
 import { describe, expect, it } from "vitest";
 import type { EvaluatedPrimitive } from "@euclid/geometry";
-import { fitCameraFor, moveCameraInScreen, rotateCamera, zoomCamera, type ViewCamera } from "./viewport";
+import {
+  fitCameraFor,
+  moveCameraInScreen,
+  rotateCamera,
+  zoomCamera,
+  projectPoint,
+  unprojectPoint,
+  worldFrameFor,
+  type ViewCamera,
+} from "./viewport";
 
 const camera: ViewCamera = {
   center: { x: 1, y: 2 },
@@ -53,5 +62,24 @@ describe("camera operations", () => {
       scale: 18,
       screenOffset: { x: 0, y: 0 },
     });
+  });
+
+  it("projects and unprojects points correctly (round-trips)", () => {
+    const frame = worldFrameFor({
+      viewport: { size: { width: 100, height: 100 } },
+      camera: {
+        center: { x: 5, y: 10 },
+        rotation: { turns: 0.125 }, // 45 degrees
+        scale: 4,
+        screenOffset: { x: 2, y: -3 },
+      },
+    });
+
+    const originalPoint = { x: 12, y: -4 };
+    const projected = projectPoint(frame, originalPoint);
+    const unprojected = unprojectPoint(frame, projected);
+
+    expect(unprojected.x).toBeCloseTo(originalPoint.x);
+    expect(unprojected.y).toBeCloseTo(originalPoint.y);
   });
 });

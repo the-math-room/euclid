@@ -103,6 +103,18 @@ export function projectPoint(frame: WorldFrame, point: Point2): Point2 {
   };
 }
 
+export function unprojectPoint(frame: WorldFrame, screenPoint: Point2): Point2 {
+  const rotatedX = (screenPoint.x - frame.viewport.size.width / 2 - frame.screenOffset.x) / frame.scale;
+  const rotatedY = -(screenPoint.y - frame.viewport.size.height / 2 - frame.screenOffset.y) / frame.scale;
+
+  const unrotated = rotatePoint({ x: rotatedX, y: rotatedY }, { turns: -frame.rotation.turns });
+
+  return {
+    x: unrotated.x + frame.center.x,
+    y: unrotated.y + frame.center.y,
+  };
+}
+
 function rotatePoint(point: Point2, rotation: ViewRotation): Point2 {
   const radians = rotation.turns * Math.PI * 2;
   const cos = Math.cos(radians);
