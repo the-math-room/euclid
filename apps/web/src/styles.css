@@ -256,7 +256,8 @@ button {
   background: linear-gradient(90deg, rgb(35 50 53 / 0.05), transparent 30%), #f4f1ea;
 }
 
-.workspace svg {
+.workspace svg,
+.workspace canvas {
   display: block;
   width: 100%;
   height: calc(100vh - 40px);
@@ -264,6 +265,41 @@ button {
   background: #fbfaf6;
   border: 1px solid #d8d2c6;
   border-radius: 8px;
+  box-shadow: 0 4px 12px rgb(0 0 0 / 0.05);
+}
+
+.renderer-toggle {
+  display: flex;
+  gap: 4px;
+  background: #e5dfd2;
+  padding: 4px;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  width: fit-content;
+  border: 1px solid #d8d2c6;
+}
+
+.renderer-toggle button {
+  border: 0;
+  background: transparent;
+  padding: 6px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #2e3d40; /* Darker text for higher contrast in inactive state */
+  transition: all 0.2s ease;
+}
+
+.renderer-toggle button:hover {
+  color: #172026;
+  background: rgba(255, 255, 255, 0.4); /* Premium subtle white pill highlight */
+}
+
+.renderer-toggle button.active {
+  background: #233235;
+  color: #f6f2ec;
+  box-shadow: 0 2px 4px rgb(0 0 0 / 0.1);
 }
 
 .grid line {
@@ -282,59 +318,6 @@ button {
   cursor: grabbing;
 }
 
-.primitive {
-  cursor: pointer;
-  outline: none;
-}
-
-.primitive.line {
-  stroke: #246a73;
-  stroke-width: 2.5;
-  pointer-events: stroke;
-}
-
-.primitive.circle {
-  fill: none;
-  stroke: #ba4a3a;
-  stroke-width: 2.5;
-  pointer-events: stroke;
-}
-
-.primitive.point circle {
-  fill: #172026;
-  stroke: #e3c057;
-  stroke-width: 2.5;
-}
-
-.primitive.point text {
-  fill: #172026;
-  font-size: 18px;
-  font-weight: 720;
-  paint-order: stroke;
-  stroke: #fbfaf6;
-  stroke-width: 5px;
-  pointer-events: none;
-}
-
-.primitive.selected.line,
-.primitive.line:focus-visible {
-  stroke: #e3c057;
-  stroke-width: 4;
-}
-
-.primitive.selected.circle,
-.primitive.circle:focus-visible {
-  stroke: #e3c057;
-  stroke-width: 4;
-}
-
-.primitive.selected.point circle,
-.primitive.point:focus-visible circle {
-  fill: #e3c057;
-  stroke: #172026;
-  stroke-width: 3;
-}
-
 @media (max-width: 720px) {
   .app-shell {
     grid-template-columns: 1fr;
@@ -349,7 +332,8 @@ button {
     padding: 12px;
   }
 
-  .workspace svg {
+  .workspace svg,
+  .workspace canvas {
     height: 68vh;
   }
 }

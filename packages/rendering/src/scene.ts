@@ -50,50 +50,51 @@ export function defaultScreenViewFor(evaluation: Evaluation, size: ViewportSize)
 export function sceneForEvaluation(evaluation: Evaluation, view: ScreenView): RenderScene {
   const frame = worldFrameFor(view);
 
-  return {
-    size: view.viewport.size,
-    grid: gridLinesForFrame(frame),
-    items: evaluation.primitives.map((primitive) => {
-      if (primitive.kind === "point") {
-        const mark = projectPoint(frame, primitive.position);
+  const circles: RenderItem[] = [];
+  const lines: RenderItem[] = [];
+  const points: RenderItem[] = [];
 
-        return {
-          id: primitive.id,
-          kind: "point",
-          mark,
-          label: {
-            text: primitive.label,
-            anchor: {
-              x: mark.x + 10,
-              y: mark.y - 10,
-            },
+  for (const primitive of evaluation.primitives) {
+    if (primitive.kind === "point") {
+      const mark = projectPoint(frame, primitive.position);
+      points.push({
+        id: primitive.id,
+        kind: "point",
+        mark,
+        label: {
+          text: primitive.label,
+          anchor: {
+            x: mark.x + 10,
+            y: mark.y - 10,
           },
-        };
-      }
-
-      if (primitive.kind === "line") {
-        const a = projectPoint(frame, primitive.through[0]);
-        const b = projectPoint(frame, primitive.through[1]);
-        const [from, to] = extendLineToViewport(a, b, view.viewport.size);
-
-        return {
-          id: primitive.id,
-          kind: "line",
-          from,
-          to,
-        };
-      }
-
+        },
+      });
+    } else if (primitive.kind === "line") {
+      const a = projectPoint(frame, primitive.through[0]);
+      const b = projectPoint(frame, primitive.through[1]);
+      const [from, to] = extendLineToViewport(a, b, view.viewport.size);
+      lines.push({
+        id: primitive.id,
+        kind: "line",
+        from,
+        to,
+      });
+    } else if (primitive.kind === "circle") {
       const center = projectPoint(frame, primitive.center);
       const edge = projectPoint(frame, primitive.pointOnCircle);
-
-      return {
+      circles.push({
         id: primitive.id,
         kind: "circle",
         center,
         radius: distance(center, edge),
-      };
-    }),
+      });
+    }
+  }
+
+  return {
+    size: view.viewport.size,
+    grid: gridLinesForFrame(frame),
+    items: [...circles, ...lines, ...points],
   };
 }
 

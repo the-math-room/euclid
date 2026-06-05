@@ -54,12 +54,12 @@ describe("sceneForEvaluation", () => {
     expect(scene.size).toEqual({ width: 920, height: 620 });
     expect(scene.grid.length).toBeGreaterThan(0);
     expect(scene.items.map((item) => item.kind)).toEqual([
-      "point",
-      "point",
-      "point",
+      "circle",
+      "circle",
       "line",
-      "circle",
-      "circle",
+      "point",
+      "point",
+      "point",
     ]);
   });
 
