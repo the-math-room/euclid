@@ -32,6 +32,14 @@ The dependency and meaning helpers inspect construction syntax and evaluated mea
 
 The `requires*` helpers are reference predicate factories. They return structured pass/fail results with codes, messages, and evidence, so hosts can compose Euclid's defaults or substitute their own assessment policy.
 
+Added `packages/assessment/src/goals.ts` with:
+
+- `AssessmentGoal`
+- `predicateForGoal`
+- `evaluateGoal`
+
+`AssessmentGoal` is a serializable discriminated union for curriculum-authored checks. It can express primitive checks and `all` / `any` compositions, then compile into the predicate interface.
+
 ## Why
 
 This is the first code-level step toward the headless edTech SDK direction. Assessment is intentionally separate from geometry meaning: a learning platform can use this reference package or provide its own assessment engine over `@euclid/geometry` data.

@@ -8,6 +8,7 @@ Start here:
 
 - `packages/assessment/README.md`
 - `packages/assessment/src/assessment.ts`
+- `packages/assessment/src/goals.ts`
 
 Run or update:
 

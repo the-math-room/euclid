@@ -54,6 +54,7 @@ The first assessment surface belongs in `@euclid/assessment` and should stay hea
 - exact meaning checks
 - realized incidence predicates that explicitly fail when primitives are unrealized
 - a predicate/result interface that hosts can compose or replace
+- serializable goal specs for curriculum-authored checks
 
 ## Defer
 
