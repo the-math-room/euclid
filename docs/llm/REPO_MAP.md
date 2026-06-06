@@ -2,6 +2,17 @@
 
 Use this file to route attention before editing.
 
+## Assessment
+
+Start here:
+
+- `packages/assessment/README.md`
+- `packages/assessment/src/assessment.ts`
+
+Run or update:
+
+- `packages/assessment/src/*.test.ts`
+
 ## Construction Meaning
 
 Start here:

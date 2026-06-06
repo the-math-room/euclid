@@ -5,6 +5,7 @@ import ts from "typescript";
 
 const workspaceRoot = process.cwd();
 const layerRoots = {
+  assessment: resolve(workspaceRoot, "packages/assessment/src"),
   app: resolve(workspaceRoot, "apps/web/src"),
   document: resolve(workspaceRoot, "packages/document/src"),
   geometry: resolve(workspaceRoot, "packages/geometry/src"),
@@ -21,18 +22,23 @@ type LayerPolicy = Readonly<{
 
 const layerPolicies: readonly LayerPolicy[] = [
   {
-    layer: "geometry",
+    layer: "assessment",
     forbiddenLayers: ["app", "document", "rendering", "interaction"],
     forbidsUiLibraries: true,
   },
   {
+    layer: "geometry",
+    forbiddenLayers: ["app", "assessment", "document", "rendering", "interaction"],
+    forbidsUiLibraries: true,
+  },
+  {
     layer: "document",
-    forbiddenLayers: ["app", "rendering", "interaction"],
+    forbiddenLayers: ["app", "assessment", "rendering", "interaction"],
     forbidsUiLibraries: true,
   },
   {
     layer: "rendering",
-    forbiddenLayers: ["app", "document", "interaction"],
+    forbiddenLayers: ["app", "assessment", "document", "interaction"],
     forbidsUiLibraries: true,
   },
 ];
@@ -57,6 +63,7 @@ describe("architecture import boundaries", () => {
   it("uses package entrypoints for cross-package imports", () => {
     const packageImports = [
       ...importsIn(layerRoots.app),
+      ...importsIn(layerRoots.assessment),
       ...importsIn(layerRoots.document),
       ...importsIn(layerRoots.rendering),
     ];
@@ -67,6 +74,7 @@ describe("architecture import boundaries", () => {
 
   it("keeps package production code free of ambient effects", () => {
     const packageFiles = [
+      ...productionSourceFilesIn(layerRoots.assessment),
       ...productionSourceFilesIn(layerRoots.geometry),
       ...productionSourceFilesIn(layerRoots.document),
       ...productionSourceFilesIn(layerRoots.rendering),
@@ -78,6 +86,7 @@ describe("architecture import boundaries", () => {
 
   it("keeps package production code free of module-level mutable state", () => {
     const packageFiles = [
+      ...productionSourceFilesIn(layerRoots.assessment),
       ...productionSourceFilesIn(layerRoots.geometry),
       ...productionSourceFilesIn(layerRoots.document),
       ...productionSourceFilesIn(layerRoots.rendering),

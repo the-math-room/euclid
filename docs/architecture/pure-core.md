@@ -13,6 +13,7 @@ For the same explicit inputs, a package function should return the same explicit
 These layers are part of the pure core:
 
 - `packages/geometry/src`
+- `packages/assessment/src`
 - `packages/document/src`
 - `packages/rendering/src`
 
