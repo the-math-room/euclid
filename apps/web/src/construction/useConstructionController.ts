@@ -52,6 +52,10 @@ export type ConstructionController = Readonly<{
   canDragPoint: (id: ConstructionId) => boolean;
   handleBuildCircle: () => void;
   canBuildCircle: boolean;
+  draftPreview?: Readonly<{
+    kind: "line" | "circle";
+    anchorId: ConstructionId;
+  }>;
 }>;
 
 export function useConstructionController({
@@ -478,6 +482,16 @@ export function useConstructionController({
     }
   }, [selectedIds, realizedPointIds, program, updateProgram]);
 
+  const draftPreview = useMemo(() => {
+    if (activeTool === "line" && lineDraftPointId !== undefined) {
+      return { kind: "line" as const, anchorId: lineDraftPointId };
+    }
+    if (activeTool === "circle" && circleDraftPointId !== undefined) {
+      return { kind: "circle" as const, anchorId: circleDraftPointId };
+    }
+    return undefined;
+  }, [activeTool, lineDraftPointId, circleDraftPointId]);
+
   return {
     program,
     evaluated,
@@ -498,6 +512,7 @@ export function useConstructionController({
     canDragPoint,
     handleBuildCircle,
     canBuildCircle,
+    draftPreview,
   };
 }
 

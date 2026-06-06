@@ -62,6 +62,8 @@ export function useWorkspaceGestures({
   onEndPointDrag,
   onAddIntersection,
   canDragPoint,
+  onPointerMoveCoords,
+  onPointerDownStateChange,
 }: {
   scene: RenderScene;
   renderMode: "svg" | "canvas";
@@ -78,6 +80,8 @@ export function useWorkspaceGestures({
   onEndPointDrag: () => void;
   onAddIntersection: (hit: IntersectionHit) => void;
   canDragPoint: (id: ConstructionId) => boolean;
+  onPointerMoveCoords?: (coords: Point2 | undefined) => void;
+  onPointerDownStateChange?: (isDown: boolean) => void;
 }): WorkspacePointerProps {
   const gestureRef = useRef<GestureState>({
     pointers: new Map(),
@@ -110,6 +114,17 @@ export function useWorkspaceGestures({
       g.dragStartX = event.clientX;
       g.dragStartY = event.clientY;
       g.hasMoved = false;
+      onPointerDownStateChange?.(true);
+
+      const rect = event.currentTarget.getBoundingClientRect();
+      const coords = clientToSceneCoords(
+        event.clientX,
+        event.clientY,
+        rect,
+        scene.size.width,
+        scene.size.height,
+      );
+      onPointerMoveCoords?.(coords);
 
       if (activeTool === "select" && !event.ctrlKey && !event.shiftKey) {
         const rect = event.currentTarget.getBoundingClientRect();
@@ -164,11 +179,21 @@ export function useWorkspaceGestures({
     g.lastPos.delete(pointerId);
     if (g.pointers.size === 0) {
       g.hasMoved = false;
+      onPointerDownStateChange?.(false);
     }
   };
 
   const onPointerMove = (event: PointerEvent<Element>) => {
     const g = gestureRef.current;
+    const rect = event.currentTarget.getBoundingClientRect();
+    const coords = clientToSceneCoords(
+      event.clientX,
+      event.clientY,
+      rect,
+      scene.size.width,
+      scene.size.height,
+    );
+    onPointerMoveCoords?.(coords);
 
     if (!g.pointers.has(event.pointerId)) {
       updateCanvasHover(event, {
@@ -185,7 +210,6 @@ export function useWorkspaceGestures({
     g.pointers.set(event.pointerId, { id: event.pointerId, x: event.clientX, y: event.clientY });
     g.lastPos.set(event.pointerId, { x: event.clientX, y: event.clientY });
 
-    const rect = event.currentTarget.getBoundingClientRect();
     const { scale } = getCanvasProjection(rect.width, rect.height, scene.size.width, scene.size.height);
     const panScale = scale > 0 ? scale : 1;
 
@@ -194,13 +218,6 @@ export function useWorkspaceGestures({
       if (totalDist > 4) g.hasMoved = true;
 
       if (g.hasMoved) {
-        const coords = clientToSceneCoords(
-          event.clientX,
-          event.clientY,
-          rect,
-          scene.size.width,
-          scene.size.height,
-        );
         onMovePoint(g.activePointDrag.id, coords);
       }
     } else if (g.pointers.size >= 2) {
@@ -225,10 +242,12 @@ export function useWorkspaceGestures({
       const totalDist = Math.hypot(event.clientX - g.dragStartX, event.clientY - g.dragStartY);
       if (totalDist > 4) g.hasMoved = true;
       if (g.hasMoved && (dx !== 0 || dy !== 0)) {
-        onPanBy({ x: dx / panScale, y: dy / panScale });
-        if (renderMode === "canvas" && activeTool !== "point") {
-          const canvas = canvasRef.current;
-          if (canvas) canvas.style.cursor = "grabbing";
+        if (activeTool === "select") {
+          onPanBy({ x: dx / panScale, y: dy / panScale });
+          if (renderMode === "canvas") {
+            const canvas = canvasRef.current;
+            if (canvas) canvas.style.cursor = "grabbing";
+          }
         }
       }
     }
@@ -238,11 +257,16 @@ export function useWorkspaceGestures({
     const g = gestureRef.current;
     const wasOnlyPointer = g.pointers.size === 1;
     const wasTap = !g.hasMoved;
+    const isCreationMode = activeTool !== "select";
 
     g.pointers.delete(event.pointerId);
     g.lastPos.delete(event.pointerId);
 
-    if (wasOnlyPointer && wasTap) {
+    if (g.pointers.size === 0) {
+      onPointerDownStateChange?.(false);
+    }
+
+    if (wasOnlyPointer && (wasTap || isCreationMode)) {
       const rect = event.currentTarget.getBoundingClientRect();
       const coords = clientToSceneCoords(
         event.clientX,
@@ -303,6 +327,7 @@ export function useWorkspaceGestures({
 
   const onPointerLeave = () => {
     setHoveredId(undefined);
+    onPointerMoveCoords?.(undefined);
     if (renderMode === "canvas") {
       const canvas = canvasRef.current;
       if (canvas) {

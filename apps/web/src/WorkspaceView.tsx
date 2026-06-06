@@ -4,10 +4,11 @@ import {
   type IntersectionHit,
   type RenderItem,
   type RenderScene,
+  findIntersectionAtPosition,
 } from "@euclid/rendering";
 import type { Construction, ConstructionId, Point2 } from "@euclid/geometry";
 import { Trash2 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 import type { ActiveTool } from "./construction/tools";
 import { useWorkspaceGestures } from "./useWorkspaceGestures";
 import { getCanvasProjection } from "./workspaceCoordinates";
@@ -34,6 +35,7 @@ export function WorkspaceView({
   sizeScale = 1.0,
   constructions = [],
   onDeleteSelected,
+  draftPreview,
 }: {
   scene: RenderScene;
   selectedIds: ReadonlySet<ConstructionId>;
@@ -52,6 +54,10 @@ export function WorkspaceView({
   sizeScale?: number;
   constructions?: readonly Construction[];
   onDeleteSelected?: () => void;
+  draftPreview?: Readonly<{
+    kind: "line" | "circle";
+    anchorId: ConstructionId;
+  }>;
 }) {
   const [renderMode, setRenderMode] = useState<"svg" | "canvas">("svg");
   const selectedConstructions = constructions.filter((c) => selectedIds.has(c.id));
@@ -61,6 +67,28 @@ export function WorkspaceView({
   const viewportRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState<{ width: number; height: number } | null>(null);
   const [hoveredId, setHoveredId] = useState<ConstructionId | undefined>();
+  const [pointerCoords, setPointerCoords] = useState<Point2 | undefined>();
+  const [isPointerDown, setIsPointerDown] = useState(false);
+
+  const previewPoint = useMemo(() => {
+    if (!pointerCoords || !isPointerDown || activeTool === "select") {
+      return undefined;
+    }
+    const threshold = 8;
+    const intersection = findIntersectionAtPosition(scene, pointerCoords, threshold);
+    if (intersection) {
+      return {
+        x: intersection.position.x,
+        y: intersection.position.y,
+        isSnapped: true,
+      };
+    }
+    return {
+      x: pointerCoords.x,
+      y: pointerCoords.y,
+      isSnapped: false,
+    };
+  }, [pointerCoords, isPointerDown, activeTool, scene]);
 
   // Track size changes of viewport container for dynamic layout and DPI-correct rendering
   useEffect(() => {
@@ -106,7 +134,67 @@ export function WorkspaceView({
     ctx.translate(dx, dy);
     ctx.scale(scale, scale);
     drawSceneToCanvas(ctx, scene, { selectedIds, hoveredId, sizeScale });
-  }, [scene, selectedIds, hoveredId, dimensions, renderMode, sizeScale]);
+
+    // Draw generic preview draft if active and pointer is over the workspace
+    if (pointerCoords && draftPreview) {
+      const anchorItem = scene.items.find(
+        (item) => item.id === draftPreview.anchorId && item.kind === "point",
+      );
+      if (anchorItem && anchorItem.kind === "point") {
+        if (draftPreview.kind === "circle") {
+          const dx = pointerCoords.x - anchorItem.mark.x;
+          const dy = pointerCoords.y - anchorItem.mark.y;
+          const radius = Math.hypot(dx, dy);
+
+          ctx.beginPath();
+          ctx.arc(anchorItem.mark.x, anchorItem.mark.y, radius, 0, 2 * Math.PI);
+          ctx.strokeStyle = "#ba4a3a";
+          ctx.lineWidth = 2.5;
+          ctx.globalAlpha = 0.55;
+          ctx.stroke();
+          ctx.globalAlpha = 1.0;
+        } else if (draftPreview.kind === "line") {
+          ctx.beginPath();
+          ctx.moveTo(anchorItem.mark.x, anchorItem.mark.y);
+          ctx.lineTo(pointerCoords.x, pointerCoords.y);
+          ctx.strokeStyle = "#246a73";
+          ctx.lineWidth = 2.5;
+          ctx.globalAlpha = 0.55;
+          ctx.stroke();
+          ctx.globalAlpha = 1.0;
+        }
+      }
+    }
+
+    // Draw preview point if mouse click is down in creation mode
+    if (previewPoint) {
+      ctx.beginPath();
+      ctx.arc(previewPoint.x, previewPoint.y, 5 * sizeScale, 0, 2 * Math.PI);
+      if (previewPoint.isSnapped) {
+        ctx.fillStyle = "#ba4a3a";
+        ctx.strokeStyle = "#e3c057";
+        ctx.globalAlpha = 0.8;
+      } else {
+        ctx.fillStyle = "#172026";
+        ctx.strokeStyle = "#e3c057";
+        ctx.globalAlpha = 0.5;
+      }
+      ctx.lineWidth = 2.5 * sizeScale;
+      ctx.fill();
+      ctx.stroke();
+      ctx.globalAlpha = 1.0;
+    }
+  }, [
+    scene,
+    selectedIds,
+    hoveredId,
+    dimensions,
+    renderMode,
+    sizeScale,
+    pointerCoords,
+    draftPreview,
+    previewPoint,
+  ]);
 
   // Synchronize canvas cursor based on activeTool, renderMode and hoveredId
   useEffect(() => {
@@ -137,6 +225,8 @@ export function WorkspaceView({
     onEndPointDrag,
     onAddIntersection,
     canDragPoint,
+    onPointerMoveCoords: setPointerCoords,
+    onPointerDownStateChange: setIsPointerDown,
   });
 
   return (
@@ -185,6 +275,61 @@ export function WorkspaceView({
                 }}
               />
             ))}
+            {/* Render preview draft */}
+            {pointerCoords &&
+              draftPreview &&
+              (() => {
+                const anchorItem = scene.items.find(
+                  (item) => item.id === draftPreview.anchorId && item.kind === "point",
+                );
+                if (anchorItem && anchorItem.kind === "point") {
+                  if (draftPreview.kind === "circle") {
+                    const radius = Math.hypot(
+                      pointerCoords.x - anchorItem.mark.x,
+                      pointerCoords.y - anchorItem.mark.y,
+                    );
+                    return (
+                      <circle
+                        cx={anchorItem.mark.x}
+                        cy={anchorItem.mark.y}
+                        r={radius}
+                        fill="none"
+                        stroke="#ba4a3a"
+                        strokeWidth="2.5"
+                        opacity="0.55"
+                        style={{ pointerEvents: "none" }}
+                      />
+                    );
+                  } else if (draftPreview.kind === "line") {
+                    return (
+                      <line
+                        x1={anchorItem.mark.x}
+                        y1={anchorItem.mark.y}
+                        x2={pointerCoords.x}
+                        y2={pointerCoords.y}
+                        stroke="#246a73"
+                        strokeWidth="2.5"
+                        opacity="0.55"
+                        style={{ pointerEvents: "none" }}
+                      />
+                    );
+                  }
+                }
+                return null;
+              })()}
+            {/* Render preview point when mouseclick is down */}
+            {previewPoint && (
+              <circle
+                cx={previewPoint.x}
+                cy={previewPoint.y}
+                r={5 * sizeScale}
+                fill={previewPoint.isSnapped ? "#ba4a3a" : "#172026"}
+                stroke="#e3c057"
+                strokeWidth={2.5 * sizeScale}
+                opacity={previewPoint.isSnapped ? 0.8 : 0.5}
+                style={{ pointerEvents: "none" }}
+              />
+            )}
           </svg>
         ) : (
           <canvas

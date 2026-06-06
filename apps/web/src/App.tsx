@@ -179,6 +179,7 @@ export function App() {
         sizeScale={sizeScale}
         constructions={construction.program.constructions}
         onDeleteSelected={construction.handleDeleteSelected}
+        draftPreview={construction.draftPreview}
       />
     </main>
   );
