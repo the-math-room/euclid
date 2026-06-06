@@ -98,6 +98,7 @@ export function WorkspaceView({
   onEndPointDrag,
   onAddIntersection,
   canDragPoint,
+  onResize,
 }: {
   scene: RenderScene;
   selectedIds: ReadonlySet<ConstructionId>;
@@ -112,11 +113,13 @@ export function WorkspaceView({
   onEndPointDrag: () => void;
   onAddIntersection: (hit: IntersectionHit) => void;
   canDragPoint: (id: ConstructionId) => boolean;
+  onResize?: (size: { width: number; height: number }) => void;
 }) {
   const [renderMode, setRenderMode] = useState<"svg" | "canvas">("svg");
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
+  const viewportRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState<{ width: number; height: number } | null>(null);
   const [hoveredId, setHoveredId] = useState<ConstructionId | undefined>();
 
@@ -139,18 +142,23 @@ export function WorkspaceView({
     currentZoomRef.current = currentZoom;
   }, [currentZoom]);
 
-  // Track size changes of canvas for DPI-correct rendering
+  // Track size changes of viewport container for dynamic layout and DPI-correct rendering
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas || renderMode !== "canvas") return;
+    const viewport = viewportRef.current;
+    if (!viewport) return;
     const observer = new ResizeObserver((entries) => {
       for (const entry of entries) {
-        setDimensions({ width: entry.contentRect.width, height: entry.contentRect.height });
+        const width = entry.contentRect.width;
+        const height = entry.contentRect.height;
+        if (width > 0 && height > 0) {
+          setDimensions({ width, height });
+          onResize?.({ width, height });
+        }
       }
     });
-    observer.observe(canvas);
+    observer.observe(viewport);
     return () => observer.disconnect();
-  }, [renderMode]);
+  }, [onResize]);
 
   // Render scene to canvas
   useEffect(() => {
@@ -179,6 +187,19 @@ export function WorkspaceView({
     ctx.scale(scale, scale);
     drawSceneToCanvas(ctx, scene, { selectedIds, hoveredId });
   }, [scene, selectedIds, hoveredId, dimensions, renderMode]);
+
+  // Synchronize canvas cursor based on activeTool, renderMode and hoveredId
+  useEffect(() => {
+    if (renderMode !== "canvas") return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    if (activeTool === "point") {
+      canvas.style.cursor = "crosshair";
+    } else {
+      canvas.style.cursor = hoveredId ? "pointer" : "grab";
+    }
+  }, [activeTool, renderMode, hoveredId]);
 
   // ---------------------------------------------------------------------------
   // Unified pointer event handlers — shared by SVG and Canvas
@@ -234,7 +255,32 @@ export function WorkspaceView({
 
   const onPointerMove = (event: React.PointerEvent<Element>) => {
     const g = gestureRef.current;
-    if (!g.pointers.has(event.pointerId)) return;
+
+    // Mouse-only hover tracking (no button pressed) for Canvas mode
+    if (!g.pointers.has(event.pointerId)) {
+      if (event.pointerType === "mouse" && renderMode === "canvas") {
+        const canvas = canvasRef.current;
+        if (canvas) {
+          const rect = canvas.getBoundingClientRect();
+          const coords = clientToSceneCoords(
+            event.clientX,
+            event.clientY,
+            rect,
+            scene.size.width,
+            scene.size.height,
+          );
+          const item = findItemAtPosition(scene, coords);
+          if (activeTool === "point") {
+            setHoveredId(undefined);
+            canvas.style.cursor = "crosshair";
+          } else {
+            setHoveredId(item?.id);
+            canvas.style.cursor = item ? "pointer" : "grab";
+          }
+        }
+      }
+      return;
+    }
 
     const prev = g.lastPos.get(event.pointerId);
     g.pointers.set(event.pointerId, { id: event.pointerId, x: event.clientX, y: event.clientY });
@@ -279,28 +325,11 @@ export function WorkspaceView({
       const dy = event.clientY - prev.y;
       const totalDist = Math.hypot(event.clientX - g.dragStartX, event.clientY - g.dragStartY);
       if (totalDist > 4) g.hasMoved = true;
-      if (g.hasMoved && (dx !== 0 || dy !== 0)) onPanBy({ x: dx, y: dy });
-
-      // Mouse-only: update hover highlight on canvas
-      if (event.pointerType === "mouse" && renderMode === "canvas") {
-        const canvas = canvasRef.current;
-        if (canvas) {
-          const rect = canvas.getBoundingClientRect();
-          const coords = clientToSceneCoords(
-            event.clientX,
-            event.clientY,
-            rect,
-            scene.size.width,
-            scene.size.height,
-          );
-          const item = findItemAtPosition(scene, coords);
-          if (activeTool === "point") {
-            setHoveredId(undefined);
-            canvas.style.cursor = "crosshair";
-          } else {
-            setHoveredId(item?.id);
-            canvas.style.cursor = item ? "pointer" : "grab";
-          }
+      if (g.hasMoved && (dx !== 0 || dy !== 0)) {
+        onPanBy({ x: dx, y: dy });
+        if (renderMode === "canvas" && activeTool !== "point") {
+          const canvas = canvasRef.current;
+          if (canvas) canvas.style.cursor = "grabbing";
         }
       }
     }
@@ -348,6 +377,27 @@ export function WorkspaceView({
       g.activePointDrag = undefined;
     }
 
+    if (renderMode === "canvas") {
+      const canvas = canvasRef.current;
+      if (canvas) {
+        if (activeTool === "point") {
+          canvas.style.cursor = "crosshair";
+        } else {
+          // Re-evaluate cursor based on pointer position at release
+          const rect = canvas.getBoundingClientRect();
+          const coords = clientToSceneCoords(
+            event.clientX,
+            event.clientY,
+            rect,
+            scene.size.width,
+            scene.size.height,
+          );
+          const item = findItemAtPosition(scene, coords);
+          canvas.style.cursor = item ? "pointer" : "grab";
+        }
+      }
+    }
+
     // Transitioning from 2-finger to 1-finger: reset drag origin
     if (g.pointers.size === 1) {
       const remaining = Array.from(g.pointers.values())[0];
@@ -366,7 +416,23 @@ export function WorkspaceView({
     gestureRef.current.lastPos.delete(event.pointerId);
   };
 
-  const sharedPointerProps = { onPointerDown, onPointerMove, onPointerUp, onPointerCancel };
+  const onPointerLeave = () => {
+    setHoveredId(undefined);
+    if (renderMode === "canvas") {
+      const canvas = canvasRef.current;
+      if (canvas) {
+        canvas.style.cursor = activeTool === "point" ? "crosshair" : "grab";
+      }
+    }
+  };
+
+  const sharedPointerProps = {
+    onPointerDown,
+    onPointerMove,
+    onPointerUp,
+    onPointerCancel,
+    onPointerLeave,
+  };
 
   return (
     <section className="workspace" aria-label="Euclidean construction workspace">
@@ -387,7 +453,7 @@ export function WorkspaceView({
         </button>
       </div>
 
-      <div className="workspace-viewport">
+      <div ref={viewportRef} className="workspace-viewport">
         {renderMode === "svg" ? (
           <svg
             ref={svgRef}

@@ -263,8 +263,8 @@ describe("sceneForEvaluation", () => {
     });
     const line = lineIn(scene, "line-ab");
 
-    expect(line.from).toEqual({ x: 0, y: 50 });
-    expect(line.to).toEqual({ x: 100, y: 50 });
+    expect(line.from).toEqual({ x: -1000, y: 50 });
+    expect(line.to).toEqual({ x: 1100, y: 50 });
   });
 });
 

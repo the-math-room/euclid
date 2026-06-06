@@ -175,14 +175,22 @@ function extendLineToViewport(a: Point2, b: Point2, size: ViewportSize): readonl
   const dy = b.y - a.y;
   const intersections: Point2[] = [];
 
+  // Extend lines significantly beyond the viewport to prevent them from cutting off
+  // on wider/taller screens, dynamic window sizing, or rotated/zoomed coordinates.
+  const margin = Math.max(size.width, size.height) * 10;
+  const minX = -margin;
+  const maxX = size.width + margin;
+  const minY = -margin;
+  const maxY = size.height + margin;
+
   if (dx !== 0) {
-    addIntersection(intersections, { x: 0, y: a.y + ((0 - a.x) / dx) * dy }, size);
-    addIntersection(intersections, { x: size.width, y: a.y + ((size.width - a.x) / dx) * dy }, size);
+    addIntersection(intersections, { x: minX, y: a.y + ((minX - a.x) / dx) * dy }, minX, maxX, minY, maxY);
+    addIntersection(intersections, { x: maxX, y: a.y + ((maxX - a.x) / dx) * dy }, minX, maxX, minY, maxY);
   }
 
   if (dy !== 0) {
-    addIntersection(intersections, { x: a.x + ((0 - a.y) / dy) * dx, y: 0 }, size);
-    addIntersection(intersections, { x: a.x + ((size.height - a.y) / dy) * dx, y: size.height }, size);
+    addIntersection(intersections, { x: a.x + ((minY - a.y) / dy) * dx, y: minY }, minX, maxX, minY, maxY);
+    addIntersection(intersections, { x: a.x + ((maxY - a.y) / dy) * dx, y: maxY }, minX, maxX, minY, maxY);
   }
 
   if (intersections.length >= 2) {
@@ -192,20 +200,27 @@ function extendLineToViewport(a: Point2, b: Point2, size: ViewportSize): readonl
   return [a, b];
 }
 
-function addIntersection(points: Point2[], point: Point2, size: ViewportSize): void {
+function addIntersection(
+  points: Point2[],
+  point: Point2,
+  minX: number,
+  maxX: number,
+  minY: number,
+  maxY: number,
+): void {
   const epsilon = 1e-9;
   if (
-    point.x < -epsilon ||
-    point.x > size.width + epsilon ||
-    point.y < -epsilon ||
-    point.y > size.height + epsilon
+    point.x < minX - epsilon ||
+    point.x > maxX + epsilon ||
+    point.y < minY - epsilon ||
+    point.y > maxY + epsilon
   ) {
     return;
   }
 
   const clamped = {
-    x: clamp(point.x, 0, size.width),
-    y: clamp(point.y, 0, size.height),
+    x: clamp(point.x, minX, maxX),
+    y: clamp(point.y, minY, maxY),
   };
 
   if (points.some((existing) => distance(existing, clamped) < epsilon)) {
