@@ -29,11 +29,80 @@ type PointLabelTarget = Readonly<{
   mark: Point2;
 }>;
 
-export function layoutPointLabels(
+type ChosenPlacement = Readonly<{
+  candidate: LabelCandidateName;
+  gap: number;
+}>;
+
+type Cache<K, V> = Readonly<{
+  get(key: K): V | undefined;
+  set(key: K, value: V): void;
+  delete(key: K): void;
+  readonly size: number;
+  keys(): IterableIterator<K>;
+}>;
+
+function makeCache<K, V>(): Cache<K, V> {
+  const map = new Map<K, V>();
+  return {
+    get: (key) => map.get(key),
+    set: (key, value) => map.set(key, value),
+    delete: (key) => map.delete(key),
+    get size() {
+      return map.size;
+    },
+    keys: () => map.keys(),
+  };
+}
+
+const MAX_CACHE_SIZE = 10;
+const labelCandidateCache = makeCache<string, ReadonlyMap<string, ChosenPlacement>>();
+
+function getLayoutCacheKey(
   targets: readonly PointLabelTarget[],
   obstacles: readonly RenderItem[],
-  fontSize: number = THEME.typography.fontSize,
-): ReadonlyMap<string, LabelPlacement> {
+  fontSize: number,
+): string {
+  if (targets.length === 0) {
+    return "";
+  }
+  const origin = targets[0].mark;
+
+  const targetStr = targets
+    .map((t) => `${t.id}:${(t.mark.x - origin.x).toFixed(4)}:${(t.mark.y - origin.y).toFixed(4)}:${t.text}`)
+    .join(";");
+
+  const obstacleStr = obstacles
+    .map((o) => {
+      if (o.kind === "point") {
+        return `p:${o.id}:${(o.mark.x - origin.x).toFixed(4)}:${(o.mark.y - origin.y).toFixed(4)}`;
+      } else if (o.kind === "line") {
+        return `l:${o.id}:${(o.supportLine[0].x - origin.x).toFixed(4)}:${(o.supportLine[0].y - origin.y).toFixed(4)}:${(o.supportLine[1].x - origin.x).toFixed(4)}:${(o.supportLine[1].y - origin.y).toFixed(4)}`;
+      } else if (o.kind === "circle") {
+        return `c:${o.id}:${(o.center.x - origin.x).toFixed(4)}:${(o.center.y - origin.y).toFixed(4)}:${o.radius.toFixed(4)}`;
+      }
+      return "";
+    })
+    .join(";");
+
+  return `${fontSize}|${targetStr}|${obstacleStr}`;
+}
+
+function getCachedCandidates(
+  targets: readonly PointLabelTarget[],
+  obstacles: readonly RenderItem[],
+  fontSize: number,
+): ReadonlyMap<string, ChosenPlacement> {
+  const key = getLayoutCacheKey(targets, obstacles, fontSize);
+  if (key === "") {
+    return new Map();
+  }
+
+  const cached = labelCandidateCache.get(key);
+  if (cached) {
+    return cached;
+  }
+
   const candidateSets = targets.map((target) =>
     candidatesFor(target, fontSize).map((candidate) => ({
       ...candidate,
@@ -41,10 +110,109 @@ export function layoutPointLabels(
     })),
   );
   const selected = optimizeCandidateSelection(candidateSets);
-  const labelsById = new Map<string, LabelPlacement>();
+  const result = new Map<string, ChosenPlacement>();
+
+  const gaps = [fontSize * (10 / 18), fontSize * (28 / 18), fontSize * (46 / 18)];
 
   for (const [index, target] of targets.entries()) {
-    labelsById.set(target.id, withoutInternalFields(candidateSets[index][selected[index]]));
+    const selectedIndex = selected[index];
+    const ringIndex = Math.floor(selectedIndex / 8);
+    const gap = gaps[ringIndex];
+    const candidateName = candidateSets[index][selectedIndex].candidate;
+    result.set(target.id, { candidate: candidateName, gap });
+  }
+
+  if (labelCandidateCache.size >= MAX_CACHE_SIZE) {
+    const firstKey = labelCandidateCache.keys().next().value;
+    if (firstKey !== undefined) {
+      labelCandidateCache.delete(firstKey);
+    }
+  }
+  labelCandidateCache.set(key, result);
+
+  return result;
+}
+
+function placementForCandidate(
+  target: PointLabelTarget,
+  candidateName: LabelCandidateName,
+  fontSize: number,
+  gap: number,
+  score: number,
+): LabelPlacement {
+  const metrics = estimatedTextMetrics(target.text, fontSize);
+
+  const centerY = target.mark.y - metrics.height / 2;
+  const left = target.mark.x - gap - metrics.width;
+  const centerX = target.mark.x - metrics.width / 2;
+  const right = target.mark.x + gap;
+  const top = target.mark.y - gap - metrics.height;
+  const middleTop = centerY;
+  const bottom = target.mark.y + gap;
+
+  let x = 0;
+  let y = 0;
+
+  switch (candidateName) {
+    case "ne":
+      x = right;
+      y = top;
+      break;
+    case "e":
+      x = right;
+      y = middleTop;
+      break;
+    case "se":
+      x = right;
+      y = bottom;
+      break;
+    case "s":
+      x = centerX;
+      y = bottom;
+      break;
+    case "sw":
+      x = left;
+      y = bottom;
+      break;
+    case "w":
+      x = left;
+      y = middleTop;
+      break;
+    case "nw":
+      x = left;
+      y = top;
+      break;
+    case "n":
+      x = centerX;
+      y = top;
+      break;
+  }
+
+  return {
+    text: target.text,
+    anchor: { x, y: y + metrics.height },
+    bounds: {
+      x,
+      y,
+      width: metrics.width,
+      height: metrics.height,
+    },
+    candidate: candidateName,
+    score,
+  };
+}
+
+export function layoutPointLabels(
+  targets: readonly PointLabelTarget[],
+  obstacles: readonly RenderItem[],
+  fontSize: number = THEME.typography.fontSize,
+): ReadonlyMap<string, LabelPlacement> {
+  const chosenPlacements = getCachedCandidates(targets, obstacles, fontSize);
+  const labelsById = new Map<string, LabelPlacement>();
+
+  for (const target of targets) {
+    const chosen = chosenPlacements.get(target.id) ?? { candidate: "ne", gap: fontSize * (10 / 18) };
+    labelsById.set(target.id, placementForCandidate(target, chosen.candidate, fontSize, chosen.gap, 0));
   }
 
   return labelsById;
@@ -119,7 +287,9 @@ function scoreCandidate(
         score += associationAmbiguityPenalty(candidate.bounds, target.mark, obstacle.mark);
       }
     } else if (obstacle.kind === "line") {
-      score += lineIntersectsRect(obstacle.supportLine[0], obstacle.supportLine[1], candidate.bounds) ? 120 : 0;
+      score += lineIntersectsRect(obstacle.supportLine[0], obstacle.supportLine[1], candidate.bounds)
+        ? 120
+        : 0;
     } else if (obstacle.kind === "circle") {
       score += circlePerimeterIntersectsRect(obstacle.center, obstacle.radius, candidate.bounds) ? 90 : 0;
     }
@@ -204,16 +374,6 @@ function indexOfLowestScore(candidates: readonly LabelCandidate[]): number {
 
 function replaceAt(values: readonly number[], index: number, value: number): readonly number[] {
   return values.map((current, currentIndex) => (currentIndex === index ? value : current));
-}
-
-function withoutInternalFields(candidate: LabelCandidate): LabelPlacement {
-  return {
-    text: candidate.text,
-    anchor: candidate.anchor,
-    bounds: candidate.bounds,
-    candidate: candidate.candidate,
-    score: candidate.score,
-  };
 }
 
 function associationAmbiguityPenalty(bounds: Rect, target: Point2, other: Point2): number {
