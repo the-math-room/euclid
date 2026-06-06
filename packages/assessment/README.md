@@ -10,6 +10,7 @@ Owns reference assessment helpers over construction programs and evaluations.
 - Reference approximate incidence predicates over realized primitives.
 - A small predicate/result interface for composing reference or host-defined checks.
 - Serializable goal specs for curriculum-authored assessment definitions.
+- Parse and serialize boundaries for assessment goal JSON.
 
 Functions in this package should be memoizable in theory.
 
@@ -29,6 +30,7 @@ Functions in this package should be memoizable in theory.
 ## Key Files
 
 - `src/assessment.ts`: reference assessment predicates.
+- `src/goalCodec.ts`: explicit parse and serialize boundary for assessment goal JSON.
 - `src/goals.ts`: serializable assessment goal specs and reference goal evaluation.
 - `src/index.ts`: public package entrypoint.
 
@@ -85,6 +87,8 @@ const goal: AssessmentGoal = {
 ```
 
 Use `evaluateGoal(context, goal)` for one-off evaluation or `predicateForGoal(goal)` to compile a goal into a reusable predicate.
+
+Use `parseAssessmentGoal` and `serializeAssessmentGoal` at JSON boundaries. Parsing validates structure only; it does not require referenced construction IDs to exist in a particular student program.
 
 ## Verification Command
 

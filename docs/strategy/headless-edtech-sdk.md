@@ -55,6 +55,7 @@ The first assessment surface belongs in `@euclid/assessment` and should stay hea
 - realized incidence predicates that explicitly fail when primitives are unrealized
 - a predicate/result interface that hosts can compose or replace
 - serializable goal specs for curriculum-authored checks
+- explicit goal JSON parsing so stored curriculum content can be validated before evaluation
 
 ## Defer
 
