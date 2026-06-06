@@ -230,7 +230,8 @@ export function WorkspaceView({
           scene.size.width,
           scene.size.height,
         );
-        const item = findItemAtPosition(scene, coords);
+        const threshold = getHitThreshold(event.pointerType);
+        const item = findItemAtPosition(scene, coords, threshold);
 
         if (item?.kind === "point" && canDragPoint(item.id)) {
           g.activePointDrag = {
@@ -269,7 +270,8 @@ export function WorkspaceView({
             scene.size.width,
             scene.size.height,
           );
-          const item = findItemAtPosition(scene, coords);
+          const threshold = getHitThreshold(event.pointerType);
+          const item = findItemAtPosition(scene, coords, threshold);
           if (activeTool === "point") {
             setHoveredId(undefined);
             canvas.style.cursor = "crosshair";
@@ -358,12 +360,15 @@ export function WorkspaceView({
         scene.size.height,
       );
 
+      const threshold = getHitThreshold(event.pointerType);
+      const isTouch = event.pointerType === "touch" || event.pointerType === "pen";
+
       if (activeTool === "point" || activeTool === "line" || activeTool === "circle") {
-        const item = findItemAtPosition(scene, coords);
+        const item = findItemAtPosition(scene, coords, threshold);
         if (item?.kind === "point") {
-          onSelect(item.id, { ctrlKey: event.ctrlKey, shiftKey: event.shiftKey });
+          onSelect(item.id, { ctrlKey: event.ctrlKey || isTouch, shiftKey: event.shiftKey });
         } else {
-          const intersection = findIntersectionAtPosition(scene, coords);
+          const intersection = findIntersectionAtPosition(scene, coords, threshold);
           if (intersection) {
             onAddIntersection(intersection);
           } else {
@@ -371,9 +376,9 @@ export function WorkspaceView({
           }
         }
       } else {
-        const item = findItemAtPosition(scene, coords);
+        const item = findItemAtPosition(scene, coords, threshold);
         if (item) {
-          onSelect(item.id, { ctrlKey: event.ctrlKey, shiftKey: event.shiftKey });
+          onSelect(item.id, { ctrlKey: event.ctrlKey || isTouch, shiftKey: event.shiftKey });
         } else {
           onSelect(undefined);
         }
@@ -400,7 +405,8 @@ export function WorkspaceView({
             scene.size.width,
             scene.size.height,
           );
-          const item = findItemAtPosition(scene, coords);
+          const threshold = getHitThreshold(event.pointerType);
+          const item = findItemAtPosition(scene, coords, threshold);
           canvas.style.cursor = item ? "pointer" : "grab";
         }
       }
@@ -570,4 +576,8 @@ function Grid({ lines }: { lines: RenderScene["grid"] }) {
       ))}
     </g>
   );
+}
+
+function getHitThreshold(pointerType: string): number {
+  return pointerType === "touch" || pointerType === "pen" ? 20 : 8;
 }

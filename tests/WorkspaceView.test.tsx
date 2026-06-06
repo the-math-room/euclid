@@ -117,4 +117,79 @@ describe("WorkspaceView Integration", () => {
       root?.unmount();
     });
   });
+
+  it("uses touch threshold and passes ctrlKey = true when pointer type is touch", async () => {
+    const onSelectMock = vi.fn();
+    const sceneWithPoints = {
+      size: { width: 920, height: 620 },
+      grid: [],
+      items: [
+        {
+          id: "point-a",
+          kind: "point" as const,
+          mark: { x: 100, y: 100 },
+          label: { text: "A", anchor: { x: 110, y: 90 } },
+        },
+      ],
+    };
+
+    let root: Root | undefined;
+    await act(async () => {
+      root = createRoot(container);
+      root.render(
+        <WorkspaceView
+          {...defaultProps}
+          scene={sceneWithPoints}
+          onSelect={onSelectMock}
+          activeTool="select"
+        />,
+      );
+    });
+
+    const svg = container.querySelector("svg");
+    expect(svg).toBeTruthy();
+
+    if (svg) {
+      svg.getBoundingClientRect = () => ({
+        width: 920,
+        height: 620,
+        top: 0,
+        left: 0,
+        bottom: 620,
+        right: 920,
+        x: 0,
+        y: 0,
+        toJSON: vi.fn(),
+      });
+
+      // Tap at (112, 112), distance is ~17px from (100, 100)
+      // This is larger than mouse threshold (8px) but smaller than touch threshold (20px)
+      const downEvent = new PointerEvent("pointerdown", {
+        clientX: 112,
+        clientY: 112,
+        pointerId: 1,
+        pointerType: "touch",
+        bubbles: true,
+      });
+
+      const upEvent = new PointerEvent("pointerup", {
+        clientX: 112,
+        clientY: 112,
+        pointerId: 1,
+        pointerType: "touch",
+        bubbles: true,
+      });
+
+      await act(async () => {
+        svg.dispatchEvent(downEvent);
+        svg.dispatchEvent(upEvent);
+      });
+
+      expect(onSelectMock).toHaveBeenCalledWith("point-a", { ctrlKey: true, shiftKey: false });
+    }
+
+    await act(async () => {
+      root?.unmount();
+    });
+  });
 });

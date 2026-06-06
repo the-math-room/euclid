@@ -63,7 +63,7 @@ When changing behavior, inspect files in this order:
 
 ### Verification
 
-- Before finishing a code change, run `npm run check` or state exactly why it was not run.
+- **Mandatory Check Proposing**: Before declaring any task complete or asking for feedback, you MUST propose running `npm run check` using the `run_command` tool (set `SafeToAutoRun` to `false`) and wait for the user to approve and run it. Do not hand back code to the user until this check has run and passed.
 - **Static Code Audit**: If terminal execution tools are unavailable or fail, you MUST perform a manual static audit of all modified/new files:
   - **No Empty Arrow Functions**: Avoid `() => {}` in callbacks, mock handlers, or tests (use `vi.fn()` or include a comment inside like `// no-op` to satisfy `@typescript-eslint/no-empty-function`).
   - **Prettier Conformity**: Verify trailing commas, single quotes, and semicolons are consistent with formatting rules.
