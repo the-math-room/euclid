@@ -13,6 +13,12 @@ import { useEffect, useRef, useState, useMemo } from "react";
 import type { ActiveTool } from "./construction/tools";
 import { useWorkspaceGestures } from "./useWorkspaceGestures";
 import { getCanvasProjection } from "./workspaceCoordinates";
+import {
+  drawWorkspacePreviewsToCanvas,
+  previewsForWorkspace,
+  type DraftPreview,
+  type WorkspacePreview,
+} from "./workspacePreview";
 
 // ---------------------------------------------------------------------------
 // WorkspaceView component
@@ -59,10 +65,7 @@ export function WorkspaceView({
   sizeScale?: number;
   constructions?: readonly Construction[];
   onDeleteSelected?: () => void;
-  draftPreview?: Readonly<{
-    kind: "line" | "circle";
-    anchorId: ConstructionId;
-  }>;
+  draftPreview?: DraftPreview;
 }) {
   const [renderMode, setRenderMode] = useState<"svg" | "canvas">("svg");
   const selectedConstructions = constructions.filter((c) => selectedIds.has(c.id));
@@ -113,6 +116,18 @@ export function WorkspaceView({
     };
   }, [pointerCoords, isPointerDown, activeTool, scene]);
 
+  const previews = useMemo(
+    () =>
+      previewsForWorkspace({
+        scene,
+        pointerCoords,
+        draftPreview,
+        previewPoint,
+        sizeScale,
+      }),
+    [scene, pointerCoords, draftPreview, previewPoint, sizeScale],
+  );
+
   // Track size changes of viewport container for dynamic layout and DPI-correct rendering
   useEffect(() => {
     const viewport = viewportRef.current;
@@ -157,67 +172,8 @@ export function WorkspaceView({
     ctx.translate(dx, dy);
     ctx.scale(scale, scale);
     drawSceneToCanvas(ctx, scene, { selectedIds, hoveredId, sizeScale });
-
-    // Draw generic preview draft if active and pointer is over the workspace
-    if (pointerCoords && draftPreview) {
-      const anchorItem = scene.items.find(
-        (item) => item.id === draftPreview.anchorId && item.kind === "point",
-      );
-      if (anchorItem && anchorItem.kind === "point") {
-        if (draftPreview.kind === "circle") {
-          const dx = pointerCoords.x - anchorItem.mark.x;
-          const dy = pointerCoords.y - anchorItem.mark.y;
-          const radius = Math.hypot(dx, dy);
-
-          ctx.beginPath();
-          ctx.arc(anchorItem.mark.x, anchorItem.mark.y, radius, 0, 2 * Math.PI);
-          ctx.strokeStyle = "#ba4a3a";
-          ctx.lineWidth = 2.5;
-          ctx.globalAlpha = 0.55;
-          ctx.stroke();
-          ctx.globalAlpha = 1.0;
-        } else if (draftPreview.kind === "line") {
-          ctx.beginPath();
-          ctx.moveTo(anchorItem.mark.x, anchorItem.mark.y);
-          ctx.lineTo(pointerCoords.x, pointerCoords.y);
-          ctx.strokeStyle = "#246a73";
-          ctx.lineWidth = 2.5;
-          ctx.globalAlpha = 0.55;
-          ctx.stroke();
-          ctx.globalAlpha = 1.0;
-        }
-      }
-    }
-
-    // Draw preview point if mouse click is down in creation mode
-    if (previewPoint) {
-      ctx.beginPath();
-      ctx.arc(previewPoint.x, previewPoint.y, 5 * sizeScale, 0, 2 * Math.PI);
-      if (previewPoint.isSnapped) {
-        ctx.fillStyle = "#ba4a3a";
-        ctx.strokeStyle = "#e3c057";
-        ctx.globalAlpha = 0.8;
-      } else {
-        ctx.fillStyle = "#172026";
-        ctx.strokeStyle = "#e3c057";
-        ctx.globalAlpha = 0.5;
-      }
-      ctx.lineWidth = 2.5 * sizeScale;
-      ctx.fill();
-      ctx.stroke();
-      ctx.globalAlpha = 1.0;
-    }
-  }, [
-    scene,
-    selectedIds,
-    hoveredId,
-    dimensions,
-    renderMode,
-    sizeScale,
-    pointerCoords,
-    draftPreview,
-    previewPoint,
-  ]);
+    drawWorkspacePreviewsToCanvas(ctx, previews);
+  }, [scene, selectedIds, hoveredId, dimensions, renderMode, sizeScale, previews]);
 
   const sharedPointerProps = useWorkspaceGestures({
     scene,
@@ -284,61 +240,9 @@ export function WorkspaceView({
                 }}
               />
             ))}
-            {/* Render preview draft */}
-            {pointerCoords &&
-              draftPreview &&
-              (() => {
-                const anchorItem = scene.items.find(
-                  (item) => item.id === draftPreview.anchorId && item.kind === "point",
-                );
-                if (anchorItem && anchorItem.kind === "point") {
-                  if (draftPreview.kind === "circle") {
-                    const radius = Math.hypot(
-                      pointerCoords.x - anchorItem.mark.x,
-                      pointerCoords.y - anchorItem.mark.y,
-                    );
-                    return (
-                      <circle
-                        cx={anchorItem.mark.x}
-                        cy={anchorItem.mark.y}
-                        r={radius}
-                        fill="none"
-                        stroke="#ba4a3a"
-                        strokeWidth="2.5"
-                        opacity="0.55"
-                        style={{ pointerEvents: "none" }}
-                      />
-                    );
-                  } else if (draftPreview.kind === "line") {
-                    return (
-                      <line
-                        x1={anchorItem.mark.x}
-                        y1={anchorItem.mark.y}
-                        x2={pointerCoords.x}
-                        y2={pointerCoords.y}
-                        stroke="#246a73"
-                        strokeWidth="2.5"
-                        opacity="0.55"
-                        style={{ pointerEvents: "none" }}
-                      />
-                    );
-                  }
-                }
-                return null;
-              })()}
-            {/* Render preview point when mouseclick is down */}
-            {previewPoint && (
-              <circle
-                cx={previewPoint.x}
-                cy={previewPoint.y}
-                r={5 * sizeScale}
-                fill={previewPoint.isSnapped ? "#ba4a3a" : "#172026"}
-                stroke="#e3c057"
-                strokeWidth={2.5 * sizeScale}
-                opacity={previewPoint.isSnapped ? 0.8 : 0.5}
-                style={{ pointerEvents: "none" }}
-              />
-            )}
+            {previews.map((preview, index) => (
+              <WorkspacePreviewView key={`${preview.kind}-${index}`} preview={preview} />
+            ))}
           </svg>
         ) : (
           <canvas
@@ -419,6 +323,51 @@ export function WorkspaceView({
         )}
       </div>
     </section>
+  );
+}
+
+function WorkspacePreviewView({ preview }: { preview: WorkspacePreview }) {
+  if (preview.kind === "line") {
+    return (
+      <line
+        x1={preview.from.x}
+        y1={preview.from.y}
+        x2={preview.to.x}
+        y2={preview.to.y}
+        stroke={preview.style.stroke}
+        strokeWidth={preview.style.lineWidth}
+        opacity={preview.style.opacity}
+        style={{ pointerEvents: "none" }}
+      />
+    );
+  }
+
+  if (preview.kind === "circle") {
+    return (
+      <circle
+        cx={preview.center.x}
+        cy={preview.center.y}
+        r={preview.radius}
+        fill="none"
+        stroke={preview.style.stroke}
+        strokeWidth={preview.style.lineWidth}
+        opacity={preview.style.opacity}
+        style={{ pointerEvents: "none" }}
+      />
+    );
+  }
+
+  return (
+    <circle
+      cx={preview.center.x}
+      cy={preview.center.y}
+      r={preview.style.radius}
+      fill={preview.style.fill}
+      stroke={preview.style.stroke}
+      strokeWidth={preview.style.lineWidth}
+      opacity={preview.style.opacity}
+      style={{ pointerEvents: "none" }}
+    />
   );
 }
 

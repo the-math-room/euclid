@@ -1,19 +1,47 @@
+const colors = {
+  background: "#fbfaf6",
+  grid: "#e2ddd3",
+  textFill: "#172026",
+  textStroke: "#fbfaf6",
+  pointFill: "#172026",
+  pointStroke: "#e3c057",
+  constructedPointFill: "#fbfaf6",
+  constructedPointStroke: "#246a73",
+  pointActiveFill: "#e3c057",
+  pointActiveStroke: "#172026",
+  line: "#246a73",
+  lineActive: "#e3c057",
+  circle: "#ba4a3a",
+  circleActive: "#e3c057",
+} as const;
+
 export const THEME = {
-  colors: {
-    background: "#fbfaf6",
-    grid: "#e2ddd3",
-    textFill: "#172026",
-    textStroke: "#fbfaf6",
-    pointFill: "#172026",
-    pointStroke: "#e3c057",
-    constructedPointFill: "#fbfaf6",
-    constructedPointStroke: "#246a73",
-    pointActiveFill: "#e3c057",
-    pointActiveStroke: "#172026",
-    line: "#246a73",
-    lineActive: "#e3c057",
-    circle: "#ba4a3a",
-    circleActive: "#e3c057",
+  colors,
+  preview: {
+    draftLine: {
+      stroke: colors.line,
+      lineWidth: 2.5,
+      opacity: 0.55,
+    },
+    draftCircle: {
+      stroke: colors.circle,
+      lineWidth: 2.5,
+      opacity: 0.55,
+    },
+    freePoint: {
+      fill: colors.pointFill,
+      stroke: colors.pointStroke,
+      radius: 5,
+      lineWidth: 2.5,
+      opacity: 0.5,
+    },
+    snappedPoint: {
+      fill: colors.circle,
+      stroke: colors.pointStroke,
+      radius: 5,
+      lineWidth: 2.5,
+      opacity: 0.8,
+    },
   },
   typography: {
     fontSize: 18,
