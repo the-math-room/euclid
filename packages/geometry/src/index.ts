@@ -1,3 +1,4 @@
+export * from "./approx";
 export * from "./dependencies";
 export * from "./edit";
 export * from "./evaluate";

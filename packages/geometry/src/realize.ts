@@ -1,4 +1,5 @@
-import type { Construction, ConstructionId, EvaluatedPrimitive, EvaluationDiagnostic, Point2 } from "./model";
+import type { Construction, ConstructionId, EvaluatedPrimitive, EvaluationDiagnostic } from "./model";
+import { lineLineIntersection, samePoint } from "./approx";
 
 export type Realization = Readonly<{
   primitives: readonly EvaluatedPrimitive[];
@@ -136,44 +137,4 @@ function pointNamed(previous: ReadonlyMap<ConstructionId, EvaluatedPrimitive>, i
 function lineNamed(previous: ReadonlyMap<ConstructionId, EvaluatedPrimitive>, id: ConstructionId) {
   const primitive = previous.get(id);
   return primitive?.kind === "line" ? primitive : undefined;
-}
-
-function lineLineIntersection(
-  first: readonly [Point2, Point2],
-  second: readonly [Point2, Point2],
-): Point2 | undefined {
-  const [a, b] = first;
-  const [c, d] = second;
-  const ab = {
-    x: b.x - a.x,
-    y: b.y - a.y,
-  };
-  const cd = {
-    x: d.x - c.x,
-    y: d.y - c.y,
-  };
-  const denominator = cross(ab, cd);
-
-  if (denominator === 0) {
-    return undefined;
-  }
-
-  const ac = {
-    x: c.x - a.x,
-    y: c.y - a.y,
-  };
-  const t = cross(ac, cd) / denominator;
-
-  return {
-    x: a.x + t * ab.x,
-    y: a.y + t * ab.y,
-  };
-}
-
-function cross(a: Point2, b: Point2): number {
-  return a.x * b.y - a.y * b.x;
-}
-
-function samePoint(a: Point2, b: Point2): boolean {
-  return a.x === b.x && a.y === b.y;
 }

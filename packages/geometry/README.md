@@ -26,6 +26,7 @@ Functions in this package should be memoizable in theory.
 ## Key Files
 
 - `src/model.ts`: construction and evaluated primitive types.
+- `src/approx.ts`: shared floating-point realization helpers.
 - `src/dependencies.ts`: dependency extraction and graph construction.
 - `src/edit.ts`: pure construction edit helpers.
 - `src/evaluate.ts`: graph planning and exact construction meaning.

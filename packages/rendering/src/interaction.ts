@@ -1,4 +1,4 @@
-import type { Point2 } from "@euclid/geometry";
+import { lineLineIntersection, type Point2 } from "@euclid/geometry";
 import type { RenderItem, RenderScene } from "./scene";
 
 export type IntersectionHit = Readonly<{
@@ -113,40 +113,4 @@ export function findIntersectionAtPosition(
   }
 
   return closest;
-}
-
-function lineLineIntersection(
-  first: readonly [Point2, Point2],
-  second: readonly [Point2, Point2],
-): Point2 | undefined {
-  const [a, b] = first;
-  const [c, d] = second;
-  const ab = {
-    x: b.x - a.x,
-    y: b.y - a.y,
-  };
-  const cd = {
-    x: d.x - c.x,
-    y: d.y - c.y,
-  };
-  const denominator = cross(ab, cd);
-
-  if (denominator === 0) {
-    return undefined;
-  }
-
-  const ac = {
-    x: c.x - a.x,
-    y: c.y - a.y,
-  };
-  const t = cross(ac, cd) / denominator;
-
-  return {
-    x: a.x + t * ab.x,
-    y: a.y + t * ab.y,
-  };
-}
-
-function cross(a: Point2, b: Point2): number {
-  return a.x * b.y - a.y * b.x;
 }
