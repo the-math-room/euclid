@@ -83,4 +83,41 @@ describe("assessmentResolver", () => {
       },
     });
   });
+
+  it("resolves nested goals correctly", () => {
+    const starterProgram: ConstructionProgram = {
+      constructions: [
+        { id: "A", kind: "free-point", label: "A", position: { x: 0, y: 0 } },
+        { id: "B", kind: "free-point", label: "B", position: { x: 2, y: 0 } },
+      ],
+    };
+
+    const goals: readonly AssessmentGoal[] = [
+      {
+        kind: "all",
+        goals: [
+          {
+            kind: "meaning",
+            id: "line-ab",
+            expression: {
+              kind: "line-through",
+              points: ["A", "B"],
+            },
+          },
+        ],
+      },
+    ];
+
+    const userProgram: ConstructionProgram = {
+      constructions: [
+        ...starterProgram.constructions,
+        { id: "line-a-b", kind: "line-through", label: "AB", points: ["A", "B"] },
+      ],
+    };
+
+    const evaluation = evaluateConstruction(userProgram);
+    const mapping = resolveGoalMapping(evaluation, goals, starterProgram);
+
+    expect(mapping.get("line-ab")).toBe("line-a-b");
+  });
 });

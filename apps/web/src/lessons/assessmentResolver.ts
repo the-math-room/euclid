@@ -1,6 +1,23 @@
 import type { ConstructionExpression, Evaluation, ConstructionProgram } from "@euclid/geometry";
 import type { AssessmentGoal } from "@euclid/assessment";
 
+function extractMeaningGoals(goals: readonly AssessmentGoal[]): (AssessmentGoal & { kind: "meaning" })[] {
+  const result: (AssessmentGoal & { kind: "meaning" })[] = [];
+  function visit(goal: AssessmentGoal) {
+    if (goal.kind === "meaning") {
+      result.push(goal);
+    } else if (goal.kind === "all" || goal.kind === "any") {
+      for (const child of goal.goals) {
+        visit(child);
+      }
+    }
+  }
+  for (const goal of goals) {
+    visit(goal);
+  }
+  return result;
+}
+
 export function resolveGoalMapping(
   evaluation: Evaluation,
   goals: readonly AssessmentGoal[],
@@ -13,19 +30,19 @@ export function resolveGoalMapping(
     mapping.set(construction.id, construction.id);
   }
 
+  const allMeaningGoals = extractMeaningGoals(goals);
+
   let changed = true;
   while (changed) {
     changed = false;
-    for (const goal of goals) {
-      if (goal.kind === "meaning") {
-        if (mapping.has(goal.id)) {
-          continue;
-        }
-        const matchedId = findMatchingUserConstruction(evaluation, goal.expression, mapping);
-        if (matchedId) {
-          mapping.set(goal.id, matchedId);
-          changed = true;
-        }
+    for (const goal of allMeaningGoals) {
+      if (mapping.has(goal.id)) {
+        continue;
+      }
+      const matchedId = findMatchingUserConstruction(evaluation, goal.expression, mapping);
+      if (matchedId) {
+        mapping.set(goal.id, matchedId);
+        changed = true;
       }
     }
   }
