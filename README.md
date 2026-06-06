@@ -29,6 +29,7 @@ npm run dev
 - `packages/rendering/src`: viewport projection, renderable scene descriptions, label layout, and screen-space hit testing.
 - `apps/web/src`: React composition, SVG/Canvas surfaces, gesture interpretation, and browser entry point.
 - `tests/architecture`: repository boundary tests.
+- `examples`: headless SDK examples and assessment goal fixtures.
 - `docs/llm`: agent-oriented project guidance.
 - `docs/architecture`: design notes for the geometry model.
 

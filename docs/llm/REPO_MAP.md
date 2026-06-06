@@ -73,6 +73,17 @@ Start here:
 - `apps/web/src/construction/useConstructionController.ts`
 - `apps/web/src/WorkspaceView.tsx`
 
+## Examples
+
+Start here:
+
+- `examples/headless-kernel/README.md`
+- `examples/assessment-goals/line-intersection-goal.json`
+
+Run or update:
+
+- `tests/examples/*.test.ts`
+
 ## Architecture Boundaries
 
 Start here:

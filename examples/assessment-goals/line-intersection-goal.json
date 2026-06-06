@@ -1,0 +1,29 @@
+{
+  "kind": "all",
+  "id": "construct-line-intersection",
+  "goals": [
+    {
+      "kind": "construction-kind",
+      "constructionKind": "line-line-intersection"
+    },
+    {
+      "kind": "meaning",
+      "id": "intersection",
+      "expression": {
+        "kind": "line-line-intersection",
+        "lines": ["line-ab", "line-cd"]
+      }
+    },
+    {
+      "kind": "dependency",
+      "targetId": "intersection",
+      "sourceId": "A",
+      "transitive": true
+    },
+    {
+      "kind": "point-on-line",
+      "pointId": "intersection",
+      "lineId": "line-ab"
+    }
+  ]
+}

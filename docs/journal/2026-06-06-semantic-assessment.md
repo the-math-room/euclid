@@ -65,6 +65,13 @@ Added `packages/assessment/src/goalCodec.ts` with:
 
 The codec validates goal JSON structure at curriculum/content boundaries without requiring referenced construction IDs to exist in a particular student program.
 
+Added the first headless SDK examples:
+
+- `examples/headless-kernel/README.md`
+- `examples/assessment-goals/line-intersection-goal.json`
+
+The assessment goal fixture is covered by `tests/examples/assessmentGoalFixture.test.ts`, so the example stays aligned with the public `@euclid/assessment` API.
+
 ## Why
 
 This is the first code-level step toward the headless edTech SDK direction. Assessment is intentionally separate from geometry meaning: a learning platform can use this reference package or provide its own assessment engine over `@euclid/geometry` data.
