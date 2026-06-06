@@ -9,6 +9,8 @@ Added `@euclid/lesson` as the headless curriculum composition package.
 - Delegated nested document and assessment validation to `@euclid/document` and `@euclid/assessment`.
 - Validated lesson activity policy structure locally.
 - Added architecture tests so lesson may compose document, activity, and assessment but cannot import geometry, rendering, app, interaction, or UI libraries.
+- Added `examples/lessons/basic-line-intersection.lesson.json` as a portable lesson fixture.
+- Added a headless example test that parses the lesson, checks its activity policy, evaluates the starter program as incomplete, and evaluates a completed learner program as passing.
 
 ## Strategic Meaning
 
@@ -24,5 +26,5 @@ This keeps the SDK layers clear:
 
 ## Follow-Up
 
-- Add a fixture under `examples/lessons` once the first lesson shape is used by the app or examples.
 - Decide whether the web app should load a lesson directly or keep using document/activity/assessment pieces separately during early iteration.
+- Add an explicit lesson-runner helper if the example test starts getting duplicated by docs or app code.

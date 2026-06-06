@@ -101,6 +101,8 @@ Start here:
 Start here:
 
 - `examples/headless-kernel/README.md`
+- `examples/lessons/README.md`
+- `examples/lessons/basic-line-intersection.lesson.json`
 - `examples/assessment-goals/line-intersection-goal.json`
 
 Run or update:

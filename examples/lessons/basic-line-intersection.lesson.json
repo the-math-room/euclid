@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "title": "Construct the intersection of two lines",
+  "document": {
+    "schemaVersion": 1,
+    "title": "Line intersection starter",
+    "program": {
+      "constructions": [
+        { "id": "A", "kind": "free-point", "label": "A", "position": { "x": 0, "y": 0 } },
+        { "id": "B", "kind": "free-point", "label": "B", "position": { "x": 2, "y": 0 } },
+        { "id": "C", "kind": "free-point", "label": "C", "position": { "x": 1, "y": 1 } },
+        { "id": "D", "kind": "free-point", "label": "D", "position": { "x": 1, "y": -1 } }
+      ]
+    }
+  },
+  "policy": {
+    "allowedTools": ["select", "line"],
+    "lockedConstructions": ["A", "B", "C", "D"],
+    "allowDelete": false,
+    "pointDrag": "none",
+    "shapeDrag": "none"
+  },
+  "goals": [
+    {
+      "kind": "all",
+      "id": "construct-line-intersection",
+      "goals": [
+        {
+          "kind": "meaning",
+          "id": "line-ab",
+          "expression": {
+            "kind": "line-through",
+            "points": ["A", "B"]
+          }
+        },
+        {
+          "kind": "meaning",
+          "id": "line-cd",
+          "expression": {
+            "kind": "line-through",
+            "points": ["C", "D"]
+          }
+        },
+        {
+          "kind": "meaning",
+          "id": "intersection",
+          "expression": {
+            "kind": "line-line-intersection",
+            "lines": ["line-ab", "line-cd"]
+          }
+        },
+        {
+          "kind": "point-on-line",
+          "pointId": "intersection",
+          "lineId": "line-ab"
+        },
+        {
+          "kind": "point-on-line",
+          "pointId": "intersection",
+          "lineId": "line-cd"
+        }
+      ]
+    }
+  ]
+}

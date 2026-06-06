@@ -16,7 +16,7 @@ EdTech platforms should be able to adopt pieces independently:
 - Use `@euclid/rendering` to convert evaluated geometry into render scenes, SVG output, Canvas drawing, hit testing, and viewport math.
 - Use the web app or future React components as one optional shell, not as the source of construction truth.
 
-See `examples/headless-kernel/README.md` for a kernel-only adoption sketch and `examples/assessment-goals/line-intersection-goal.json` for a curriculum-authored assessment goal fixture.
+See `examples/headless-kernel/README.md` for a kernel-only adoption sketch, `examples/lessons/basic-line-intersection.lesson.json` for a portable lesson fixture, and `examples/assessment-goals/line-intersection-goal.json` for a curriculum-authored assessment goal fixture.
 
 ## Near-Term Differentiators
 
