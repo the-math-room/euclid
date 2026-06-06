@@ -72,69 +72,64 @@ function matchExpression(
     return false;
   }
 
-  if (userExpr.kind === "free-point" && goalExpr.kind === "free-point") {
-    return true;
+  const keys = Object.keys(goalExpr) as (keyof ConstructionExpression)[];
+  for (const key of keys) {
+    if (key === "kind") continue;
+
+    const goalVal = (goalExpr as Record<string, unknown>)[key];
+    const userVal = (userExpr as Record<string, unknown>)[key];
+
+    if (Array.isArray(goalVal)) {
+      if (!Array.isArray(userVal) || goalVal.length !== userVal.length) {
+        return false;
+      }
+      if (goalVal.length > 0 && typeof goalVal[0] === "string") {
+        const mappedGoalSet = new Set(goalVal.map((v: string) => mapping.get(v) ?? v));
+        const userSet = new Set(userVal);
+        if (mappedGoalSet.size !== userSet.size) {
+          return false;
+        }
+        for (const item of userSet) {
+          if (!mappedGoalSet.has(item)) {
+            return false;
+          }
+        }
+      } else {
+        for (let i = 0; i < goalVal.length; i++) {
+          if (!matchExpression(userVal[i], goalVal[i], mapping)) {
+            return false;
+          }
+        }
+      }
+    } else if (typeof goalVal === "string") {
+      if (
+        (key === "firstCircle" || key === "secondCircle") &&
+        "firstCircle" in goalExpr &&
+        "secondCircle" in goalExpr
+      ) {
+        const gExprObj = goalExpr as Record<string, unknown>;
+        const uExprObj = userExpr as Record<string, unknown>;
+        const gc0 = mapping.get(String(gExprObj.firstCircle)) ?? String(gExprObj.firstCircle);
+        const gc1 = mapping.get(String(gExprObj.secondCircle)) ?? String(gExprObj.secondCircle);
+        const uc0 = String(uExprObj.firstCircle);
+        const uc1 = String(uExprObj.secondCircle);
+        if (!((uc0 === gc0 && uc1 === gc1) || (uc0 === gc1 && uc1 === gc0))) {
+          return false;
+        }
+      } else {
+        const mappedVal = mapping.get(goalVal) ?? goalVal;
+        if (userVal !== mappedVal) {
+          return false;
+        }
+      }
+    } else {
+      if (userVal !== goalVal) {
+        return false;
+      }
+    }
   }
 
-  if (userExpr.kind === "line-through" && goalExpr.kind === "line-through") {
-    const p0 = mapping.get(goalExpr.points[0]);
-    const p1 = mapping.get(goalExpr.points[1]);
-    if (!p0 || !p1) return false;
-    return (
-      (userExpr.points[0] === p0 && userExpr.points[1] === p1) ||
-      (userExpr.points[0] === p1 && userExpr.points[1] === p0)
-    );
-  }
-
-  if (userExpr.kind === "circle-through" && goalExpr.kind === "circle-through") {
-    const center = mapping.get(goalExpr.center);
-    const point = mapping.get(goalExpr.pointOnCircle);
-    if (!center || !point) return false;
-    return userExpr.center === center && userExpr.pointOnCircle === point;
-  }
-
-  if (userExpr.kind === "circle-three-points" && goalExpr.kind === "circle-three-points") {
-    const p0 = mapping.get(goalExpr.points[0]);
-    const p1 = mapping.get(goalExpr.points[1]);
-    const p2 = mapping.get(goalExpr.points[2]);
-    if (!p0 || !p1 || !p2) return false;
-    const userSet = new Set(userExpr.points);
-    return userSet.has(p0) && userSet.has(p1) && userSet.has(p2);
-  }
-
-  if (userExpr.kind === "line-line-intersection" && goalExpr.kind === "line-line-intersection") {
-    const l0 = mapping.get(goalExpr.lines[0]);
-    const l1 = mapping.get(goalExpr.lines[1]);
-    if (!l0 || !l1) return false;
-    return (
-      (userExpr.lines[0] === l0 && userExpr.lines[1] === l1) ||
-      (userExpr.lines[0] === l1 && userExpr.lines[1] === l0)
-    );
-  }
-
-  if (userExpr.kind === "line-circle-intersection" && goalExpr.kind === "line-circle-intersection") {
-    const line = mapping.get(goalExpr.line);
-    const circle = mapping.get(goalExpr.circle);
-    if (!line || !circle) return false;
-    return (
-      userExpr.line === line &&
-      userExpr.circle === circle &&
-      userExpr.intersectionIndex === goalExpr.intersectionIndex
-    );
-  }
-
-  if (userExpr.kind === "circle-circle-intersection" && goalExpr.kind === "circle-circle-intersection") {
-    const c0 = mapping.get(goalExpr.firstCircle);
-    const c1 = mapping.get(goalExpr.secondCircle);
-    if (!c0 || !c1) return false;
-    return (
-      ((userExpr.firstCircle === c0 && userExpr.secondCircle === c1) ||
-        (userExpr.firstCircle === c1 && userExpr.secondCircle === c0)) &&
-      userExpr.intersectionIndex === goalExpr.intersectionIndex
-    );
-  }
-
-  return false;
+  return true;
 }
 
 export function mapGoalIds(goal: AssessmentGoal, mapping: Map<string, string>): AssessmentGoal {
@@ -179,48 +174,24 @@ function mapExpressionIds(
   expr: ConstructionExpression,
   mapping: Map<string, string>,
 ): ConstructionExpression {
-  if (expr.kind === "line-through") {
-    return {
-      ...expr,
-      points: [mapping.get(expr.points[0]) ?? expr.points[0], mapping.get(expr.points[1]) ?? expr.points[1]],
-    };
+  const mapped = { ...expr } as Record<string, unknown>;
+  const exprObj = expr as Record<string, unknown>;
+  for (const key of Object.keys(expr)) {
+    if (key === "kind") continue;
+    const val = exprObj[key];
+    if (Array.isArray(val)) {
+      if (val.length > 0 && typeof val[0] === "string") {
+        mapped[key] = val.map((v: string) => mapping.get(v) ?? v);
+      } else {
+        mapped[key] = val.map((v: unknown) =>
+          v && typeof v === "object" ? mapExpressionIds(v as ConstructionExpression, mapping) : v,
+        );
+      }
+    } else if (typeof val === "string") {
+      mapped[key] = mapping.get(val) ?? val;
+    } else if (val && typeof val === "object") {
+      mapped[key] = mapExpressionIds(val as ConstructionExpression, mapping);
+    }
   }
-  if (expr.kind === "circle-through") {
-    return {
-      ...expr,
-      center: mapping.get(expr.center) ?? expr.center,
-      pointOnCircle: mapping.get(expr.pointOnCircle) ?? expr.pointOnCircle,
-    };
-  }
-  if (expr.kind === "circle-three-points") {
-    return {
-      ...expr,
-      points: [
-        mapping.get(expr.points[0]) ?? expr.points[0],
-        mapping.get(expr.points[1]) ?? expr.points[1],
-        mapping.get(expr.points[2]) ?? expr.points[2],
-      ],
-    };
-  }
-  if (expr.kind === "line-line-intersection") {
-    return {
-      ...expr,
-      lines: [mapping.get(expr.lines[0]) ?? expr.lines[0], mapping.get(expr.lines[1]) ?? expr.lines[1]],
-    };
-  }
-  if (expr.kind === "line-circle-intersection") {
-    return {
-      ...expr,
-      line: mapping.get(expr.line) ?? expr.line,
-      circle: mapping.get(expr.circle) ?? expr.circle,
-    };
-  }
-  if (expr.kind === "circle-circle-intersection") {
-    return {
-      ...expr,
-      firstCircle: mapping.get(expr.firstCircle) ?? expr.firstCircle,
-      secondCircle: mapping.get(expr.secondCircle) ?? expr.secondCircle,
-    };
-  }
-  return expr;
+  return mapped as unknown as ConstructionExpression;
 }
