@@ -1,9 +1,14 @@
 import { Circle, MousePointer2, Ruler, Waypoints, Undo2, Redo2, Trash2 } from "lucide-react";
 import { seedDocument, createHistory, pushState, undo, redo, canUndo, canRedo } from "@euclid/document";
-import { evaluateConstruction, deleteConstructions, generateNextPointLabel } from "@euclid/geometry";
-import type { Construction, ConstructionId, Point2 } from "@euclid/geometry";
+import {
+  evaluateConstruction,
+  deleteConstructions,
+  generateNextPointLabel,
+  moveFreePoint,
+} from "@euclid/geometry";
+import type { Construction, ConstructionId, ConstructionProgram, Point2 } from "@euclid/geometry";
 import { defaultScreenViewFor, sceneForEvaluation, unprojectPoint, worldFrameFor } from "@euclid/rendering";
-import { useMemo, useState, useEffect, useCallback } from "react";
+import { useMemo, useState, useEffect, useCallback, useRef } from "react";
 import { ObjectList } from "./objects/ObjectList";
 import { SelectionDetails } from "./objects/SelectionDetails";
 import { useCameraController } from "./view/useCameraController";
@@ -20,6 +25,7 @@ export function App() {
   const [selectedIds, setSelectedIds] = useState<ReadonlySet<ConstructionId>>(new Set());
   const [lastSelectedId, setLastSelectedId] = useState<ConstructionId | undefined>();
   const [activeTool, setActiveTool] = useState<"select" | "point" | "line" | "circle">("select");
+  const dragStartProgram = useRef<ConstructionProgram | undefined>(undefined);
   const camera = useCameraController(defaultView);
 
   const program = history.present;
@@ -119,6 +125,64 @@ export function App() {
     setSelectedIds(new Set([newPoint.id]));
     setLastSelectedId(newPoint.id);
   };
+
+  const screenToWorld = useCallback(
+    (screenCoords: Point2): Point2 => {
+      const frame = worldFrameFor({
+        viewport: { size: sceneSize },
+        camera: camera.camera,
+      });
+      return unprojectPoint(frame, screenCoords);
+    },
+    [camera.camera],
+  );
+
+  const handleBeginPointDrag = useCallback(
+    (id: ConstructionId) => {
+      dragStartProgram.current = history.present;
+      setSelectedIds(new Set([id]));
+      setLastSelectedId(id);
+    },
+    [history.present],
+  );
+
+  const handleMovePoint = useCallback(
+    (id: ConstructionId, screenCoords: Point2) => {
+      const worldPosition = screenToWorld(screenCoords);
+      setHistory((prev) => {
+        const nextProgram = moveFreePoint(prev.present, id, worldPosition);
+        if (nextProgram === prev.present) {
+          return prev;
+        }
+        return {
+          ...prev,
+          present: nextProgram,
+        };
+      });
+    },
+    [screenToWorld],
+  );
+
+  const handleEndPointDrag = useCallback(() => {
+    const originalProgram = dragStartProgram.current;
+    dragStartProgram.current = undefined;
+
+    if (!originalProgram) {
+      return;
+    }
+
+    setHistory((prev) => {
+      if (prev.present === originalProgram) {
+        return prev;
+      }
+
+      return {
+        past: [...prev.past, originalProgram],
+        present: prev.present,
+        future: [],
+      };
+    });
+  }, []);
 
   const handleDeleteSelected = useCallback(() => {
     if (selectedIds.size === 0) return;
@@ -265,6 +329,9 @@ export function App() {
         currentZoom={camera.zoom}
         activeTool={activeTool}
         onAddPoint={handleAddPoint}
+        onBeginPointDrag={handleBeginPointDrag}
+        onMovePoint={handleMovePoint}
+        onEndPointDrag={handleEndPointDrag}
       />
     </main>
   );

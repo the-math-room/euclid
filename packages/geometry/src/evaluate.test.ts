@@ -117,4 +117,75 @@ describe("evaluateConstruction", () => {
       },
     ]);
   });
+
+  it("does not evaluate a line whose point dependencies coincide", () => {
+    const program: ConstructionProgram = {
+      constructions: [
+        {
+          id: "A",
+          kind: "free-point",
+          label: "A",
+          position: { x: 0, y: 0 },
+        },
+        {
+          id: "B",
+          kind: "free-point",
+          label: "B",
+          position: { x: 0, y: 0 },
+        },
+        {
+          id: "line-ab",
+          kind: "line-through",
+          label: "AB",
+          points: ["A", "B"],
+        },
+      ],
+    };
+
+    const evaluation = evaluateConstruction(program);
+
+    expect(evaluation.primitives.map((primitive) => primitive.id)).toEqual(["A", "B"]);
+    expect(evaluation.diagnostics).toEqual([
+      {
+        constructionId: "line-ab",
+        message: "Line AB needs two distinct point dependencies.",
+      },
+    ]);
+  });
+
+  it("does not evaluate a circle whose center and circumference points coincide", () => {
+    const program: ConstructionProgram = {
+      constructions: [
+        {
+          id: "A",
+          kind: "free-point",
+          label: "A",
+          position: { x: 0, y: 0 },
+        },
+        {
+          id: "B",
+          kind: "free-point",
+          label: "B",
+          position: { x: 0, y: 0 },
+        },
+        {
+          id: "circle-ab",
+          kind: "circle-through",
+          label: "circle(A, B)",
+          center: "A",
+          pointOnCircle: "B",
+        },
+      ],
+    };
+
+    const evaluation = evaluateConstruction(program);
+
+    expect(evaluation.primitives.map((primitive) => primitive.id)).toEqual(["A", "B"]);
+    expect(evaluation.diagnostics).toEqual([
+      {
+        constructionId: "circle-ab",
+        message: "Circle circle(A, B) needs distinct center and circumference points.",
+      },
+    ]);
+  });
 });

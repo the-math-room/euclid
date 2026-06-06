@@ -161,6 +161,13 @@ function evaluateOne(
       };
     }
 
+    if (samePoint(a.position, b.position)) {
+      return {
+        kind: "diagnostic",
+        message: `Line ${construction.label} needs two distinct point dependencies.`,
+      };
+    }
+
     return {
       id: construction.id,
       kind: "line",
@@ -179,6 +186,13 @@ function evaluateOne(
     };
   }
 
+  if (samePoint(center.position, pointOnCircle.position)) {
+    return {
+      kind: "diagnostic",
+      message: `Circle ${construction.label} needs distinct center and circumference points.`,
+    };
+  }
+
   return {
     id: construction.id,
     kind: "circle",
@@ -191,4 +205,8 @@ function evaluateOne(
 function pointNamed(previous: ReadonlyMap<ConstructionId, EvaluatedPrimitive>, id: ConstructionId) {
   const primitive = previous.get(id);
   return primitive?.kind === "point" ? primitive : undefined;
+}
+
+function samePoint(a: { x: number; y: number }, b: { x: number; y: number }): boolean {
+  return a.x === b.x && a.y === b.y;
 }

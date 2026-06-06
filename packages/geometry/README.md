@@ -26,6 +26,7 @@ Functions in this package should be memoizable in theory.
 
 - `src/model.ts`: construction and evaluated primitive types.
 - `src/dependencies.ts`: dependency extraction and graph construction.
+- `src/edit.ts`: pure construction edit helpers.
 - `src/evaluate.ts`: construction semantics.
 - `src/index.ts`: public package entrypoint.
 

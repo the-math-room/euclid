@@ -34,6 +34,11 @@ type GestureState = {
   pinchStartZoom: number;
   /** Last midpoint between fingers, used for pan-during-pinch */
   pinchLastMidpoint: Point2;
+  /** Active one-pointer point drag, if any */
+  activePointDrag?: {
+    pointerId: number;
+    id: ConstructionId;
+  };
 };
 
 function pointerDistance(a: ActivePointer, b: ActivePointer): number {
@@ -86,6 +91,9 @@ export function WorkspaceView({
   currentZoom,
   activeTool,
   onAddPoint,
+  onBeginPointDrag,
+  onMovePoint,
+  onEndPointDrag,
 }: {
   scene: RenderScene;
   selectedIds: ReadonlySet<ConstructionId>;
@@ -95,6 +103,9 @@ export function WorkspaceView({
   currentZoom: number;
   activeTool: "select" | "point" | "line" | "circle";
   onAddPoint: (coords: Point2) => void;
+  onBeginPointDrag: (id: ConstructionId) => void;
+  onMovePoint: (id: ConstructionId, coords: Point2) => void;
+  onEndPointDrag: () => void;
 }) {
   const [renderMode, setRenderMode] = useState<"svg" | "canvas">("svg");
 
@@ -113,6 +124,7 @@ export function WorkspaceView({
     pinchStartDistance: 0,
     pinchStartZoom: 1,
     pinchLastMidpoint: { x: 0, y: 0 },
+    activePointDrag: undefined,
   });
 
   // Keep currentZoom accessible inside event handlers without stale closure
@@ -180,12 +192,37 @@ export function WorkspaceView({
       g.dragStartX = event.clientX;
       g.dragStartY = event.clientY;
       g.hasMoved = false;
+
+      if (activeTool === "select" && !event.ctrlKey && !event.shiftKey) {
+        const el = event.currentTarget as Element;
+        const rect = el.getBoundingClientRect();
+        const coords = clientToSceneCoords(
+          event.clientX,
+          event.clientY,
+          rect,
+          scene.size.width,
+          scene.size.height,
+        );
+        const item = findItemAtPosition(scene, coords);
+
+        if (item?.kind === "point") {
+          g.activePointDrag = {
+            pointerId: event.pointerId,
+            id: item.id,
+          };
+          onBeginPointDrag(item.id);
+        }
+      }
     } else if (g.pointers.size === 2) {
       const [a, b] = Array.from(g.pointers.values()) as [ActivePointer, ActivePointer];
       g.pinchStartDistance = pointerDistance(a, b);
       g.pinchStartZoom = currentZoomRef.current;
       g.pinchLastMidpoint = pointerMidpoint(a, b);
       g.hasMoved = true; // cancel pending tap from finger 1
+      if (g.activePointDrag) {
+        onEndPointDrag();
+      }
+      g.activePointDrag = undefined;
     }
   };
 
@@ -197,7 +234,23 @@ export function WorkspaceView({
     g.pointers.set(event.pointerId, { id: event.pointerId, x: event.clientX, y: event.clientY });
     g.lastPos.set(event.pointerId, { x: event.clientX, y: event.clientY });
 
-    if (g.pointers.size >= 2) {
+    if (g.activePointDrag?.pointerId === event.pointerId && g.pointers.size === 1) {
+      const totalDist = Math.hypot(event.clientX - g.dragStartX, event.clientY - g.dragStartY);
+      if (totalDist > 4) g.hasMoved = true;
+
+      if (g.hasMoved) {
+        const el = event.currentTarget as Element;
+        const rect = el.getBoundingClientRect();
+        const coords = clientToSceneCoords(
+          event.clientX,
+          event.clientY,
+          rect,
+          scene.size.width,
+          scene.size.height,
+        );
+        onMovePoint(g.activePointDrag.id, coords);
+      }
+    } else if (g.pointers.size >= 2) {
       // --- Pinch: zoom + mid-pan ---
       const [a, b] = Array.from(g.pointers.values()) as [ActivePointer, ActivePointer];
       const currentDist = pointerDistance(a, b);
@@ -279,6 +332,11 @@ export function WorkspaceView({
       }
     }
 
+    if (g.activePointDrag?.pointerId === event.pointerId) {
+      onEndPointDrag();
+      g.activePointDrag = undefined;
+    }
+
     // Transitioning from 2-finger to 1-finger: reset drag origin
     if (g.pointers.size === 1) {
       const remaining = Array.from(g.pointers.values())[0];
@@ -289,6 +347,10 @@ export function WorkspaceView({
   };
 
   const onPointerCancel = (event: React.PointerEvent<Element>) => {
+    if (gestureRef.current.activePointDrag?.pointerId === event.pointerId) {
+      onEndPointDrag();
+      gestureRef.current.activePointDrag = undefined;
+    }
     gestureRef.current.pointers.delete(event.pointerId);
     gestureRef.current.lastPos.delete(event.pointerId);
   };
@@ -377,14 +439,6 @@ function RenderItemView({
   const className = selected ? `primitive ${item.kind} selected` : `primitive ${item.kind}`;
   const label = `${item.kind} ${item.kind === "point" ? item.label.text : item.id}`;
 
-  // Stop propagation on pointer events so item taps don't bubble to the SVG/canvas
-  // background handler (which would misinterpret them as background taps).
-  const stopProp = (e: React.PointerEvent) => e.stopPropagation();
-  const handlePointerUp = (e: React.PointerEvent) => {
-    e.stopPropagation();
-    onSelect({ ctrlKey: e.ctrlKey, shiftKey: e.shiftKey });
-  };
-
   const sharedProps = {
     className,
     role: "button" as const,
@@ -400,8 +454,6 @@ function RenderItemView({
         onSelect();
       }
     },
-    onPointerDown: stopProp,
-    onPointerUp: handlePointerUp,
   };
 
   if (item.kind === "point") {
