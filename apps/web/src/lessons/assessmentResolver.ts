@@ -141,7 +141,7 @@ export function mapGoalIds(goal: AssessmentGoal, mapping: Map<string, string>): 
   if (goal.kind === "all" || goal.kind === "any") {
     return {
       ...goal,
-      goals: goal.goals.map((g) => mapGoalIds(g, mapping)),
+      goals: goal.goals.map((g: AssessmentGoal) => mapGoalIds(g, mapping)),
     } as AssessmentGoal;
   }
   if (goal.kind === "meaning") {
