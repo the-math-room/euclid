@@ -7,6 +7,7 @@ Owns renderable scene data derived from evaluated geometry.
 - Viewport projection.
 - 2D camera model for pan, zoom, and rotation.
 - Conversion from evaluated primitives to render scene items.
+- Backend-neutral label placement for render scene data.
 - Rendering-level tests that are independent from React.
 
 Functions in this package should be memoizable in theory.
@@ -25,6 +26,7 @@ Functions in this package should be memoizable in theory.
 ## Key Files
 
 - `src/scene.ts`: evaluated geometry to render scene conversion.
+- `src/labelLayout.ts`: deterministic label candidate generation and scoring.
 - `src/viewport.ts`: world-to-viewport projection.
 - `src/index.ts`: public package entrypoint.
 

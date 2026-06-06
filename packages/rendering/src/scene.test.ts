@@ -95,7 +95,15 @@ describe("sceneForEvaluation", () => {
         },
       ],
     });
-    const view = screenViewFor(evaluation, { width: 100, height: 100 });
+    const view: ScreenView = {
+      viewport: { size: { width: 100, height: 100 } },
+      camera: {
+        center: { x: 0, y: 0 },
+        rotation: { turns: 0 },
+        scale: 20,
+        screenOffset: { x: 0, y: 0 },
+      },
+    };
     const unrotated = sceneForEvaluation(evaluation, view);
     const rotated = sceneForEvaluation(evaluation, {
       ...view,

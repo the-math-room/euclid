@@ -1,4 +1,5 @@
 import type { Evaluation, Point2 } from "@euclid/geometry";
+import { layoutPointLabels, type LabelCandidateName, type Rect } from "./labelLayout";
 import { fitCameraFor, projectPoint, type ScreenView, type ViewportSize, worldFrameFor } from "./viewport";
 
 export type RenderScene = Readonly<{
@@ -36,6 +37,9 @@ export type RenderItem =
 export type RenderLabel = Readonly<{
   text: string;
   anchor: Point2;
+  bounds?: Rect;
+  candidate?: LabelCandidateName;
+  score?: number;
 }>;
 
 export function defaultScreenViewFor(evaluation: Evaluation, size: ViewportSize): ScreenView {
@@ -52,22 +56,18 @@ export function sceneForEvaluation(evaluation: Evaluation, view: ScreenView): Re
 
   const circles: RenderItem[] = [];
   const lines: RenderItem[] = [];
-  const points: RenderItem[] = [];
+  const pointTargets: {
+    id: string;
+    text: string;
+    mark: Point2;
+  }[] = [];
 
   for (const primitive of evaluation.primitives) {
     if (primitive.kind === "point") {
-      const mark = projectPoint(frame, primitive.position);
-      points.push({
+      pointTargets.push({
         id: primitive.id,
-        kind: "point",
-        mark,
-        label: {
-          text: primitive.label,
-          anchor: {
-            x: mark.x + 10,
-            y: mark.y - 10,
-          },
-        },
+        text: primitive.label,
+        mark: projectPoint(frame, primitive.position),
       });
     } else if (primitive.kind === "line") {
       const a = projectPoint(frame, primitive.through[0]);
@@ -91,10 +91,46 @@ export function sceneForEvaluation(evaluation: Evaluation, view: ScreenView): Re
     }
   }
 
+  const pointObstacles: RenderItem[] = pointTargets.map((target) => ({
+    id: target.id,
+    kind: "point",
+    mark: target.mark,
+    label: fallbackLabelFor(target.text, target.mark),
+  }));
+  const labelPlacements = layoutPointLabels(
+    pointTargets,
+    [...circles, ...lines, ...pointObstacles],
+    view.viewport.size,
+  );
+  const points: RenderItem[] = pointTargets.map((target) => ({
+    id: target.id,
+    kind: "point",
+    mark: target.mark,
+    label: labelPlacements.get(target.id) ?? fallbackLabelFor(target.text, target.mark),
+  }));
+
   return {
     size: view.viewport.size,
     grid: gridLinesForFrame(frame),
     items: [...circles, ...lines, ...points],
+  };
+}
+
+function fallbackLabelFor(text: string, mark: Point2): RenderLabel {
+  return {
+    text,
+    anchor: {
+      x: mark.x + 10,
+      y: mark.y - 10,
+    },
+    bounds: {
+      x: mark.x + 10,
+      y: mark.y - 28,
+      width: 1,
+      height: 18,
+    },
+    candidate: "ne",
+    score: 0,
   };
 }
 
