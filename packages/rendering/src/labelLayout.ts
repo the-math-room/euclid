@@ -103,13 +103,41 @@ function getCachedCandidates(
     return cached;
   }
 
-  const candidateSets = targets.map((target) =>
-    candidatesFor(target, fontSize).map((candidate) => ({
+  const candidateSets = targets.map((target) => {
+    // Filter obstacles to only those close to target to speed up candidate evaluation
+    const maxObstacleDist = fontSize * 12;
+    const closeObstacles = obstacles.filter((obstacle) => {
+      if (obstacle.kind === "point") {
+        return distance(target.mark, obstacle.mark) < maxObstacleDist;
+      }
+      if (obstacle.kind === "circle") {
+        const distToCenter = distance(target.mark, obstacle.center);
+        return (
+          Math.abs(distToCenter - obstacle.radius) < maxObstacleDist ||
+          distToCenter < obstacle.radius + maxObstacleDist
+        );
+      }
+      if (obstacle.kind === "line") {
+        const [p1, p2] = obstacle.supportLine;
+        const dx = p2.x - p1.x;
+        const dy = p2.y - p1.y;
+        const denom = Math.hypot(dx, dy);
+        if (denom === 0) {
+          return distance(target.mark, p1) < maxObstacleDist;
+        }
+        const dist = Math.abs(dy * target.mark.x - dx * target.mark.y + p2.x * p1.y - p2.y * p1.x) / denom;
+        return dist < maxObstacleDist;
+      }
+      return true;
+    });
+
+    return candidatesFor(target, fontSize).map((candidate) => ({
       ...candidate,
-      score: scoreCandidate(candidate, target, obstacles, fontSize),
-    })),
-  );
-  const selected = optimizeCandidateSelection(candidateSets);
+      score: scoreCandidate(candidate, target, closeObstacles, fontSize),
+    }));
+  });
+
+  const selected = optimizeCandidateSelection(candidateSets, targets, fontSize);
   const result = new Map<string, ChosenPlacement>();
 
   const gaps = [fontSize * (10 / 18), fontSize * (28 / 18), fontSize * (46 / 18)];
@@ -206,8 +234,24 @@ export function layoutPointLabels(
   targets: readonly PointLabelTarget[],
   obstacles: readonly RenderItem[],
   fontSize: number = THEME.typography.fontSize,
+  isTransitioning: boolean = false,
 ): ReadonlyMap<string, LabelPlacement> {
-  const chosenPlacements = getCachedCandidates(targets, obstacles, fontSize);
+  const chosenPlacements = new Map<string, ChosenPlacement>();
+
+  if (isTransitioning) {
+    // Fast path: use default placement (northeast) without any optimization or collision checks
+    const defaultGap = fontSize * (10 / 18);
+    for (const target of targets) {
+      chosenPlacements.set(target.id, { candidate: "ne", gap: defaultGap });
+    }
+  } else {
+    // Normal path: run optimization
+    const resolved = getCachedCandidates(targets, obstacles, fontSize);
+    for (const [id, val] of resolved) {
+      chosenPlacements.set(id, val);
+    }
+  }
+
   const labelsById = new Map<string, LabelPlacement>();
 
   for (const target of targets) {
@@ -300,9 +344,22 @@ function scoreCandidate(
 
 function optimizeCandidateSelection(
   candidateSets: readonly (readonly LabelCandidate[])[],
+  targets: readonly PointLabelTarget[],
+  fontSize: number,
 ): readonly number[] {
+  // Pre-calculate pairs of targets that are close enough to potentially overlap (dist < fontSize * 12)
+  const maxDist = fontSize * 12;
+  const closePairs: [number, number][] = [];
+  for (let i = 0; i < targets.length; i++) {
+    for (let j = i + 1; j < targets.length; j++) {
+      if (distance(targets[i].mark, targets[j].mark) < maxDist) {
+        closePairs.push([i, j]);
+      }
+    }
+  }
+
   const selected = candidateSets.map((candidates) => indexOfLowestScore(candidates));
-  let currentScore = scoreSelection(candidateSets, selected);
+  let currentScore = scoreSelection(candidateSets, selected, closePairs);
   let improved = true;
 
   while (improved) {
@@ -322,7 +379,7 @@ function optimizeCandidateSelection(
         }
 
         const next = replaceAt(selected, targetIndex, candidateIndex);
-        const nextScore = scoreSelection(candidateSets, next);
+        const nextScore = scoreSelection(candidateSets, next, closePairs);
 
         if (nextScore + 1e-9 < (bestMove?.score ?? currentScore)) {
           bestMove = {
@@ -347,6 +404,7 @@ function optimizeCandidateSelection(
 function scoreSelection(
   candidateSets: readonly (readonly LabelCandidate[])[],
   selected: readonly number[],
+  closePairs: readonly (readonly [number, number])[],
 ): number {
   let score = 0;
 
@@ -354,12 +412,10 @@ function scoreSelection(
     score += candidates[selected[index]].score;
   }
 
-  for (let aIndex = 0; aIndex < selected.length; aIndex++) {
-    for (let bIndex = aIndex + 1; bIndex < selected.length; bIndex++) {
-      const a = candidateSets[aIndex][selected[aIndex]];
-      const b = candidateSets[bIndex][selected[bIndex]];
-      score += overlapArea(a.bounds, b.bounds) * 18;
-    }
+  for (const [aIndex, bIndex] of closePairs) {
+    const a = candidateSets[aIndex][selected[aIndex]];
+    const b = candidateSets[bIndex][selected[bIndex]];
+    score += overlapArea(a.bounds, b.bounds) * 18;
   }
 
   return score;

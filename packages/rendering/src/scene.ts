@@ -57,7 +57,7 @@ export function defaultScreenViewFor(evaluation: Evaluation, size: ViewportSize)
 export function sceneForEvaluation(
   evaluation: Evaluation,
   view: ScreenView,
-  options?: { fontSize?: number },
+  options?: { fontSize?: number; isTransitioning?: boolean },
 ): RenderScene {
   const frame = worldFrameFor(view);
   const fontSize = options?.fontSize ?? THEME.typography.fontSize;
@@ -118,6 +118,7 @@ export function sceneForEvaluation(
     pointTargets,
     [...circles, ...lines, ...pointObstacles],
     fontSize,
+    options?.isTransitioning ?? false,
   );
   const points: RenderItem[] = pointTargets.map((target) => ({
     id: target.id,

@@ -12,6 +12,7 @@ export type CameraController = Readonly<{
   camera: ViewCamera;
   rotationDegrees: number;
   zoom: number;
+  isTransitioning: boolean;
   reset: () => void;
   rotateByDegrees: (degrees: number) => void;
   setRotationDegrees: (degrees: number) => void;
@@ -22,8 +23,17 @@ export type CameraController = Readonly<{
 
 export function useCameraController(defaultView: ScreenView): CameraController {
   const [camera, setCamera] = useState<ViewCamera>(defaultView.camera);
+  const [isTransitioning, setIsTransitioning] = useState(false);
   const rotationDegrees = Math.round(camera.rotation.turns * 360);
   const zoom = camera.scale / defaultView.camera.scale;
+
+  // Set transitioning flag off after a short delay of no camera changes
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsTransitioning(false);
+    }, 150);
+    return () => clearTimeout(timer);
+  }, [camera]);
 
   useEffect(() => {
     const pressedKeys = new Set<string>();
@@ -74,6 +84,7 @@ export function useCameraController(defaultView: ScreenView): CameraController {
         return;
       }
 
+      setIsTransitioning(true);
       setCamera((currentCamera) => {
         let updated = currentCamera;
 
@@ -139,19 +150,34 @@ export function useCameraController(defaultView: ScreenView): CameraController {
     camera,
     rotationDegrees,
     zoom,
-    reset: () => setCamera(defaultView.camera),
-    rotateByDegrees: (degrees) =>
-      setCamera((currentCamera) => rotateCamera(currentCamera, { turns: degrees / 360 })),
-    setRotationDegrees: (degrees) =>
+    isTransitioning,
+    reset: () => {
+      setIsTransitioning(true);
+      setCamera(defaultView.camera);
+    },
+    rotateByDegrees: (degrees) => {
+      setIsTransitioning(true);
+      setCamera((currentCamera) => rotateCamera(currentCamera, { turns: degrees / 360 }));
+    },
+    setRotationDegrees: (degrees) => {
+      setIsTransitioning(true);
       setCamera((currentCamera) => ({
         ...currentCamera,
         rotation: { turns: degrees / 360 },
-      })),
-    setZoom: (nextZoom) =>
-      setCamera((currentCamera) => scaleCameraToZoom(currentCamera, defaultView.camera, nextZoom)),
-    moveCamera: (screenDelta) => setCamera((currentCamera) => moveCameraInScreen(currentCamera, screenDelta)),
-    moveSceneBy: (screenDelta) =>
-      setCamera((currentCamera) => moveCameraInScreen(currentCamera, negatePoint(screenDelta))),
+      }));
+    },
+    setZoom: (nextZoom) => {
+      setIsTransitioning(true);
+      setCamera((currentCamera) => scaleCameraToZoom(currentCamera, defaultView.camera, nextZoom));
+    },
+    moveCamera: (screenDelta) => {
+      setIsTransitioning(true);
+      setCamera((currentCamera) => moveCameraInScreen(currentCamera, screenDelta));
+    },
+    moveSceneBy: (screenDelta) => {
+      setIsTransitioning(true);
+      setCamera((currentCamera) => moveCameraInScreen(currentCamera, negatePoint(screenDelta)));
+    },
   };
 }
 

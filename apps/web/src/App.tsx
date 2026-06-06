@@ -38,9 +38,12 @@ export function App() {
           viewport: defaultView.viewport,
           camera: camera.camera,
         },
-        { fontSize: 18 * sizeScale },
+        {
+          fontSize: 18 * sizeScale,
+          isTransitioning: camera.isTransitioning,
+        },
       ),
-    [construction.evaluated, camera.camera, sizeScale],
+    [construction.evaluated, camera.camera, sizeScale, camera.isTransitioning],
   );
 
   return (
