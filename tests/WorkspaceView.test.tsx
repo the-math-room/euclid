@@ -372,4 +372,107 @@ describe("WorkspaceView Integration", () => {
       root?.unmount();
     });
   });
+
+  it("clears stale SVG pointers when pointer capture is lost", async () => {
+    const onBeginPointDragMock = vi.fn();
+    const onMovePointMock = vi.fn();
+    const onEndPointDragMock = vi.fn();
+    const sceneWithPoints = {
+      size: { width: 920, height: 620 },
+      grid: [],
+      items: [
+        {
+          id: "point-a",
+          kind: "point" as const,
+          pointRole: "free" as const,
+          mark: { x: 100, y: 100 },
+          label: { text: "A", anchor: { x: 110, y: 90 } },
+        },
+        {
+          id: "point-b",
+          kind: "point" as const,
+          pointRole: "free" as const,
+          mark: { x: 200, y: 100 },
+          label: { text: "B", anchor: { x: 210, y: 90 } },
+        },
+      ],
+    };
+
+    let root: Root | undefined;
+    await act(async () => {
+      root = createRoot(container);
+      root.render(
+        <WorkspaceView
+          {...defaultProps}
+          scene={sceneWithPoints}
+          activeTool="select"
+          canDragPoint={vi.fn(() => true)}
+          onBeginPointDrag={onBeginPointDragMock}
+          onMovePoint={onMovePointMock}
+          onEndPointDrag={onEndPointDragMock}
+        />,
+      );
+    });
+
+    const svg = container.querySelector("svg");
+    expect(svg).toBeTruthy();
+
+    if (svg) {
+      svg.getBoundingClientRect = () => ({
+        width: 920,
+        height: 620,
+        top: 0,
+        left: 0,
+        bottom: 620,
+        right: 920,
+        x: 0,
+        y: 0,
+        toJSON: vi.fn(),
+      });
+
+      const firstDown = new PointerEvent("pointerdown", {
+        clientX: 100,
+        clientY: 100,
+        pointerId: 7,
+        pointerType: "mouse",
+        bubbles: true,
+      });
+      const lostCapture = new PointerEvent("lostpointercapture", {
+        clientX: 100,
+        clientY: 100,
+        pointerId: 7,
+        pointerType: "mouse",
+        bubbles: true,
+      });
+      const secondDown = new PointerEvent("pointerdown", {
+        clientX: 200,
+        clientY: 100,
+        pointerId: 8,
+        pointerType: "mouse",
+        bubbles: true,
+      });
+      const secondMove = new PointerEvent("pointermove", {
+        clientX: 208,
+        clientY: 100,
+        pointerId: 8,
+        pointerType: "mouse",
+        bubbles: true,
+      });
+
+      await act(async () => {
+        svg.dispatchEvent(firstDown);
+        svg.dispatchEvent(lostCapture);
+        svg.dispatchEvent(secondDown);
+        svg.dispatchEvent(secondMove);
+      });
+
+      expect(onEndPointDragMock).toHaveBeenCalledTimes(1);
+      expect(onBeginPointDragMock).toHaveBeenLastCalledWith("point-b");
+      expect(onMovePointMock).toHaveBeenCalledWith("point-b", { x: 208, y: 100 });
+    }
+
+    await act(async () => {
+      root?.unmount();
+    });
+  });
 });

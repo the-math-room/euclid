@@ -262,6 +262,29 @@ export function WorkspaceView({
     }
   };
 
+  const releasePointerCapture = (event: React.PointerEvent<Element>) => {
+    const target = event.currentTarget as Element & {
+      hasPointerCapture?: (id: number) => boolean;
+      releasePointerCapture?: (id: number) => void;
+    };
+    if (target.hasPointerCapture?.(event.pointerId)) {
+      target.releasePointerCapture?.(event.pointerId);
+    }
+  };
+
+  const clearPointerGesture = (pointerId: number) => {
+    const g = gestureRef.current;
+    if (g.activePointDrag?.pointerId === pointerId) {
+      onEndPointDrag();
+      g.activePointDrag = undefined;
+    }
+    g.pointers.delete(pointerId);
+    g.lastPos.delete(pointerId);
+    if (g.pointers.size === 0) {
+      g.hasMoved = false;
+    }
+  };
+
   const onPointerMove = (event: React.PointerEvent<Element>) => {
     const g = gestureRef.current;
 
@@ -401,6 +424,7 @@ export function WorkspaceView({
       onEndPointDrag();
       g.activePointDrag = undefined;
     }
+    releasePointerCapture(event);
 
     if (renderMode === "canvas") {
       const canvas = canvasRef.current;
@@ -434,12 +458,12 @@ export function WorkspaceView({
   };
 
   const onPointerCancel = (event: React.PointerEvent<Element>) => {
-    if (gestureRef.current.activePointDrag?.pointerId === event.pointerId) {
-      onEndPointDrag();
-      gestureRef.current.activePointDrag = undefined;
-    }
-    gestureRef.current.pointers.delete(event.pointerId);
-    gestureRef.current.lastPos.delete(event.pointerId);
+    clearPointerGesture(event.pointerId);
+    releasePointerCapture(event);
+  };
+
+  const onLostPointerCapture = (event: React.PointerEvent<Element>) => {
+    clearPointerGesture(event.pointerId);
   };
 
   const onPointerLeave = () => {
@@ -457,6 +481,7 @@ export function WorkspaceView({
     onPointerMove,
     onPointerUp,
     onPointerCancel,
+    onLostPointerCapture,
     onPointerLeave,
   };
 
