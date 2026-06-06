@@ -1,5 +1,6 @@
 import type { Evaluation, Point2 } from "@euclid/geometry";
 import { layoutPointLabels, type LabelCandidateName, type Rect } from "./labelLayout";
+import { THEME } from "./theme";
 import { fitCameraFor, projectPoint, type ScreenView, type ViewportSize, worldFrameFor } from "./viewport";
 
 export type RenderScene = Readonly<{
@@ -52,8 +53,13 @@ export function defaultScreenViewFor(evaluation: Evaluation, size: ViewportSize)
   };
 }
 
-export function sceneForEvaluation(evaluation: Evaluation, view: ScreenView): RenderScene {
+export function sceneForEvaluation(
+  evaluation: Evaluation,
+  view: ScreenView,
+  options?: { fontSize?: number },
+): RenderScene {
   const frame = worldFrameFor(view);
+  const fontSize = options?.fontSize ?? THEME.typography.fontSize;
 
   const circles: RenderItem[] = [];
   const lines: RenderItem[] = [];
@@ -104,19 +110,20 @@ export function sceneForEvaluation(evaluation: Evaluation, view: ScreenView): Re
     kind: "point",
     pointRole: target.pointRole,
     mark: target.mark,
-    label: fallbackLabelFor(target.text, target.mark),
+    label: fallbackLabelFor(target.text, target.mark, fontSize),
   }));
   const labelPlacements = layoutPointLabels(
     pointTargets,
     [...circles, ...lines, ...pointObstacles],
     view.viewport.size,
+    fontSize,
   );
   const points: RenderItem[] = pointTargets.map((target) => ({
     id: target.id,
     kind: "point",
     pointRole: target.pointRole,
     mark: target.mark,
-    label: labelPlacements.get(target.id) ?? fallbackLabelFor(target.text, target.mark),
+    label: labelPlacements.get(target.id) ?? fallbackLabelFor(target.text, target.mark, fontSize),
   }));
 
   return {
@@ -126,18 +133,19 @@ export function sceneForEvaluation(evaluation: Evaluation, view: ScreenView): Re
   };
 }
 
-function fallbackLabelFor(text: string, mark: Point2): RenderLabel {
+function fallbackLabelFor(text: string, mark: Point2, fontSize: number): RenderLabel {
+  const scale = fontSize / THEME.typography.fontSize;
   return {
     text,
     anchor: {
-      x: mark.x + 10,
-      y: mark.y - 10,
+      x: mark.x + 10 * scale,
+      y: mark.y - 10 * scale,
     },
     bounds: {
-      x: mark.x + 10,
-      y: mark.y - 28,
+      x: mark.x + 10 * scale,
+      y: mark.y - 28 * scale,
       width: 1,
-      height: 18,
+      height: 18 * scale,
     },
     candidate: "ne",
     score: 0,

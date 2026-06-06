@@ -36,6 +36,7 @@ export type CanvasRendererOptions = Readonly<{
   selectedIds?: ReadonlySet<string>;
   hoveredId?: string;
   drawBackground?: boolean;
+  sizeScale?: number;
 }>;
 
 /**
@@ -46,7 +47,7 @@ export function drawSceneToCanvas(
   scene: RenderScene,
   options: CanvasRendererOptions = {},
 ): void {
-  const { selectedId, selectedIds, hoveredId, drawBackground = true } = options;
+  const { selectedId, selectedIds, hoveredId, drawBackground = true, sizeScale = 1.0 } = options;
 
   ctx.save();
 
@@ -88,33 +89,35 @@ export function drawSceneToCanvas(
       ctx.stroke();
     } else if (item.kind === "point") {
       // Point circle
+      const radius = 5 * sizeScale;
       ctx.beginPath();
-      ctx.arc(item.mark.x, item.mark.y, 5, 0, 2 * Math.PI);
+      ctx.arc(item.mark.x, item.mark.y, radius, 0, 2 * Math.PI);
       if (isSelected || isHovered) {
         ctx.fillStyle = THEME.colors.pointActiveFill;
         ctx.strokeStyle = THEME.colors.pointActiveStroke;
-        ctx.lineWidth = 3;
+        ctx.lineWidth = 3 * sizeScale;
       } else if (item.pointRole === "constructed") {
         ctx.fillStyle = THEME.colors.constructedPointFill;
         ctx.strokeStyle = THEME.colors.constructedPointStroke;
-        ctx.lineWidth = 3;
+        ctx.lineWidth = 3 * sizeScale;
       } else {
         ctx.fillStyle = THEME.colors.pointFill;
         ctx.strokeStyle = THEME.colors.pointStroke;
-        ctx.lineWidth = 2.5;
+        ctx.lineWidth = 2.5 * sizeScale;
       }
       ctx.fill();
       ctx.stroke();
 
       // Point label text with white background halo
-      ctx.font = `${THEME.typography.fontWeight} ${THEME.typography.fontSize}px ${THEME.typography.fontFamily}`;
+      const fontSize = THEME.typography.fontSize * sizeScale;
+      ctx.font = `${THEME.typography.fontWeight} ${fontSize}px ${THEME.typography.fontFamily}`;
       ctx.textAlign = "left";
       ctx.textBaseline = "alphabetic"; // match standard SVG baseline for identical alignment
       ctx.lineJoin = "round";
 
       // Text stroke (halo)
       ctx.strokeStyle = THEME.colors.textStroke;
-      ctx.lineWidth = THEME.typography.textStrokeWidth;
+      ctx.lineWidth = THEME.typography.textStrokeWidth * sizeScale;
       ctx.strokeText(item.label.text, item.label.anchor.x, item.label.anchor.y);
 
       // Text fill

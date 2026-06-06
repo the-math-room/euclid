@@ -192,4 +192,38 @@ describe("WorkspaceView Integration", () => {
       root?.unmount();
     });
   });
+
+  it("applies the sizeScale prop correctly to points and SVG variables", async () => {
+    let root: Root | null = null;
+    const testScene = {
+      size: { width: 900, height: 600 },
+      grid: [],
+      items: [
+        {
+          id: "point-a",
+          kind: "point" as const,
+          pointRole: "free" as const,
+          mark: { x: 100, y: 100 },
+          label: { text: "A", anchor: { x: 110, y: 90 } },
+        },
+      ],
+    };
+
+    await act(async () => {
+      root = createRoot(container);
+      root.render(<WorkspaceView {...defaultProps} scene={testScene} sizeScale={2.0} />);
+    });
+
+    const circle = container.querySelector("circle");
+    expect(circle).toBeTruthy();
+    expect(circle?.getAttribute("r")).toBe("10"); // 5 * 2.0 = 10
+
+    const svg = container.querySelector("svg");
+    expect(svg).toBeTruthy();
+    expect(svg?.style.getPropertyValue("--size-scale")).toBe("2");
+
+    await act(async () => {
+      root?.unmount();
+    });
+  });
 });

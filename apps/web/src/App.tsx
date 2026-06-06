@@ -2,7 +2,7 @@ import { Circle, MousePointer2, Ruler, Waypoints, Undo2, Redo2, Trash2 } from "l
 import { seedDocument } from "@euclid/document";
 import { evaluateConstruction } from "@euclid/geometry";
 import { defaultScreenViewFor, sceneForEvaluation } from "@euclid/rendering";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useConstructionController } from "./construction/useConstructionController";
 import { ObjectList } from "./objects/ObjectList";
 import { SelectionDetails } from "./objects/SelectionDetails";
@@ -23,13 +23,22 @@ export function App() {
     sceneSize,
   });
 
+  const [sizeScale, setSizeScale] = useState(() => {
+    const isMobile = typeof window !== "undefined" && window.matchMedia("(max-width: 720px)").matches;
+    return isMobile ? 1.4 : 1.0;
+  });
+
   const scene = useMemo(
     () =>
-      sceneForEvaluation(construction.evaluated, {
-        viewport: defaultView.viewport,
-        camera: camera.camera,
-      }),
-    [construction.evaluated, camera.camera],
+      sceneForEvaluation(
+        construction.evaluated,
+        {
+          viewport: defaultView.viewport,
+          camera: camera.camera,
+        },
+        { fontSize: 18 * sizeScale },
+      ),
+    [construction.evaluated, camera.camera, sizeScale],
   );
 
   return (
@@ -129,7 +138,7 @@ export function App() {
           </div>
         </div>
 
-        <ViewControls camera={camera} />
+        <ViewControls camera={camera} sizeScale={sizeScale} onChangeSizeScale={setSizeScale} />
         <ObjectList
           constructions={construction.program.constructions}
           selectedIds={construction.selectedIds}
@@ -156,6 +165,7 @@ export function App() {
         onEndPointDrag={construction.handleEndPointDrag}
         onAddIntersection={construction.handleAddIntersection}
         canDragPoint={construction.canDragPoint}
+        sizeScale={sizeScale}
       />
     </main>
   );

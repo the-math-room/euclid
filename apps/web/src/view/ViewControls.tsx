@@ -11,7 +11,15 @@ import {
 } from "lucide-react";
 import type { CameraController } from "./useCameraController";
 
-export function ViewControls({ camera }: { camera: CameraController }) {
+export function ViewControls({
+  camera,
+  sizeScale,
+  onChangeSizeScale,
+}: {
+  camera: CameraController;
+  sizeScale: number;
+  onChangeSizeScale: (scale: number) => void;
+}) {
   return (
     <section className="view-panel" aria-label="View controls">
       <h2>View</h2>
@@ -80,6 +88,36 @@ export function ViewControls({ camera }: { camera: CameraController }) {
         </button>
       </div>
       <output className="rotation-value">{camera.zoom.toFixed(2)}x</output>
+      <div className="zoom-control" style={{ marginTop: "14px" }}>
+        <button
+          type="button"
+          className="icon-button"
+          title="Decrease element size"
+          onClick={() => onChangeSizeScale(Math.max(0.6, sizeScale - 0.1))}
+        >
+          <ZoomOut size={18} aria-hidden />
+        </button>
+        <label>
+          <span>Element Size</span>
+          <input
+            type="range"
+            min="0.6"
+            max="2.5"
+            step="0.1"
+            value={sizeScale}
+            onChange={(event) => onChangeSizeScale(Number(event.currentTarget.value))}
+          />
+        </label>
+        <button
+          type="button"
+          className="icon-button"
+          title="Increase element size"
+          onClick={() => onChangeSizeScale(Math.min(2.5, sizeScale + 0.1))}
+        >
+          <ZoomIn size={18} aria-hidden />
+        </button>
+      </div>
+      <output className="rotation-value">{(sizeScale * 100).toFixed(0)}%</output>
       <div className="pan-control" aria-label="Pan controls">
         <button
           type="button"

@@ -34,11 +34,12 @@ export function layoutPointLabels(
   targets: readonly PointLabelTarget[],
   obstacles: readonly RenderItem[],
   size: ViewportSize,
+  fontSize: number = THEME.typography.fontSize,
 ): ReadonlyMap<string, LabelPlacement> {
   const candidateSets = targets.map((target) =>
-    candidatesFor(target).map((candidate) => ({
+    candidatesFor(target, fontSize).map((candidate) => ({
       ...candidate,
-      score: scoreCandidate(candidate, target, obstacles, size),
+      score: scoreCandidate(candidate, target, obstacles, size, fontSize),
     })),
   );
   const selected = optimizeCandidateSelection(candidateSets);
@@ -51,9 +52,9 @@ export function layoutPointLabels(
   return labelsById;
 }
 
-function candidatesFor(target: PointLabelTarget): readonly LabelCandidate[] {
-  const metrics = estimatedTextMetrics(target.text);
-  const gaps = [10, 28, 46];
+function candidatesFor(target: PointLabelTarget, fontSize: number): readonly LabelCandidate[] {
+  const metrics = estimatedTextMetrics(target.text, fontSize);
+  const gaps = [fontSize * (10 / 18), fontSize * (28 / 18), fontSize * (46 / 18)];
 
   return gaps.flatMap((gap, ringIndex) => {
     const centerY = target.mark.y - metrics.height / 2;
@@ -106,14 +107,17 @@ function scoreCandidate(
   target: PointLabelTarget,
   obstacles: readonly RenderItem[],
   size: ViewportSize,
+  fontSize: number,
 ): number {
   let score = candidatePreference(candidate.candidate) + candidate.offsetCost;
   score += viewportOverflowArea(candidate.bounds, size) * 20;
   score += rectPointDistance(candidate.bounds, target.mark) * 0.9;
 
+  const scale = fontSize / THEME.typography.fontSize;
+
   for (const obstacle of obstacles) {
     if (obstacle.kind === "point") {
-      const radius = obstacle.id === target.id ? 5 : 8;
+      const radius = (obstacle.id === target.id ? 5 : 8) * scale;
       score += rectIntersectsCircle(candidate.bounds, obstacle.mark, radius) ? 450 : 0;
       if (obstacle.id !== target.id) {
         score += associationAmbiguityPenalty(candidate.bounds, target.mark, obstacle.mark);
@@ -236,10 +240,10 @@ function rectPointDistance(rect: Rect, point: Point2): number {
   return distance(closest, point);
 }
 
-function estimatedTextMetrics(text: string): { width: number; height: number } {
+function estimatedTextMetrics(text: string, fontSize: number): { width: number; height: number } {
   return {
-    width: Math.max(1, text.length) * THEME.typography.fontSize * 0.62,
-    height: THEME.typography.fontSize,
+    width: Math.max(1, text.length) * fontSize * 0.62,
+    height: fontSize,
   };
 }
 

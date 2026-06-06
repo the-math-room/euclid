@@ -99,6 +99,7 @@ export function WorkspaceView({
   onAddIntersection,
   canDragPoint,
   onResize,
+  sizeScale = 1.0,
 }: {
   scene: RenderScene;
   selectedIds: ReadonlySet<ConstructionId>;
@@ -114,6 +115,7 @@ export function WorkspaceView({
   onAddIntersection: (hit: IntersectionHit) => void;
   canDragPoint: (id: ConstructionId) => boolean;
   onResize?: (size: { width: number; height: number }) => void;
+  sizeScale?: number;
 }) {
   const [renderMode, setRenderMode] = useState<"svg" | "canvas">("svg");
 
@@ -185,8 +187,8 @@ export function WorkspaceView({
     );
     ctx.translate(dx, dy);
     ctx.scale(scale, scale);
-    drawSceneToCanvas(ctx, scene, { selectedIds, hoveredId });
-  }, [scene, selectedIds, hoveredId, dimensions, renderMode]);
+    drawSceneToCanvas(ctx, scene, { selectedIds, hoveredId, sizeScale });
+  }, [scene, selectedIds, hoveredId, dimensions, renderMode, sizeScale]);
 
   // Synchronize canvas cursor based on activeTool, renderMode and hoveredId
   useEffect(() => {
@@ -473,6 +475,7 @@ export function WorkspaceView({
             ref={svgRef}
             className={`workspace-svg ${activeTool === "point" ? "tool-point" : ""}`}
             viewBox={`0 0 ${scene.size.width} ${scene.size.height}`}
+            style={{ "--size-scale": sizeScale } as React.CSSProperties}
             role="img"
             aria-label="Seed Euclidean construction (SVG)"
             {...sharedPointerProps}
@@ -485,6 +488,7 @@ export function WorkspaceView({
                 key={item.id}
                 item={item}
                 selected={selectedIds.has(item.id)}
+                sizeScale={sizeScale}
                 onSelect={(modifiers) => {
                   if (activeTool === "select") {
                     onSelect(item.id, modifiers);
@@ -494,7 +498,12 @@ export function WorkspaceView({
             ))}
           </svg>
         ) : (
-          <canvas ref={canvasRef} aria-label="Seed Euclidean construction (Canvas)" {...sharedPointerProps}>
+          <canvas
+            ref={canvasRef}
+            aria-label="Seed Euclidean construction (Canvas)"
+            style={{ "--size-scale": sizeScale } as React.CSSProperties}
+            {...sharedPointerProps}
+          >
             <div style={{ display: "none" }}>
               <h3>Geometric Constructions</h3>
               <ul>
@@ -522,10 +531,12 @@ function RenderItemView({
   item,
   selected,
   onSelect,
+  sizeScale,
 }: {
   item: RenderItem;
   selected: boolean;
   onSelect: (modifiers?: { ctrlKey?: boolean; shiftKey?: boolean }) => void;
+  sizeScale: number;
 }) {
   const roleClass = item.kind === "point" ? ` ${item.pointRole ?? "free"}` : "";
   const className = selected
@@ -551,9 +562,10 @@ function RenderItemView({
   };
 
   if (item.kind === "point") {
+    const radius = 5 * sizeScale;
     return (
       <g {...sharedProps}>
-        <circle cx={item.mark.x} cy={item.mark.y} r="5" />
+        <circle cx={item.mark.x} cy={item.mark.y} r={radius} />
         <text x={item.label.anchor.x} y={item.label.anchor.y}>
           {item.label.text}
         </text>
