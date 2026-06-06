@@ -5,6 +5,10 @@ import { createRoot, type Root } from "react-dom/client";
 import type { ConstructionId } from "@euclid/geometry";
 import { WorkspaceView } from "../apps/web/src/WorkspaceView";
 
+// Configure JSDOM environment for React 19 testing support
+const globalWithAct = globalThis as unknown as { IS_REACT_ACT_ENVIRONMENT: boolean };
+globalWithAct.IS_REACT_ACT_ENVIRONMENT = true;
+
 type ResizeObserverCallback = (
   entries: readonly { readonly contentRect: { readonly width: number; readonly height: number } }[],
 ) => void;
