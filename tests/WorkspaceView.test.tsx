@@ -1,13 +1,16 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import React, { act } from "react";
-import { createRoot } from "react-dom/client";
+import { createRoot, type Root } from "react-dom/client";
+import type { ConstructionId } from "@euclid/geometry";
 import { WorkspaceView } from "../apps/web/src/WorkspaceView";
 
-let resizeCallback: any = null;
+type ResizeObserverCallback = (entries: readonly { readonly contentRect: { readonly width: number; readonly height: number } }[]) => void;
+
+let resizeCallback: ResizeObserverCallback | null = null;
 
 class MockResizeObserver {
-  constructor(cb: any) {
+  constructor(cb: ResizeObserverCallback) {
     resizeCallback = cb;
   }
   observe = vi.fn();
@@ -15,7 +18,7 @@ class MockResizeObserver {
   disconnect = vi.fn();
 }
 
-globalThis.ResizeObserver = MockResizeObserver as any;
+globalThis.ResizeObserver = MockResizeObserver as unknown as typeof ResizeObserver;
 
 const mockScene = {
   size: { width: 920, height: 620 },
@@ -25,7 +28,7 @@ const mockScene = {
 
 const defaultProps = {
   scene: mockScene,
-  selectedIds: new Set<any>(),
+  selectedIds: new Set<ConstructionId>(),
   onSelect: vi.fn(),
   onPanBy: vi.fn(),
   onZoom: vi.fn(),
@@ -54,7 +57,7 @@ describe("WorkspaceView Integration", () => {
   });
 
   it("renders without crashing in SVG mode", async () => {
-    let root: any;
+    let root: Root | undefined;
     await act(async () => {
       root = createRoot(container);
       root.render(<WorkspaceView {...defaultProps} />);
@@ -65,13 +68,13 @@ describe("WorkspaceView Integration", () => {
     expect(svg?.getAttribute("viewBox")).toBe("0 0 920 620");
 
     await act(async () => {
-      root.unmount();
+      root?.unmount();
     });
   });
 
   it("does not crash on resize and calls onResize if provided", async () => {
     const onResizeMock = vi.fn();
-    let root: any;
+    let root: Root | undefined;
     await act(async () => {
       root = createRoot(container);
       root.render(<WorkspaceView {...defaultProps} onResize={onResizeMock} />);
@@ -80,18 +83,18 @@ describe("WorkspaceView Integration", () => {
     expect(resizeCallback).toBeTruthy();
 
     await act(async () => {
-      resizeCallback([{ contentRect: { width: 800, height: 600 } }]);
+      resizeCallback?.([{ contentRect: { width: 800, height: 600 } }]);
     });
 
     expect(onResizeMock).toHaveBeenCalledWith({ width: 800, height: 600 });
 
     await act(async () => {
-      root.unmount();
+      root?.unmount();
     });
   });
 
   it("does not crash on resize if onResize prop is omitted", async () => {
-    let root: any;
+    let root: Root | undefined;
     await act(async () => {
       root = createRoot(container);
       root.render(<WorkspaceView {...defaultProps} />);
@@ -101,11 +104,11 @@ describe("WorkspaceView Integration", () => {
 
     // Should not throw a TypeError: onResize is not a function
     await act(async () => {
-      resizeCallback([{ contentRect: { width: 800, height: 600 } }]);
+      resizeCallback?.([{ contentRect: { width: 800, height: 600 } }]);
     });
 
     await act(async () => {
-      root.unmount();
+      root?.unmount();
     });
   });
 });
