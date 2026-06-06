@@ -60,6 +60,7 @@ When adding construction meaning, update model, dependency extraction, exact mea
 - **Pure Functions Only**: Do not use global mutable state or module-level variables. All functions must be deterministic and side-effect free (free from `Date`, `fetch`, `Math.random`, etc.).
 - **No Console Logging**: The use of `console` APIs in production files is prohibited and will cause Vitest architecture checks to fail.
 - **JSON-Serializable Output**: Ensure all geometry models (`Construction`, `EvaluatedPrimitive`) remain serializable.
+- **Coordinate Branding**: Enforce type-safety between the world-space coordinate system (`WorldPoint`) and the screen-relative viewport coordinates (`ScenePoint`). They are compile-time incompatible brands. All point operations must preserve these types, and coordinate conversion must occur at boundaries using conversion helpers.
 
 ### 2. Extending Geometry
 

@@ -67,6 +67,7 @@ When adding a new evaluated primitive, add a render scene representation, label 
 - **Dual-View Rendering Support**: Ensure canvas rendering helpers in `src/canvasRenderer.ts` and SVG render logic in `src/svgRenderer.ts` remain mathematically aligned. Both must render the same scene identically.
 - **Camera Math**: Direct panning operations must be handled using the pure algebraic camera functions in `src/viewport.ts`.
 - **Label Layout**: Label placement is part of scene construction, not part of rendering. `layoutPointLabels` is called during `sceneForEvaluation` so that label positions are available to both Canvas and SVG renderers.
+- **Coordinate Branding**: Ensure that coordinates in the world space are typed as `WorldPoint` and viewport/screen-relative coordinates are typed as `ScenePoint`. Use the conversion utilities in `@euclid/geometry` or `@euclid/rendering` where appropriate, and avoid using raw unbranded coordinates.
 
 ### 3. Verification Command
 
