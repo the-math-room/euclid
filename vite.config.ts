@@ -10,6 +10,7 @@ export default defineConfig({
       "@euclid/assessment": resolve(__dirname, "packages/assessment/src"),
       "@euclid/document": resolve(__dirname, "packages/document/src"),
       "@euclid/geometry": resolve(__dirname, "packages/geometry/src"),
+      "@euclid/lesson": resolve(__dirname, "packages/lesson/src"),
       "@euclid/rendering": resolve(__dirname, "packages/rendering/src"),
     },
   },

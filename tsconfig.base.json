@@ -15,6 +15,7 @@
       "@euclid/assessment": ["./packages/assessment/src"],
       "@euclid/document": ["./packages/document/src"],
       "@euclid/geometry": ["./packages/geometry/src"],
+      "@euclid/lesson": ["./packages/lesson/src"],
       "@euclid/rendering": ["./packages/rendering/src"]
     },
     "resolveJsonModule": true,

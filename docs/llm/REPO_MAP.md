@@ -58,6 +58,18 @@ Run or update:
 
 - `packages/document/src/*.test.ts`
 
+## Lessons
+
+Start here:
+
+- `packages/lesson/README.md`
+- `packages/lesson/src/model.ts`
+- `packages/lesson/src/codec.ts`
+
+Run or update:
+
+- `packages/lesson/src/*.test.ts`
+
 ## Rendering
 
 Start here:

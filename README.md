@@ -27,6 +27,7 @@ npm run dev
 - `packages/activity/src`: headless activity policy for controlled learning experiences.
 - `packages/assessment/src`: reference assessment predicates over construction programs and evaluations.
 - `packages/document/src`: versioned document data, seed documents, and pure history wrappers.
+- `packages/lesson/src`: headless lesson composition of documents, activity policies, and assessment goals.
 - `packages/rendering/src`: viewport projection, renderable scene descriptions, label layout, and screen-space hit testing.
 - `apps/web/src`: React composition, SVG/Canvas surfaces, gesture interpretation, and browser entry point.
 - `tests/architecture`: repository boundary tests.
@@ -34,4 +35,4 @@ npm run dev
 - `docs/llm`: agent-oriented project guidance.
 - `docs/architecture`: design notes for the geometry model.
 
-Cross-layer imports use package-style aliases: `@euclid/geometry`, `@euclid/activity`, `@euclid/assessment`, `@euclid/document`, and `@euclid/rendering`.
+Cross-layer imports use package-style aliases: `@euclid/geometry`, `@euclid/activity`, `@euclid/assessment`, `@euclid/document`, `@euclid/lesson`, and `@euclid/rendering`.

@@ -53,6 +53,7 @@ Construction-adding edits return `{ program, id, changed }` so app commands can 
 - `packages/activity/src`: headless activity policy over construction and editing capabilities.
 - `packages/assessment/src`: reference assessment predicates over construction programs and evaluations.
 - `packages/document/src`: versioned document data, history container, and seed/example documents.
+- `packages/lesson/src`: headless composition of starter documents, activity policies, and assessment goals.
 - `packages/rendering/src`: viewport projection, label layout, hit testing, and renderable scene descriptions.
 - `apps/web/src`: React components that compose documents, evaluation, rendering, and controls.
 
@@ -74,10 +75,13 @@ The dependency direction is intentionally one-way:
 app -> document -> geometry
 app -> activity -> geometry
 app -> assessment -> geometry
+app -> lesson -> document -> geometry
+app -> lesson -> activity -> geometry
+app -> lesson -> assessment -> geometry
 app -> rendering -> geometry
 ```
 
-Geometry does not know about documents, rendering, interaction, or React. Rendering does not know about documents or React. Document code does not know about rendering or React.
+Geometry does not know about documents, lessons, rendering, interaction, or React. Rendering does not know about documents, lessons, or React. Document, activity, and assessment code do not know about lessons. Lesson code composes those packages without defining construction meaning.
 
 ## Current Domain
 

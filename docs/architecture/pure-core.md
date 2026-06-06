@@ -16,6 +16,7 @@ These layers are part of the pure core:
 - `packages/activity/src`
 - `packages/assessment/src`
 - `packages/document/src`
+- `packages/lesson/src`
 - `packages/rendering/src`
 
 They may use local implementation data structures such as `Map`, `Set`, or local mutation inside a function when the mutation is not observable and the function remains memoizable by its inputs.

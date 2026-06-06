@@ -12,6 +12,7 @@ EdTech platforms should be able to adopt pieces independently:
 - Use `@euclid/activity` to describe controlled learning policy such as allowed tools, locked constructions, deletion, and drag behavior.
 - Use `@euclid/assessment` as a reference set of semantic assessment predicates, or bring a custom assessment engine against geometry data.
 - Use `@euclid/document` to persist versioned construction documents.
+- Use `@euclid/lesson` to package a starter document, constrained activity policy, and curriculum-authored assessment goals.
 - Use `@euclid/rendering` to convert evaluated geometry into render scenes, SVG output, Canvas drawing, hit testing, and viewport math.
 - Use the web app or future React components as one optional shell, not as the source of construction truth.
 
@@ -69,6 +70,16 @@ Learning products often need constrained workspaces rather than a fully open edi
 - delete permissions
 - point drag permissions
 - shape drag permissions
+
+### Lesson Composition
+
+Learning products need a portable activity definition that is more than a document and less than a hosted runtime. `@euclid/lesson` should stay headless and compose:
+
+- a versioned starter document
+- an activity policy
+- assessment goals
+
+It should not own construction meaning, app state, rendering, or hosted delivery concerns. Hosts can parse a lesson, render the document however they want, enforce or ignore the policy, and evaluate goals using the reference assessment package or their own engine.
 
 ## Defer
 

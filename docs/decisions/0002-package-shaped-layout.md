@@ -18,6 +18,7 @@ packages/activity/src
 packages/assessment/src
 packages/geometry/src
 packages/document/src
+packages/lesson/src
 packages/rendering/src
 tests/architecture
 ```
@@ -29,6 +30,7 @@ Use package-style aliases for cross-layer imports:
 @euclid/activity
 @euclid/assessment
 @euclid/document
+@euclid/lesson
 @euclid/rendering
 ```
 

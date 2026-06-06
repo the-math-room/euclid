@@ -10,6 +10,7 @@ const layerRoots = {
   app: resolve(workspaceRoot, "apps/web/src"),
   document: resolve(workspaceRoot, "packages/document/src"),
   geometry: resolve(workspaceRoot, "packages/geometry/src"),
+  lesson: resolve(workspaceRoot, "packages/lesson/src"),
   rendering: resolve(workspaceRoot, "packages/rendering/src"),
 } as const;
 
@@ -24,27 +25,32 @@ type LayerPolicy = Readonly<{
 const layerPolicies: readonly LayerPolicy[] = [
   {
     layer: "activity",
-    forbiddenLayers: ["app", "assessment", "document", "rendering", "interaction"],
+    forbiddenLayers: ["app", "assessment", "document", "lesson", "rendering", "interaction"],
     forbidsUiLibraries: true,
   },
   {
     layer: "assessment",
-    forbiddenLayers: ["activity", "app", "document", "rendering", "interaction"],
+    forbiddenLayers: ["activity", "app", "document", "lesson", "rendering", "interaction"],
     forbidsUiLibraries: true,
   },
   {
     layer: "geometry",
-    forbiddenLayers: ["activity", "app", "assessment", "document", "rendering", "interaction"],
+    forbiddenLayers: ["activity", "app", "assessment", "document", "lesson", "rendering", "interaction"],
     forbidsUiLibraries: true,
   },
   {
     layer: "document",
-    forbiddenLayers: ["activity", "app", "assessment", "rendering", "interaction"],
+    forbiddenLayers: ["activity", "app", "assessment", "lesson", "rendering", "interaction"],
+    forbidsUiLibraries: true,
+  },
+  {
+    layer: "lesson",
+    forbiddenLayers: ["app", "geometry", "rendering", "interaction"],
     forbidsUiLibraries: true,
   },
   {
     layer: "rendering",
-    forbiddenLayers: ["activity", "app", "assessment", "document", "interaction"],
+    forbiddenLayers: ["activity", "app", "assessment", "document", "lesson", "interaction"],
     forbidsUiLibraries: true,
   },
 ];
@@ -72,6 +78,7 @@ describe("architecture import boundaries", () => {
       ...importsIn(layerRoots.activity),
       ...importsIn(layerRoots.assessment),
       ...importsIn(layerRoots.document),
+      ...importsIn(layerRoots.lesson),
       ...importsIn(layerRoots.rendering),
     ];
     const violations = packageImports.filter(isDeepPackageImport);
@@ -85,6 +92,7 @@ describe("architecture import boundaries", () => {
       resolve(layerRoots.assessment, "index.ts"),
       resolve(layerRoots.document, "index.ts"),
       resolve(layerRoots.geometry, "index.ts"),
+      resolve(layerRoots.lesson, "index.ts"),
       resolve(layerRoots.rendering, "index.ts"),
     ];
     const violations = entrypoints.flatMap(wildcardExportViolationsIn);
@@ -98,6 +106,7 @@ describe("architecture import boundaries", () => {
       ...productionSourceFilesIn(layerRoots.assessment),
       ...productionSourceFilesIn(layerRoots.geometry),
       ...productionSourceFilesIn(layerRoots.document),
+      ...productionSourceFilesIn(layerRoots.lesson),
       ...productionSourceFilesIn(layerRoots.rendering),
     ];
     const violations = packageFiles.flatMap(ambientEffectViolationsIn);
@@ -111,6 +120,7 @@ describe("architecture import boundaries", () => {
       ...productionSourceFilesIn(layerRoots.assessment),
       ...productionSourceFilesIn(layerRoots.geometry),
       ...productionSourceFilesIn(layerRoots.document),
+      ...productionSourceFilesIn(layerRoots.lesson),
       ...productionSourceFilesIn(layerRoots.rendering),
     ];
     const violations = packageFiles.flatMap(moduleMutableStateViolationsIn);
