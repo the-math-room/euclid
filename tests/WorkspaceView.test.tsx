@@ -226,4 +226,55 @@ describe("WorkspaceView Integration", () => {
       root?.unmount();
     });
   });
+
+  it("renders the floating HUD overlay when items are selected", async () => {
+    let root: Root | null = null;
+    const testScene = {
+      size: { width: 900, height: 600 },
+      grid: [],
+      items: [
+        {
+          id: "point-a",
+          kind: "point" as const,
+          pointRole: "free" as const,
+          mark: { x: 100, y: 100 },
+          label: { text: "A", anchor: { x: 110, y: 90 } },
+        },
+      ],
+    };
+
+    const mockConstructions = [
+      {
+        id: "point-a",
+        kind: "free-point" as const,
+        label: "A",
+        position: { x: 100, y: 100 },
+      },
+    ];
+
+    const selectedIds = new Set<string>(["point-a"]);
+
+    await act(async () => {
+      root = createRoot(container);
+      root.render(
+        <WorkspaceView
+          {...defaultProps}
+          scene={testScene}
+          selectedIds={selectedIds}
+          constructions={mockConstructions}
+        />,
+      );
+    });
+
+    const hud = container.querySelector(".workspace-hud-overlay");
+    expect(hud).toBeTruthy();
+    expect(hud?.textContent).toContain("Selection (1)");
+    expect(hud?.textContent).toContain("Label:A");
+    expect(hud?.textContent).toContain("Kind:free-point");
+    expect(hud?.textContent).toContain("Coords:(100.0, 100.0)");
+
+    await act(async () => {
+      root?.unmount();
+    });
+  });
 });

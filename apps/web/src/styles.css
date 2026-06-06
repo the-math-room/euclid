@@ -448,21 +448,95 @@ button {
 @media (max-width: 720px) {
   .app-shell {
     grid-template-columns: 1fr;
-    grid-template-rows: 55vh 1fr;
+    grid-template-rows: calc(100vh - 52px) 52px;
     height: 100vh;
     overflow: hidden;
+    transition: grid-template-rows 0.2s ease-in-out;
+  }
+
+  .app-shell.drawer-expanded {
+    grid-template-rows: 50vh 50vh;
   }
 
   .tool-panel {
-    padding: 16px;
+    grid-row: 2;
+    padding: 0 12px;
     height: 100%;
-    overflow-y: auto;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
     border-right: none;
     border-top: 1px solid rgb(255 255 255 / 0.08);
+    background: #111a1b;
+  }
+
+  .app-shell.drawer-expanded .tool-panel {
+    padding: 16px;
+    overflow-y: auto;
+    gap: 20px;
+  }
+
+  .brand {
+    display: none;
+  }
+
+  .tool-panel > :not(.toolbar) {
+    display: none;
+  }
+
+  .app-shell.drawer-expanded .tool-panel > :not(.brand) {
+    display: flex;
+  }
+
+  .app-shell.drawer-expanded .tool-panel > .objects-list {
+    display: block;
+  }
+
+  .toolbar {
+    margin: 0;
+    padding: 6px 0;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    width: 100%;
+    height: 52px;
+  }
+
+  .toolbar-section {
+    flex-direction: row;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .toolbar-label {
+    display: none;
+  }
+
+  .toolbar-buttons {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    gap: 4px;
+  }
+
+  .tool-button {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+  }
+
+  .tool-button svg {
+    width: 14px;
+    height: 14px;
   }
 
   .workspace {
-    order: -1;
+    grid-row: 1;
     height: 100%;
     min-height: auto;
     padding: 12px;
@@ -471,6 +545,111 @@ button {
   .workspace-viewport {
     height: 100%;
     min-height: auto;
+  }
+}
+
+.workspace-hud-overlay {
+  display: none;
+}
+
+@media (max-width: 720px) {
+  .workspace-hud-overlay {
+    display: block;
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background: rgba(17, 26, 27, 0.92);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    padding: 10px 12px;
+    color: #f6f2ec;
+    font-size: 0.8rem;
+    width: 180px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+    z-index: 10;
+    pointer-events: auto;
+  }
+
+  .hud-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    padding-bottom: 6px;
+    margin-bottom: 6px;
+    gap: 12px;
+  }
+
+  .hud-header h3 {
+    margin: 0;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #e3c057;
+  }
+
+  .hud-delete-btn {
+    background: transparent;
+    border: 1px solid rgba(255, 82, 82, 0.3);
+    color: #ff5252;
+    border-radius: 4px;
+    padding: 3px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+  }
+
+  .hud-delete-btn:hover {
+    background: rgba(255, 82, 82, 0.15);
+    border-color: #ff5252;
+  }
+
+  .hud-details {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .hud-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 0.76rem;
+  }
+
+  .hud-label {
+    color: #aebdba;
+    font-weight: 600;
+  }
+
+  .hud-value {
+    color: #f6f2ec;
+    text-align: right;
+    word-break: break-all;
+  }
+
+  .hud-multi-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    max-height: 100px;
+    overflow-y: auto;
+  }
+
+  .hud-multi-item {
+    display: flex;
+    justify-content: space-between;
+    gap: 6px;
+    font-size: 0.75rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    padding-bottom: 2px;
+  }
+
+  .hud-multi-item code {
+    color: #aebdba;
   }
 }
 

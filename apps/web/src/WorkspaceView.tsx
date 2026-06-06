@@ -7,7 +7,8 @@ import {
   type RenderItem,
   type RenderScene,
 } from "@euclid/rendering";
-import type { ConstructionId, Point2 } from "@euclid/geometry";
+import type { Construction, ConstructionId, Point2 } from "@euclid/geometry";
+import { Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 // ---------------------------------------------------------------------------
@@ -100,6 +101,8 @@ export function WorkspaceView({
   canDragPoint,
   onResize,
   sizeScale = 1.0,
+  constructions = [],
+  onDeleteSelected,
 }: {
   scene: RenderScene;
   selectedIds: ReadonlySet<ConstructionId>;
@@ -116,8 +119,11 @@ export function WorkspaceView({
   canDragPoint: (id: ConstructionId) => boolean;
   onResize?: (size: { width: number; height: number }) => void;
   sizeScale?: number;
+  constructions?: readonly Construction[];
+  onDeleteSelected?: () => void;
 }) {
   const [renderMode, setRenderMode] = useState<"svg" | "canvas">("svg");
+  const selectedConstructions = constructions.filter((c) => selectedIds.has(c.id));
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
@@ -522,9 +528,102 @@ export function WorkspaceView({
             </div>
           </canvas>
         )}
+
+        {/* Floating Mobile HUD */}
+        {selectedConstructions.length > 0 && (
+          <div className="workspace-hud-overlay">
+            <div className="hud-header">
+              <h3>Selection ({selectedConstructions.length})</h3>
+              {onDeleteSelected && (
+                <button
+                  type="button"
+                  className="hud-delete-btn"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDeleteSelected();
+                  }}
+                  title="Delete selection"
+                  aria-label="Delete selection"
+                >
+                  <Trash2 size={14} />
+                </button>
+              )}
+            </div>
+            <div className="hud-content">
+              {selectedConstructions.length === 1 ? (
+                <div className="hud-details">
+                  <div className="hud-row">
+                    <span className="hud-label">Label:</span>
+                    <span className="hud-value">{selectedConstructions[0].label}</span>
+                  </div>
+                  <div className="hud-row">
+                    <span className="hud-label">Kind:</span>
+                    <span className="hud-value">{selectedConstructions[0].kind}</span>
+                  </div>
+                  <CompactSpecificDetails construction={selectedConstructions[0]} />
+                </div>
+              ) : (
+                <div className="hud-multi-list">
+                  {selectedConstructions.map((c) => (
+                    <div key={c.id} className="hud-multi-item">
+                      <span>{c.label}</span>
+                      <code>{c.kind}</code>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </section>
   );
+}
+
+function CompactSpecificDetails({ construction }: { construction: Construction }) {
+  if (construction.kind === "free-point") {
+    return (
+      <div className="hud-row">
+        <span className="hud-label">Coords:</span>
+        <span className="hud-value">
+          ({construction.position.x.toFixed(1)}, {construction.position.y.toFixed(1)})
+        </span>
+      </div>
+    );
+  }
+  if (construction.kind === "line-through") {
+    return (
+      <div className="hud-row">
+        <span className="hud-label">Through:</span>
+        <span className="hud-value">{construction.points.join(", ")}</span>
+      </div>
+    );
+  }
+  if (construction.kind === "circle-through") {
+    return (
+      <div className="hud-row">
+        <span className="hud-label">Center:</span>
+        <span className="hud-value">{construction.center}</span>
+      </div>
+    );
+  }
+  if (construction.kind === "circle-three-points") {
+    return (
+      <div className="hud-row">
+        <span className="hud-label">Points:</span>
+        <span className="hud-value">{construction.points.join(", ")}</span>
+      </div>
+    );
+  }
+  if (construction.kind === "line-line-intersection") {
+    return (
+      <div className="hud-row">
+        <span className="hud-label">Lines:</span>
+        <span className="hud-value">{construction.lines.join(", ")}</span>
+      </div>
+    );
+  }
+  return null;
 }
 
 function RenderItemView({

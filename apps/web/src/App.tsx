@@ -1,4 +1,4 @@
-import { Circle, MousePointer2, Ruler, Waypoints, Undo2, Redo2, Trash2 } from "lucide-react";
+import { Circle, MousePointer2, Ruler, Waypoints, Undo2, Redo2, Trash2, Sliders } from "lucide-react";
 import { seedDocument } from "@euclid/document";
 import { evaluateConstruction } from "@euclid/geometry";
 import { defaultScreenViewFor, sceneForEvaluation } from "@euclid/rendering";
@@ -28,6 +28,8 @@ export function App() {
     return isMobile ? 1.4 : 1.0;
   });
 
+  const [isDrawerExpanded, setIsDrawerExpanded] = useState(false);
+
   const scene = useMemo(
     () =>
       sceneForEvaluation(
@@ -42,7 +44,7 @@ export function App() {
   );
 
   return (
-    <main className="app-shell">
+    <main className={`app-shell ${isDrawerExpanded ? "drawer-expanded" : ""}`}>
       <aside className="tool-panel" aria-label="Construction tools">
         <div className="brand">
           <Waypoints size={24} aria-hidden />
@@ -134,6 +136,15 @@ export function App() {
               >
                 <Circle size={16} aria-hidden />
               </button>
+              <button
+                type="button"
+                className={`tool-button toggle-drawer-button ${isDrawerExpanded ? "active" : ""}`}
+                onClick={() => setIsDrawerExpanded(!isDrawerExpanded)}
+                title="Settings & Objects"
+                aria-label="Settings & Objects"
+              >
+                <Sliders size={16} aria-hidden />
+              </button>
             </div>
           </div>
         </div>
@@ -166,6 +177,8 @@ export function App() {
         onAddIntersection={construction.handleAddIntersection}
         canDragPoint={construction.canDragPoint}
         sizeScale={sizeScale}
+        constructions={construction.program.constructions}
+        onDeleteSelected={construction.handleDeleteSelected}
       />
     </main>
   );
