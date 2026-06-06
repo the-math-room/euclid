@@ -18,6 +18,21 @@ EdTech platforms should be able to adopt pieces independently:
 
 See `examples/headless-kernel/README.md` for a kernel-only adoption sketch, `examples/lessons/basic-line-intersection.lesson.json` for a portable lesson fixture, and `examples/assessment-goals/line-intersection-goal.json` for a curriculum-authored assessment goal fixture.
 
+## Current SDK Shape
+
+The repo now has a coherent headless path:
+
+```text
+lesson JSON
+  -> @euclid/lesson parses document + policy + goals
+  -> @euclid/geometry evaluates learner construction programs
+  -> @euclid/assessment evaluates semantic goals
+  -> @euclid/rendering optionally turns evaluation into view data
+  -> apps/web optionally interprets the result in React
+```
+
+The important distinction is that `@euclid/lesson` is curriculum composition, not a runtime. A host product can load a lesson, decide how to render it, decide how strictly to enforce policy, and decide whether to use the reference assessment package or its own goal engine.
+
 ## Near-Term Differentiators
 
 ### Public Kernel Surface
@@ -80,6 +95,35 @@ Learning products need a portable activity definition that is more than a docume
 - assessment goals
 
 It should not own construction meaning, app state, rendering, or hosted delivery concerns. Hosts can parse a lesson, render the document however they want, enforce or ignore the policy, and evaluate goals using the reference assessment package or their own engine.
+
+## Near-Term Plan
+
+### 1. Interpret Lessons In The App
+
+The web app should eventually start from a `EuclidLesson` rather than a bare seed document. This does not mean the app owns lesson semantics. It means the app becomes an interpreter of lesson data:
+
+- initialize document state from `lesson.document`
+- derive available tools from `lesson.policy.allowedTools`
+- respect locked constructions for delete and drag behavior
+- evaluate `lesson.goals` against the current construction program
+
+This is the first place where the headless SDK direction becomes visible in the product without compromising package boundaries.
+
+### 2. Add A Lesson Runner Helper Only If Duplication Appears
+
+The example test currently demonstrates the flow directly. If docs, tests, or app code start repeating the same parse/evaluate sequence, add a small helper in a package-shaped layer. Do not add it prematurely; keep `@euclid/lesson` as data and codec until repeated usage shows the right abstraction.
+
+### 3. Keep Assessment Semantic
+
+The next assessment improvements should deepen construction meaning rather than add pixel heuristics. Good candidates:
+
+- label-independent matching for equivalent construction meanings
+- richer dependency/provenance diagnostics for failed goals
+- optional goal metadata for curriculum-facing feedback
+
+### 4. Keep Package APIs Curated
+
+Before any workspace or publishing split, keep package entrypoints explicit and small. New exports should be justified by examples, tests, or app usage.
 
 ## Defer
 

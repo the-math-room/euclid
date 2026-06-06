@@ -13,3 +13,9 @@ It uses:
 - `@euclid/assessment` to evaluate each lesson goal.
 
 The fixture is covered by `tests/examples/lessonFixture.test.ts`.
+
+## Boundary
+
+Lesson fixtures should stay portable JSON. They should not include React state, viewport state, rendering preferences, LMS identifiers, analytics storage, or hosted runtime concerns.
+
+If a future host needs those fields, prefer a host-specific wrapper around `EuclidLesson` rather than expanding the lesson core too early.

@@ -46,6 +46,19 @@ Lessons are product-level curriculum data, but still headless. They describe the
 
 This package should stay a composition layer. It may depend on document, activity, and assessment packages, but lower-level packages should not depend on it.
 
+## Example
+
+See [`../../examples/lessons/basic-line-intersection.lesson.json`](../../examples/lessons/basic-line-intersection.lesson.json) for a portable lesson fixture.
+
+The fixture demonstrates the intended host flow:
+
+1. Parse a lesson with `parseEuclidLesson`.
+2. Use `lesson.document` as the starter construction document.
+3. Interpret `lesson.policy` in the host UI or activity runtime.
+4. Evaluate `lesson.goals` against a learner construction program with `@euclid/assessment`.
+
+The lesson package does not perform geometry evaluation or goal evaluation itself. It defines the serializable curriculum shell.
+
 ## Verification Command
 
 Always run the validation suite before finishing:

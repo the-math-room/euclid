@@ -28,3 +28,12 @@ This keeps the SDK layers clear:
 
 - Decide whether the web app should load a lesson directly or keep using document/activity/assessment pieces separately during early iteration.
 - Add an explicit lesson-runner helper if the example test starts getting duplicated by docs or app code.
+
+## Documentation Update
+
+Clarified the strategic plan after adding the first fixture:
+
+- The current SDK path is now lesson JSON -> lesson parsing -> geometry evaluation -> assessment evaluation -> optional rendering/app interpretation.
+- The next product-facing strategic move is to let the web app interpret a `EuclidLesson` as its starting point.
+- A lesson-runner helper should wait until the parse/evaluate flow is duplicated enough to reveal the right abstraction.
+- Lesson fixtures should remain portable JSON and avoid host/runtime concerns.
