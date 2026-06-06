@@ -318,3 +318,53 @@ function slugFor(id: ConstructionId): string {
     .replaceAll(/[^a-z0-9]+/g, "-")
     .replaceAll(/^-|-$/g, "");
 }
+
+export function translateShape(
+  program: ConstructionProgram,
+  id: ConstructionId,
+  delta: Point2,
+): ConstructionProgram {
+  const construction = program.constructions.find((c) => c.id === id);
+  if (!construction) return program;
+
+  const pointsToTranslate = new Set<ConstructionId>();
+
+  if (construction.kind === "line-through") {
+    pointsToTranslate.add(construction.points[0]);
+    pointsToTranslate.add(construction.points[1]);
+  } else if (construction.kind === "circle-through") {
+    pointsToTranslate.add(construction.center);
+    pointsToTranslate.add(construction.pointOnCircle);
+  } else if (construction.kind === "circle-three-points") {
+    pointsToTranslate.add(construction.points[0]);
+    pointsToTranslate.add(construction.points[1]);
+    pointsToTranslate.add(construction.points[2]);
+  }
+
+  if (pointsToTranslate.size === 0) {
+    return program;
+  }
+
+  let changed = false;
+  const constructions = program.constructions.map((c): Construction => {
+    if (c.kind === "free-point" && pointsToTranslate.has(c.id)) {
+      changed = true;
+      return {
+        ...c,
+        position: {
+          x: c.position.x + delta.x,
+          y: c.position.y + delta.y,
+        },
+      };
+    }
+    return c;
+  });
+
+  if (!changed) {
+    return program;
+  }
+
+  return {
+    constructions,
+  };
+}

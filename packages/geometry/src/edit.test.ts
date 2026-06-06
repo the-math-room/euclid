@@ -8,6 +8,7 @@ import {
   addCircleCircleIntersection,
   addLineThroughPoints,
   moveFreePoint,
+  translateShape,
 } from "./edit";
 import type { ConstructionProgram } from "./model";
 
@@ -246,6 +247,60 @@ describe("construction edits", () => {
       program: updated,
       id: "intersection-circle-x-circle-y-1",
       changed: false,
+    });
+  });
+
+  it("translates defining free points of a line when translating the line", () => {
+    const program: ConstructionProgram = {
+      constructions: [
+        { id: "A", kind: "free-point", label: "A", position: { x: 1, y: 2 } },
+        { id: "B", kind: "free-point", label: "B", position: { x: 3, y: 4 } },
+        { id: "line-ab", kind: "line-through", label: "AB", points: ["A", "B"] },
+      ],
+    };
+
+    const translated = translateShape(program, "line-ab", { x: 10, y: -20 });
+
+    expect(translated.constructions).toContainEqual({
+      id: "A",
+      kind: "free-point",
+      label: "A",
+      position: { x: 11, y: -18 },
+    });
+    expect(translated.constructions).toContainEqual({
+      id: "B",
+      kind: "free-point",
+      label: "B",
+      position: { x: 13, y: -16 },
+    });
+  });
+
+  it("translates only free points when translating a circle", () => {
+    const program: ConstructionProgram = {
+      constructions: [
+        { id: "A", kind: "free-point", label: "A", position: { x: 0, y: 0 } },
+        // B is not a free point, it is an intersection or similar (kind: line-line-intersection)
+        { id: "B", kind: "line-line-intersection", label: "B", lines: ["l1", "l2"] },
+        { id: "circle", kind: "circle-through", label: "Circle", center: "A", pointOnCircle: "B" },
+      ],
+    };
+
+    const translated = translateShape(program, "circle", { x: 5, y: 5 });
+
+    // A is translated because it's a free-point
+    expect(translated.constructions.find((c) => c.id === "A")).toEqual({
+      id: "A",
+      kind: "free-point",
+      label: "A",
+      position: { x: 5, y: 5 },
+    });
+
+    // B is not translated because it's not a free-point
+    expect(translated.constructions.find((c) => c.id === "B")).toEqual({
+      id: "B",
+      kind: "line-line-intersection",
+      label: "B",
+      lines: ["l1", "l2"],
     });
   });
 });

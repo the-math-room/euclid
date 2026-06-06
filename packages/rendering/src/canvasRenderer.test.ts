@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { RenderScene } from "./scene";
 import { drawSceneToCanvas, type CanvasRenderingContext2DLike } from "./canvasRenderer";
 
-const mockScene: RenderScene = {
+const mockScene = {
   size: { width: 400, height: 300 },
   grid: [{ id: "g1", from: { x: 0, y: 0 }, to: { x: 400, y: 0 } }],
   items: [
@@ -29,7 +29,7 @@ const mockScene: RenderScene = {
       radius: 50,
     },
   ],
-};
+} as unknown as RenderScene;
 
 function createMockContext(): CanvasRenderingContext2DLike & { calls: string[]; styleCalls: string[] } {
   const calls: string[] = [];
@@ -104,7 +104,7 @@ describe("canvas renderer", () => {
 
   it("applies active styles when items are multi-selected", () => {
     const ctx = createMockContext();
-    const circleScene: RenderScene = {
+    const circleScene = {
       size: { width: 400, height: 300 },
       grid: [],
       items: [
@@ -115,7 +115,7 @@ describe("canvas renderer", () => {
           radius: 50,
         },
       ],
-    };
+    } as unknown as RenderScene;
     drawSceneToCanvas(ctx, circleScene, { selectedIds: new Set(["cr-C"]) });
 
     expect(ctx.strokeStyle).toBe("#e3c057"); // THEME.colors.circleActive
@@ -136,7 +136,7 @@ describe("canvas renderer", () => {
           label: { text: "D", anchor: { x: 60, y: 40 } },
         },
       ],
-    });
+    } as unknown as RenderScene);
 
     expect(ctx.styleCalls).toContain("fillStyle(#fbfaf6)");
     expect(ctx.styleCalls).toContain("strokeStyle(#246a73)");

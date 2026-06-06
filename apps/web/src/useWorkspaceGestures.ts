@@ -4,7 +4,7 @@ import {
   type IntersectionHit,
   type RenderScene,
 } from "@euclid/rendering";
-import type { ConstructionId, Point2 } from "@euclid/geometry";
+import type { ConstructionId, Point2, ScenePoint } from "@euclid/geometry";
 import { useEffect, useRef, type PointerEvent } from "react";
 import type { ActiveTool } from "./construction/tools";
 import { clientToSceneCoords, getCanvasProjection } from "./workspaceCoordinates";
@@ -28,6 +28,11 @@ type GestureState = {
     pointerId: number;
     id: ConstructionId;
   };
+  activeShapeDrag?: {
+    pointerId: number;
+    id: ConstructionId;
+    startSceneCoords: ScenePoint;
+  };
 };
 
 export type WorkspacePointerProps = Readonly<{
@@ -50,6 +55,8 @@ export function useWorkspaceGestures({
   onBeginPointDrag,
   onMovePoint,
   onEndPointDrag,
+  onBeginShapeDrag,
+  onMoveShape,
   onAddIntersection,
   canDragPoint,
   onPointerMoveCoords,
@@ -61,13 +68,15 @@ export function useWorkspaceGestures({
   onSelect: (id: ConstructionId | undefined, modifiers?: { ctrlKey?: boolean; shiftKey?: boolean }) => void;
   onPanBy: (delta: Point2) => void;
   onZoom: (zoom: number) => void;
-  onAddPoint: (coords: Point2) => void;
+  onAddPoint: (sceneCoords: ScenePoint) => void;
   onBeginPointDrag: (id: ConstructionId) => void;
-  onMovePoint: (id: ConstructionId, coords: Point2) => void;
+  onMovePoint: (id: ConstructionId, sceneCoords: ScenePoint) => void;
   onEndPointDrag: () => void;
+  onBeginShapeDrag: (id: ConstructionId) => void;
+  onMoveShape: (id: ConstructionId, startSceneCoords: ScenePoint, currentSceneCoords: ScenePoint) => void;
   onAddIntersection: (hit: IntersectionHit) => void;
   canDragPoint: (id: ConstructionId) => boolean;
-  onPointerMoveCoords?: (coords: Point2 | undefined) => void;
+  onPointerMoveCoords?: (sceneCoords: ScenePoint | undefined) => void;
   onPointerDownStateChange?: (isDown: boolean) => void;
 }): WorkspacePointerProps {
   const gestureRef = useRef<GestureState>({
@@ -80,6 +89,7 @@ export function useWorkspaceGestures({
     pinchStartZoom: 1,
     pinchLastMidpoint: { x: 0, y: 0 },
     activePointDrag: undefined,
+    activeShapeDrag: undefined,
   });
 
   const currentZoomRef = useRef(currentZoom);
@@ -104,26 +114,18 @@ export function useWorkspaceGestures({
       onPointerDownStateChange?.(true);
 
       const rect = event.currentTarget.getBoundingClientRect();
-      const coords = clientToSceneCoords(
+      const sceneCoords = clientToSceneCoords(
         event.clientX,
         event.clientY,
         rect,
         scene.size.width,
         scene.size.height,
       );
-      onPointerMoveCoords?.(coords);
+      onPointerMoveCoords?.(sceneCoords);
 
       if (activeTool === "select" && !event.ctrlKey && !event.shiftKey) {
-        const rect = event.currentTarget.getBoundingClientRect();
-        const coords = clientToSceneCoords(
-          event.clientX,
-          event.clientY,
-          rect,
-          scene.size.width,
-          scene.size.height,
-        );
         const threshold = getHitThreshold(event.pointerType);
-        const item = findItemAtPosition(scene, coords, threshold);
+        const item = findItemAtPosition(scene, sceneCoords, threshold);
 
         if (item?.kind === "point" && canDragPoint(item.id)) {
           g.activePointDrag = {
@@ -131,6 +133,13 @@ export function useWorkspaceGestures({
             id: item.id,
           };
           onBeginPointDrag(item.id);
+        } else if (item?.kind === "line" || item?.kind === "circle") {
+          g.activeShapeDrag = {
+            pointerId: event.pointerId,
+            id: item.id,
+            startSceneCoords: sceneCoords,
+          };
+          onBeginShapeDrag(item.id);
         }
       }
     } else if (g.pointers.size === 2) {
@@ -139,10 +148,11 @@ export function useWorkspaceGestures({
       g.pinchStartZoom = currentZoomRef.current;
       g.pinchLastMidpoint = pointerMidpoint(a, b);
       g.hasMoved = true;
-      if (g.activePointDrag) {
+      if (g.activePointDrag || g.activeShapeDrag) {
         onEndPointDrag();
       }
       g.activePointDrag = undefined;
+      g.activeShapeDrag = undefined;
     }
   };
 
@@ -158,9 +168,10 @@ export function useWorkspaceGestures({
 
   const clearPointerGesture = (pointerId: number) => {
     const g = gestureRef.current;
-    if (g.activePointDrag?.pointerId === pointerId) {
+    if (g.activePointDrag?.pointerId === pointerId || g.activeShapeDrag?.pointerId === pointerId) {
       onEndPointDrag();
       g.activePointDrag = undefined;
+      g.activeShapeDrag = undefined;
     }
     g.pointers.delete(pointerId);
     g.lastPos.delete(pointerId);
@@ -173,14 +184,14 @@ export function useWorkspaceGestures({
   const onPointerMove = (event: PointerEvent<Element>) => {
     const g = gestureRef.current;
     const rect = event.currentTarget.getBoundingClientRect();
-    const coords = clientToSceneCoords(
+    const sceneCoords = clientToSceneCoords(
       event.clientX,
       event.clientY,
       rect,
       scene.size.width,
       scene.size.height,
     );
-    onPointerMoveCoords?.(coords);
+    onPointerMoveCoords?.(sceneCoords);
 
     if (!g.pointers.has(event.pointerId)) {
       return;
@@ -198,7 +209,14 @@ export function useWorkspaceGestures({
       if (totalDist > 4) g.hasMoved = true;
 
       if (g.hasMoved) {
-        onMovePoint(g.activePointDrag.id, coords);
+        onMovePoint(g.activePointDrag.id, sceneCoords);
+      }
+    } else if (g.activeShapeDrag?.pointerId === event.pointerId && g.pointers.size === 1) {
+      const totalDist = Math.hypot(event.clientX - g.dragStartX, event.clientY - g.dragStartY);
+      if (totalDist > 4) g.hasMoved = true;
+
+      if (g.hasMoved) {
+        onMoveShape(g.activeShapeDrag.id, g.activeShapeDrag.startSceneCoords, sceneCoords);
       }
     } else if (g.pointers.size >= 2) {
       const [a, b] = Array.from(g.pointers.values()) as [ActivePointer, ActivePointer];
@@ -244,7 +262,7 @@ export function useWorkspaceGestures({
 
     if (wasOnlyPointer && (wasTap || isCreationMode)) {
       const rect = event.currentTarget.getBoundingClientRect();
-      const coords = clientToSceneCoords(
+      const sceneCoords = clientToSceneCoords(
         event.clientX,
         event.clientY,
         rect,
@@ -256,19 +274,19 @@ export function useWorkspaceGestures({
       const isTouch = event.pointerType === "touch" || event.pointerType === "pen";
 
       if (activeTool === "point" || activeTool === "line" || activeTool === "circle") {
-        const intersection = findIntersectionAtPosition(scene, coords, threshold);
+        const intersection = findIntersectionAtPosition(scene, sceneCoords, threshold);
         if (intersection) {
           onAddIntersection(intersection);
         } else {
-          const item = findItemAtPosition(scene, coords, threshold);
+          const item = findItemAtPosition(scene, sceneCoords, threshold);
           if (item?.kind === "point") {
             onSelect(item.id, { ctrlKey: event.ctrlKey || isTouch, shiftKey: event.shiftKey });
           } else {
-            onAddPoint(coords);
+            onAddPoint(sceneCoords);
           }
         }
       } else {
-        const item = findItemAtPosition(scene, coords, threshold);
+        const item = findItemAtPosition(scene, sceneCoords, threshold);
         if (item) {
           onSelect(item.id, { ctrlKey: event.ctrlKey || isTouch, shiftKey: event.shiftKey });
         } else {
@@ -277,9 +295,13 @@ export function useWorkspaceGestures({
       }
     }
 
-    if (g.activePointDrag?.pointerId === event.pointerId) {
+    if (
+      g.activePointDrag?.pointerId === event.pointerId ||
+      g.activeShapeDrag?.pointerId === event.pointerId
+    ) {
       onEndPointDrag();
       g.activePointDrag = undefined;
+      g.activeShapeDrag = undefined;
     }
     releasePointerCapture(event);
 

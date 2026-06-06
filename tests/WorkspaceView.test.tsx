@@ -2,7 +2,8 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import type { ConstructionId } from "@euclid/geometry";
+import type { ConstructionId, ScenePoint } from "@euclid/geometry";
+import type { RenderItem } from "@euclid/rendering";
 import { WorkspaceView } from "../apps/web/src/WorkspaceView";
 
 // Configure JSDOM environment for React 19 testing support
@@ -28,8 +29,8 @@ globalThis.ResizeObserver = MockResizeObserver as unknown as typeof ResizeObserv
 
 const mockScene = {
   size: { width: 920, height: 620 },
-  grid: [],
-  items: [],
+  grid: [] as { id: string; from: ScenePoint; to: ScenePoint }[],
+  items: [] as RenderItem[],
 };
 
 const defaultProps = {
@@ -44,6 +45,8 @@ const defaultProps = {
   onBeginPointDrag: vi.fn(),
   onMovePoint: vi.fn(),
   onEndPointDrag: vi.fn(),
+  onBeginShapeDrag: vi.fn(),
+  onMoveShape: vi.fn(),
   onAddIntersection: vi.fn(),
   canDragPoint: vi.fn(() => false),
 };
@@ -122,13 +125,13 @@ describe("WorkspaceView Integration", () => {
     const onSelectMock = vi.fn();
     const sceneWithPoints = {
       size: { width: 920, height: 620 },
-      grid: [],
+      grid: [] as { id: string; from: ScenePoint; to: ScenePoint }[],
       items: [
         {
           id: "point-a",
           kind: "point" as const,
-          mark: { x: 100, y: 100 },
-          label: { text: "A", anchor: { x: 110, y: 90 } },
+          mark: { x: 100, y: 100 } as ScenePoint,
+          label: { text: "A", anchor: { x: 110, y: 90 } as ScenePoint },
         },
       ],
     };
@@ -197,14 +200,14 @@ describe("WorkspaceView Integration", () => {
     let root: Root | null = null;
     const testScene = {
       size: { width: 900, height: 600 },
-      grid: [],
+      grid: [] as { id: string; from: ScenePoint; to: ScenePoint }[],
       items: [
         {
           id: "point-a",
           kind: "point" as const,
           pointRole: "free" as const,
-          mark: { x: 100, y: 100 },
-          label: { text: "A", anchor: { x: 110, y: 90 } },
+          mark: { x: 100, y: 100 } as ScenePoint,
+          label: { text: "A", anchor: { x: 110, y: 90 } as ScenePoint },
         },
       ],
     };
@@ -231,14 +234,14 @@ describe("WorkspaceView Integration", () => {
     let root: Root | null = null;
     const testScene = {
       size: { width: 900, height: 600 },
-      grid: [],
+      grid: [] as { id: string; from: ScenePoint; to: ScenePoint }[],
       items: [
         {
           id: "point-a",
           kind: "point" as const,
           pointRole: "free" as const,
-          mark: { x: 100, y: 100 },
-          label: { text: "A", anchor: { x: 110, y: 90 } },
+          mark: { x: 100, y: 100 } as ScenePoint,
+          label: { text: "A", anchor: { x: 110, y: 90 } as ScenePoint },
         },
       ],
     };
@@ -287,28 +290,25 @@ describe("WorkspaceView Integration", () => {
     // Let's place a point P also at (100, 100).
     const sceneWithIntersection = {
       size: { width: 920, height: 620 },
-      grid: [],
+      grid: [] as { id: string; from: ScenePoint; to: ScenePoint }[],
       items: [
         {
           id: "point-p",
           kind: "point" as const,
-          mark: { x: 100, y: 100 },
-          label: { text: "P", anchor: { x: 110, y: 90 } },
+          mark: { x: 100, y: 100 } as ScenePoint,
+          label: { text: "P", anchor: { x: 110, y: 90 } as ScenePoint },
         },
         {
           id: "line-ab",
           kind: "line" as const,
-          from: { x: 0, y: 100 },
-          to: { x: 200, y: 100 },
-          supportLine: [
-            { x: 0, y: 100 },
-            { x: 200, y: 100 },
-          ] as const,
+          from: { x: 0, y: 100 } as ScenePoint,
+          to: { x: 200, y: 100 } as ScenePoint,
+          supportLine: [{ x: 0, y: 100 } as ScenePoint, { x: 200, y: 100 } as ScenePoint] as const,
         },
         {
           id: "circle-o",
           kind: "circle" as const,
-          center: { x: 100, y: 150 },
+          center: { x: 100, y: 150 } as ScenePoint,
           radius: 50, // center (100, 150), radius 50 means it passes through (100, 100)
         },
       ],
@@ -383,21 +383,21 @@ describe("WorkspaceView Integration", () => {
     const onEndPointDragMock = vi.fn();
     const sceneWithPoints = {
       size: { width: 920, height: 620 },
-      grid: [],
+      grid: [] as { id: string; from: ScenePoint; to: ScenePoint }[],
       items: [
         {
           id: "point-a",
           kind: "point" as const,
           pointRole: "free" as const,
-          mark: { x: 100, y: 100 },
-          label: { text: "A", anchor: { x: 110, y: 90 } },
+          mark: { x: 100, y: 100 } as ScenePoint,
+          label: { text: "A", anchor: { x: 110, y: 90 } as ScenePoint },
         },
         {
           id: "point-b",
           kind: "point" as const,
           pointRole: "free" as const,
-          mark: { x: 200, y: 100 },
-          label: { text: "B", anchor: { x: 210, y: 90 } },
+          mark: { x: 200, y: 100 } as ScenePoint,
+          label: { text: "B", anchor: { x: 210, y: 90 } as ScenePoint },
         },
       ],
     };

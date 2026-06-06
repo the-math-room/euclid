@@ -7,7 +7,7 @@ import {
   findIntersectionAtPosition,
   findItemAtPosition,
 } from "@euclid/rendering";
-import type { Construction, ConstructionId, Point2 } from "@euclid/geometry";
+import type { Construction, ConstructionId, Point2, ScenePoint } from "@euclid/geometry";
 import { Trash2 } from "lucide-react";
 import { useEffect, useRef, useState, useMemo } from "react";
 import type { ActiveTool } from "./construction/tools";
@@ -30,6 +30,8 @@ export function WorkspaceView({
   onBeginPointDrag,
   onMovePoint,
   onEndPointDrag,
+  onBeginShapeDrag,
+  onMoveShape,
   onAddIntersection,
   canDragPoint,
   onResize,
@@ -45,10 +47,12 @@ export function WorkspaceView({
   onZoom: (zoom: number) => void;
   currentZoom: number;
   activeTool: ActiveTool;
-  onAddPoint: (coords: Point2) => void;
+  onAddPoint: (sceneCoords: ScenePoint) => void;
   onBeginPointDrag: (id: ConstructionId) => void;
-  onMovePoint: (id: ConstructionId, coords: Point2) => void;
+  onMovePoint: (id: ConstructionId, sceneCoords: ScenePoint) => void;
   onEndPointDrag: () => void;
+  onBeginShapeDrag: (id: ConstructionId) => void;
+  onMoveShape: (id: ConstructionId, startSceneCoords: ScenePoint, currentSceneCoords: ScenePoint) => void;
   onAddIntersection: (hit: IntersectionHit) => void;
   canDragPoint: (id: ConstructionId) => boolean;
   onResize?: (size: { width: number; height: number }) => void;
@@ -67,7 +71,7 @@ export function WorkspaceView({
   const svgRef = useRef<SVGSVGElement>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState<{ width: number; height: number } | null>(null);
-  const [pointerCoords, setPointerCoords] = useState<Point2 | undefined>();
+  const [pointerCoords, setPointerCoords] = useState<ScenePoint | undefined>();
   const [isPointerDown, setIsPointerDown] = useState(false);
 
   const hoveredId = useMemo(() => {
@@ -226,6 +230,8 @@ export function WorkspaceView({
     onBeginPointDrag,
     onMovePoint,
     onEndPointDrag,
+    onBeginShapeDrag,
+    onMoveShape,
     onAddIntersection,
     canDragPoint,
     onPointerMoveCoords: setPointerCoords,

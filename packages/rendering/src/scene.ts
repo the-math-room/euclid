@@ -1,4 +1,4 @@
-import type { Evaluation, Point2 } from "@euclid/geometry";
+import { type Evaluation, type Point2, type ScenePoint, toScenePoint, toWorldPoint } from "@euclid/geometry";
 import { layoutPointLabels, type LabelCandidateName, type Rect } from "./labelLayout";
 import { THEME } from "./theme";
 import { fitCameraFor, projectPoint, type ScreenView, type ViewportSize, worldFrameFor } from "./viewport";
@@ -11,8 +11,8 @@ export type RenderScene = Readonly<{
 
 export type RenderGridLine = Readonly<{
   id: string;
-  from: Point2;
-  to: Point2;
+  from: ScenePoint;
+  to: ScenePoint;
 }>;
 
 export type RenderItem =
@@ -20,26 +20,26 @@ export type RenderItem =
       id: string;
       kind: "point";
       pointRole?: "free" | "constructed";
-      mark: Point2;
+      mark: ScenePoint;
       label: RenderLabel;
     }>
   | Readonly<{
       id: string;
       kind: "line";
-      from: Point2;
-      to: Point2;
-      supportLine: readonly [Point2, Point2];
+      from: ScenePoint;
+      to: ScenePoint;
+      supportLine: readonly [ScenePoint, ScenePoint];
     }>
   | Readonly<{
       id: string;
       kind: "circle";
-      center: Point2;
+      center: ScenePoint;
       radius: number;
     }>;
 
 export type RenderLabel = Readonly<{
   text: string;
-  anchor: Point2;
+  anchor: ScenePoint;
   bounds?: Rect;
   candidate?: LabelCandidateName;
   score?: number;
@@ -68,7 +68,7 @@ export function sceneForEvaluation(
     id: string;
     pointRole: "free" | "constructed";
     text: string;
-    mark: Point2;
+    mark: ScenePoint;
   }[] = [];
   const freePointIds = new Set(
     evaluation.meanings
@@ -82,11 +82,11 @@ export function sceneForEvaluation(
         id: primitive.id,
         pointRole: freePointIds.has(primitive.id) ? "free" : "constructed",
         text: primitive.label,
-        mark: projectPoint(frame, primitive.position),
+        mark: projectPoint(frame, toWorldPoint(primitive.position)),
       });
     } else if (primitive.kind === "line") {
-      const a = projectPoint(frame, primitive.through[0]);
-      const b = projectPoint(frame, primitive.through[1]);
+      const a = projectPoint(frame, toWorldPoint(primitive.through[0]));
+      const b = projectPoint(frame, toWorldPoint(primitive.through[1]));
       const [from, to] = extendLineToViewport(a, b, view.viewport.size);
       lines.push({
         id: primitive.id,
@@ -96,8 +96,8 @@ export function sceneForEvaluation(
         supportLine: [a, b],
       });
     } else if (primitive.kind === "circle") {
-      const center = projectPoint(frame, primitive.center);
-      const edge = projectPoint(frame, primitive.pointOnCircle);
+      const center = projectPoint(frame, toWorldPoint(primitive.center));
+      const edge = projectPoint(frame, toWorldPoint(primitive.pointOnCircle));
       circles.push({
         id: primitive.id,
         kind: "circle",
@@ -135,14 +135,14 @@ export function sceneForEvaluation(
   };
 }
 
-function fallbackLabelFor(text: string, mark: Point2, fontSize: number): RenderLabel {
+function fallbackLabelFor(text: string, mark: ScenePoint, fontSize: number): RenderLabel {
   const scale = fontSize / THEME.typography.fontSize;
   return {
     text,
-    anchor: {
+    anchor: toScenePoint({
       x: mark.x + 10 * scale,
       y: mark.y - 10 * scale,
-    },
+    }),
     bounds: {
       x: mark.x + 10 * scale,
       y: mark.y - 28 * scale,
@@ -163,13 +163,13 @@ function gridLinesForFrame(frame: ReturnType<typeof worldFrameFor>): readonly Re
   const maxY = Math.ceil((frame.center.y + worldSpan) / step) * step;
   const verticals = rangeInclusive(minX, maxX, step).map((x) => ({
     id: `x-${x}`,
-    from: projectPoint(frame, { x, y: minY }),
-    to: projectPoint(frame, { x, y: maxY }),
+    from: projectPoint(frame, toWorldPoint({ x, y: minY })),
+    to: projectPoint(frame, toWorldPoint({ x, y: maxY })),
   }));
   const horizontals = rangeInclusive(minY, maxY, step).map((y) => ({
     id: `y-${y}`,
-    from: projectPoint(frame, { x: minX, y }),
-    to: projectPoint(frame, { x: maxX, y }),
+    from: projectPoint(frame, toWorldPoint({ x: minX, y })),
+    to: projectPoint(frame, toWorldPoint({ x: maxX, y })),
   }));
 
   return [...verticals, ...horizontals];
@@ -180,10 +180,14 @@ function rangeInclusive(min: number, max: number, step: number): readonly number
   return Array.from({ length: count }, (_, index) => min + index * step);
 }
 
-function extendLineToViewport(a: Point2, b: Point2, size: ViewportSize): readonly [Point2, Point2] {
+function extendLineToViewport(
+  a: ScenePoint,
+  b: ScenePoint,
+  size: ViewportSize,
+): readonly [ScenePoint, ScenePoint] {
   const dx = b.x - a.x;
   const dy = b.y - a.y;
-  const intersections: Point2[] = [];
+  const intersections: ScenePoint[] = [];
 
   // Extend lines significantly beyond the viewport to prevent them from cutting off
   // on wider/taller screens, dynamic window sizing, or rotated/zoomed coordinates.
@@ -194,13 +198,41 @@ function extendLineToViewport(a: Point2, b: Point2, size: ViewportSize): readonl
   const maxY = size.height + margin;
 
   if (dx !== 0) {
-    addIntersection(intersections, { x: minX, y: a.y + ((minX - a.x) / dx) * dy }, minX, maxX, minY, maxY);
-    addIntersection(intersections, { x: maxX, y: a.y + ((maxX - a.x) / dx) * dy }, minX, maxX, minY, maxY);
+    addIntersection(
+      intersections,
+      toScenePoint({ x: minX, y: a.y + ((minX - a.x) / dx) * dy }),
+      minX,
+      maxX,
+      minY,
+      maxY,
+    );
+    addIntersection(
+      intersections,
+      toScenePoint({ x: maxX, y: a.y + ((maxX - a.x) / dx) * dy }),
+      minX,
+      maxX,
+      minY,
+      maxY,
+    );
   }
 
   if (dy !== 0) {
-    addIntersection(intersections, { x: a.x + ((minY - a.y) / dy) * dx, y: minY }, minX, maxX, minY, maxY);
-    addIntersection(intersections, { x: a.x + ((maxY - a.y) / dy) * dx, y: maxY }, minX, maxX, minY, maxY);
+    addIntersection(
+      intersections,
+      toScenePoint({ x: a.x + ((minY - a.y) / dy) * dx, y: minY }),
+      minX,
+      maxX,
+      minY,
+      maxY,
+    );
+    addIntersection(
+      intersections,
+      toScenePoint({ x: a.x + ((maxY - a.y) / dy) * dx, y: maxY }),
+      minX,
+      maxX,
+      minY,
+      maxY,
+    );
   }
 
   if (intersections.length >= 2) {

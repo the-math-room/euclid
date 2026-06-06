@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { RenderScene } from "./scene";
 import { renderSceneToSvgString } from "./svgRenderer";
 
-const mockScene: RenderScene = {
+const mockScene = {
   size: { width: 400, height: 300 },
   grid: [{ id: "g1", from: { x: 0, y: 0 }, to: { x: 400, y: 0 } }],
   items: [
@@ -29,7 +29,7 @@ const mockScene: RenderScene = {
       radius: 50,
     },
   ],
-};
+} as unknown as RenderScene;
 
 describe("svg renderer", () => {
   it("renders a scene to an SVG string containing all elements", () => {
@@ -85,7 +85,7 @@ describe("svg renderer", () => {
   });
 
   it("escapes XML-special characters in ids and labels", () => {
-    const scene: RenderScene = {
+    const scene = {
       size: { width: 100, height: 100 },
       grid: [],
       items: [
@@ -96,7 +96,7 @@ describe("svg renderer", () => {
           label: { text: `A & B < C > D "quote" 'apostrophe'`, anchor: { x: 30, y: 20 } },
         },
       ],
-    };
+    } as unknown as RenderScene;
     const svgStr = renderSceneToSvgString(scene);
 
     expect(svgStr).toContain(`data-id="pt-&quot;A&quot;&amp;&apos;B&apos;&lt;C&gt;"`);
@@ -104,7 +104,7 @@ describe("svg renderer", () => {
   });
 
   it("includes constructed point role classes", () => {
-    const scene: RenderScene = {
+    const scene = {
       size: { width: 100, height: 100 },
       grid: [],
       items: [
@@ -116,7 +116,7 @@ describe("svg renderer", () => {
           label: { text: "D", anchor: { x: 30, y: 20 } },
         },
       ],
-    };
+    } as unknown as RenderScene;
     const svgStr = renderSceneToSvgString(scene);
 
     expect(svgStr).toContain('<g class="primitive point constructed" data-id="constructed-point">');

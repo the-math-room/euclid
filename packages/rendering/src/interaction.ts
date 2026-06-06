@@ -4,6 +4,8 @@ import {
   circleCircleIntersections,
   type ConstructionId,
   type Point2,
+  type ScenePoint,
+  toScenePoint,
 } from "@euclid/geometry";
 import type { RenderItem, RenderScene } from "./scene";
 
@@ -11,20 +13,20 @@ export type IntersectionHit =
   | Readonly<{
       kind: "line-line-intersection";
       lines: readonly [ConstructionId, ConstructionId];
-      position: Point2;
+      position: ScenePoint;
     }>
   | Readonly<{
       kind: "line-circle-intersection";
       line: ConstructionId;
       circle: ConstructionId;
-      position: Point2;
+      position: ScenePoint;
       intersectionIndex: 0 | 1;
     }>
   | Readonly<{
       kind: "circle-circle-intersection";
       firstCircle: ConstructionId;
       secondCircle: ConstructionId;
-      position: Point2;
+      position: ScenePoint;
       intersectionIndex: 0 | 1;
     }>;
 
@@ -55,7 +57,7 @@ export function distanceToSegment(p: Point2, a: Point2, b: Point2): number {
  */
 export function findItemAtPosition(
   scene: RenderScene,
-  position: Point2,
+  position: ScenePoint,
   threshold: number = 8,
 ): RenderItem | undefined {
   // First, check for points within the threshold
@@ -105,27 +107,27 @@ export function findItemAtPosition(
 function getIntersections(
   first: RenderItem,
   second: RenderItem,
-): readonly { position: Point2; index?: 0 | 1 }[] {
+): readonly { position: ScenePoint; index?: 0 | 1 }[] {
   if (first.kind === "line" && second.kind === "line") {
     const pt = lineLineIntersection([first.from, first.to], [second.from, second.to]);
-    return pt ? [{ position: pt }] : [];
+    return pt ? [{ position: toScenePoint(pt) }] : [];
   }
   if (first.kind === "line" && second.kind === "circle") {
     return lineCircleIntersections(first.supportLine, second.center, second.radius).map((pt, idx) => ({
-      position: pt,
+      position: toScenePoint(pt),
       index: idx as 0 | 1,
     }));
   }
   if (first.kind === "circle" && second.kind === "line") {
     return lineCircleIntersections(second.supportLine, first.center, first.radius).map((pt, idx) => ({
-      position: pt,
+      position: toScenePoint(pt),
       index: idx as 0 | 1,
     }));
   }
   if (first.kind === "circle" && second.kind === "circle") {
     const [c1, c2] = first.id < second.id ? [first, second] : [second, first];
     return circleCircleIntersections(c1.center, c1.radius, c2.center, c2.radius).map((pt, idx) => ({
-      position: pt,
+      position: toScenePoint(pt),
       // Invert the index because screen space coordinates have a flipped Y-axis relative to world space
       index: (idx === 0 ? 1 : 0) as 0 | 1,
     }));
@@ -135,7 +137,7 @@ function getIntersections(
 
 export function findIntersectionAtPosition(
   scene: RenderScene,
-  position: Point2,
+  position: ScenePoint,
   threshold: number = 8,
 ): IntersectionHit | undefined {
   const curves = scene.items.filter((item) => item.kind === "line" || item.kind === "circle");
@@ -165,7 +167,7 @@ export function findIntersectionAtPosition(
 function intersectionHitFor(
   first: RenderItem,
   second: RenderItem,
-  intersection: { position: Point2; index?: 0 | 1 },
+  intersection: { position: ScenePoint; index?: 0 | 1 },
 ): IntersectionHit {
   if (first.kind === "line" && second.kind === "line") {
     return {

@@ -1,4 +1,4 @@
-import type { Point2 } from "@euclid/geometry";
+import { type ScenePoint, toScenePoint } from "@euclid/geometry";
 
 export function getCanvasProjection(
   layoutWidth: number,
@@ -18,9 +18,9 @@ export function clientToSceneCoords(
   rect: DOMRect,
   sceneWidth: number,
   sceneHeight: number,
-): Point2 {
+): ScenePoint {
   const x = clientX - rect.left;
   const y = clientY - rect.top;
   const { scale, dx, dy } = getCanvasProjection(rect.width, rect.height, sceneWidth, sceneHeight);
-  return { x: (x - dx) / scale, y: (y - dy) / scale };
+  return toScenePoint({ x: (x - dx) / scale, y: (y - dy) / scale });
 }

@@ -177,6 +177,8 @@ export function App() {
         onBeginPointDrag={construction.handleBeginPointDrag}
         onMovePoint={construction.handleMovePoint}
         onEndPointDrag={construction.handleEndPointDrag}
+        onBeginShapeDrag={construction.handleBeginShapeDrag}
+        onMoveShape={construction.handleMoveShape}
         onAddIntersection={construction.handleAddIntersection}
         canDragPoint={construction.canDragPoint}
         sizeScale={sizeScale}

@@ -1,4 +1,4 @@
-import type { Point2 } from "@euclid/geometry";
+import { type Point2, toScenePoint } from "@euclid/geometry";
 import type { RenderItem, RenderLabel } from "./scene";
 import { THEME } from "./theme";
 
@@ -218,7 +218,7 @@ function placementForCandidate(
 
   return {
     text: target.text,
-    anchor: { x, y: y + metrics.height },
+    anchor: toScenePoint({ x, y: y + metrics.height }),
     bounds: {
       x,
       y,
@@ -299,7 +299,7 @@ function candidate(
 ): LabelCandidate {
   return {
     text,
-    anchor: { x, y: y + metrics.height },
+    anchor: toScenePoint({ x, y: y + metrics.height }),
     bounds: {
       x,
       y,

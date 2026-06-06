@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { EvaluatedPrimitive } from "@euclid/geometry";
+import type { EvaluatedPrimitive, WorldPoint } from "@euclid/geometry";
 import {
   fitCameraFor,
   moveCameraInScreen,
@@ -12,7 +12,7 @@ import {
 } from "./viewport";
 
 const camera: ViewCamera = {
-  center: { x: 1, y: 2 },
+  center: { x: 1, y: 2 } as WorldPoint,
   rotation: { turns: 0 },
   scale: 10,
   screenOffset: { x: 3, y: 4 },
@@ -57,7 +57,7 @@ describe("camera operations", () => {
     ];
 
     expect(fitCameraFor(primitives, { size: { width: 100, height: 100 } })).toEqual({
-      center: { x: 2, y: 1 },
+      center: { x: 2, y: 1 } as WorldPoint,
       rotation: { turns: 0 },
       scale: 18,
       screenOffset: { x: 0, y: 0 },
@@ -68,14 +68,14 @@ describe("camera operations", () => {
     const frame = worldFrameFor({
       viewport: { size: { width: 100, height: 100 } },
       camera: {
-        center: { x: 5, y: 10 },
+        center: { x: 5, y: 10 } as WorldPoint,
         rotation: { turns: 0.125 }, // 45 degrees
         scale: 4,
         screenOffset: { x: 2, y: -3 },
       },
     });
 
-    const originalPoint = { x: 12, y: -4 };
+    const originalPoint = { x: 12, y: -4 } as WorldPoint;
     const projected = projectPoint(frame, originalPoint);
     const unprojected = unprojectPoint(frame, projected);
 

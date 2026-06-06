@@ -17,13 +17,15 @@ import {
   evaluateConstruction,
   generateNextPointLabel,
   moveFreePoint,
+  translateShape,
 } from "@euclid/geometry";
 import type {
   AddConstructionResult,
   Construction,
   ConstructionId,
   ConstructionProgram,
-  Point2,
+  ScenePoint,
+  WorldPoint,
 } from "@euclid/geometry";
 import { unprojectPoint, worldFrameFor, type IntersectionHit, type ViewCamera } from "@euclid/rendering";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -44,11 +46,13 @@ export type ConstructionController = Readonly<{
   handleUndo: () => void;
   handleRedo: () => void;
   handleDeleteSelected: () => void;
-  handleAddPoint: (screenCoords: Point2) => void;
+  handleAddPoint: (sceneCoords: ScenePoint) => void;
   handleAddIntersection: (hit: IntersectionHit) => void;
   handleBeginPointDrag: (id: ConstructionId) => void;
-  handleMovePoint: (id: ConstructionId, screenCoords: Point2) => void;
+  handleMovePoint: (id: ConstructionId, sceneCoords: ScenePoint) => void;
   handleEndPointDrag: () => void;
+  handleBeginShapeDrag: (id: ConstructionId) => void;
+  handleMoveShape: (id: ConstructionId, startSceneCoords: ScenePoint, currentSceneCoords: ScenePoint) => void;
   canDragPoint: (id: ConstructionId) => boolean;
   handleBuildCircle: () => void;
   canBuildCircle: boolean;
@@ -223,25 +227,25 @@ export function useConstructionController({
   );
 
   const screenToWorld = useCallback(
-    (screenCoords: Point2): Point2 => {
+    (sceneCoords: ScenePoint): WorldPoint => {
       const frame = worldFrameFor({
         viewport: { size: sceneSize },
         camera,
       });
-      return unprojectPoint(frame, screenCoords);
+      return unprojectPoint(frame, sceneCoords);
     },
     [camera, sceneSize],
   );
 
   const handleAddPoint = useCallback(
-    (screenCoords: Point2) => {
+    (sceneCoords: ScenePoint) => {
       const label = generateNextPointLabel(program.constructions);
 
       const newPoint: Construction = {
         id: label,
         kind: "free-point",
         label,
-        position: screenToWorld(screenCoords),
+        position: screenToWorld(sceneCoords),
       };
 
       if (activeTool === "line") {
@@ -383,8 +387,8 @@ export function useConstructionController({
   const canDragPoint = useCallback((id: ConstructionId) => freePointIds.has(id), [freePointIds]);
 
   const handleMovePoint = useCallback(
-    (id: ConstructionId, screenCoords: Point2) => {
-      const worldPosition = screenToWorld(screenCoords);
+    (id: ConstructionId, sceneCoords: ScenePoint) => {
+      const worldPosition = screenToWorld(sceneCoords);
       setHistory((prev) => {
         const nextProgram = moveFreePoint(prev.present, id, worldPosition);
         if (nextProgram === prev.present) {
@@ -419,6 +423,35 @@ export function useConstructionController({
       };
     });
   }, []);
+
+  const handleBeginShapeDrag = useCallback(
+    (id: ConstructionId) => {
+      dragStartProgram.current = history.present;
+      setSelectedIds(new Set([id]));
+      setLastSelectedId(id);
+    },
+    [history.present],
+  );
+
+  const handleMoveShape = useCallback(
+    (id: ConstructionId, startSceneCoords: ScenePoint, currentSceneCoords: ScenePoint) => {
+      const original = dragStartProgram.current;
+      if (!original) return;
+
+      const start = screenToWorld(startSceneCoords);
+      const current = screenToWorld(currentSceneCoords);
+      const dx = current.x - start.x;
+      const dy = current.y - start.y;
+
+      const nextProgram = translateShape(original, id, { x: dx, y: dy });
+
+      setHistory((prev) => ({
+        ...prev,
+        present: nextProgram,
+      }));
+    },
+    [screenToWorld],
+  );
 
   const handleDeleteSelected = useCallback(() => {
     if (selectedIds.size === 0) return;
@@ -509,6 +542,8 @@ export function useConstructionController({
     handleBeginPointDrag,
     handleMovePoint,
     handleEndPointDrag,
+    handleBeginShapeDrag,
+    handleMoveShape,
     canDragPoint,
     handleBuildCircle,
     canBuildCircle,

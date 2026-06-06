@@ -1,4 +1,11 @@
-import type { EvaluatedPrimitive, Point2 } from "@euclid/geometry";
+import {
+  type EvaluatedPrimitive,
+  type Point2,
+  type ScenePoint,
+  type WorldPoint,
+  toScenePoint,
+  toWorldPoint,
+} from "@euclid/geometry";
 
 export type ViewportSize = Readonly<{
   width: number;
@@ -14,7 +21,7 @@ export type ViewRotation = Readonly<{
 }>;
 
 export type ViewCamera = Readonly<{
-  center: Point2;
+  center: WorldPoint;
   rotation: ViewRotation;
   scale: number;
   screenOffset: Point2;
@@ -27,7 +34,7 @@ export type ScreenView = Readonly<{
 
 export type WorldFrame = Readonly<{
   viewport: Viewport;
-  center: Point2;
+  center: WorldPoint;
   scale: number;
   rotation: ViewRotation;
   screenOffset: Point2;
@@ -36,10 +43,10 @@ export type WorldFrame = Readonly<{
 export function fitCameraFor(primitives: readonly EvaluatedPrimitive[], viewport: Viewport): ViewCamera {
   const points = primitives.flatMap(pointsInPrimitive);
   const bounds = boundsOf(points);
-  const center = {
+  const center = toWorldPoint({
     x: (bounds.min.x + bounds.max.x) / 2,
     y: (bounds.min.y + bounds.max.y) / 2,
-  };
+  });
   const width = Math.max(bounds.max.x - bounds.min.x, 1);
   const height = Math.max(bounds.max.y - bounds.min.y, 1);
   const scale = Math.min((viewport.size.width * 0.72) / width, (viewport.size.height * 0.72) / height);
@@ -88,7 +95,7 @@ export function moveCameraInScreen(camera: ViewCamera, screenDelta: Point2): Vie
   };
 }
 
-export function projectPoint(frame: WorldFrame, point: Point2): Point2 {
+export function projectPoint(frame: WorldFrame, point: WorldPoint): ScenePoint {
   const rotated = rotatePoint(
     {
       x: point.x - frame.center.x,
@@ -97,22 +104,22 @@ export function projectPoint(frame: WorldFrame, point: Point2): Point2 {
     frame.rotation,
   );
 
-  return {
+  return toScenePoint({
     x: frame.viewport.size.width / 2 + frame.screenOffset.x + rotated.x * frame.scale,
     y: frame.viewport.size.height / 2 + frame.screenOffset.y - rotated.y * frame.scale,
-  };
+  });
 }
 
-export function unprojectPoint(frame: WorldFrame, screenPoint: Point2): Point2 {
+export function unprojectPoint(frame: WorldFrame, screenPoint: ScenePoint): WorldPoint {
   const rotatedX = (screenPoint.x - frame.viewport.size.width / 2 - frame.screenOffset.x) / frame.scale;
   const rotatedY = -(screenPoint.y - frame.viewport.size.height / 2 - frame.screenOffset.y) / frame.scale;
 
   const unrotated = rotatePoint({ x: rotatedX, y: rotatedY }, { turns: -frame.rotation.turns });
 
-  return {
+  return toWorldPoint({
     x: unrotated.x + frame.center.x,
     y: unrotated.y + frame.center.y,
-  };
+  });
 }
 
 function rotatePoint(point: Point2, rotation: ViewRotation): Point2 {

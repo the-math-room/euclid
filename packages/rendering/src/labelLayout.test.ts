@@ -4,7 +4,14 @@ import { layoutPointLabels } from "./labelLayout";
 
 describe("label layout", () => {
   it("uses the preferred northeast candidate when it is clear", () => {
-    const labels = layoutPointLabels([{ id: "A", text: "A", mark: { x: 50, y: 50 } }], []);
+    const labels = layoutPointLabels(
+      [
+        { id: "A", text: "A", mark: { x: 50, y: 50 } } as unknown as Parameters<
+          typeof layoutPointLabels
+        >[0][number],
+      ],
+      [],
+    );
     const label = labels.get("A");
 
     expect(label).toEqual(
@@ -21,15 +28,14 @@ describe("label layout", () => {
       [
         { id: "A", text: "A", mark: { x: 50, y: 50 } },
         { id: "B", text: "B", mark: { x: 50, y: 50 } },
-      ],
+      ] as unknown as Parameters<typeof layoutPointLabels>[0],
       [],
     );
 
     expect(labels.get("A")?.candidate).not.toBe(labels.get("B")?.candidate);
   });
-
   it("penalizes labels that cross rendered line obstacles", () => {
-    const line: RenderItem = {
+    const line = {
       id: "line",
       kind: "line",
       from: { x: 0, y: 31 },
@@ -38,8 +44,15 @@ describe("label layout", () => {
         { x: 0, y: 31 },
         { x: 100, y: 31 },
       ],
-    };
-    const labels = layoutPointLabels([{ id: "A", text: "A", mark: { x: 50, y: 50 } }], [line]);
+    } as unknown as RenderItem;
+    const labels = layoutPointLabels(
+      [
+        { id: "A", text: "A", mark: { x: 50, y: 50 } } as unknown as Parameters<
+          typeof layoutPointLabels
+        >[0][number],
+      ],
+      [line],
+    );
 
     expect(labels.get("A")?.candidate).toBe("e");
   });
@@ -49,7 +62,7 @@ describe("label layout", () => {
       [
         { id: "A", text: "A", mark: { x: 50, y: 50 } },
         { id: "B", text: "B", mark: { x: 68, y: 31 } },
-      ],
+      ] as unknown as Parameters<typeof layoutPointLabels>[0],
       [
         {
           id: "A",
@@ -63,7 +76,7 @@ describe("label layout", () => {
           mark: { x: 68, y: 31 },
           label: { text: "B", anchor: { x: 0, y: 0 } },
         },
-      ],
+      ] as unknown as RenderItem[],
     );
 
     expect(labels.get("A")?.candidate).not.toBe("ne");

@@ -5,6 +5,17 @@ export type Point2 = Readonly<{
   y: number;
 }>;
 
+export type WorldPoint = Point2 & { readonly __brand: "world" };
+export type ScenePoint = Point2 & { readonly __brand: "scene" };
+
+export function toWorldPoint(p: Point2): WorldPoint {
+  return p as WorldPoint;
+}
+
+export function toScenePoint(p: Point2): ScenePoint {
+  return p as ScenePoint;
+}
+
 export type ConstructionProgram = Readonly<{
   constructions: readonly Construction[];
 }>;
