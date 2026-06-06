@@ -99,12 +99,21 @@ function ConstructionSpecificDetails({ construction }: { construction: Construct
     );
   }
 
+  if (construction.kind === "circle-through") {
+    return (
+      <div>
+        <dt>Circle</dt>
+        <dd>
+          center {construction.center}, through {construction.pointOnCircle}
+        </dd>
+      </div>
+    );
+  }
+
   return (
     <div>
-      <dt>Circle</dt>
-      <dd>
-        center {construction.center}, through {construction.pointOnCircle}
-      </dd>
+      <dt>Intersection</dt>
+      <dd>{construction.lines.join(", ")}</dd>
     </div>
   );
 }

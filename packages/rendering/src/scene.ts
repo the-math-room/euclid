@@ -18,6 +18,7 @@ export type RenderItem =
   | Readonly<{
       id: string;
       kind: "point";
+      pointRole?: "free" | "constructed";
       mark: Point2;
       label: RenderLabel;
     }>
@@ -58,14 +59,21 @@ export function sceneForEvaluation(evaluation: Evaluation, view: ScreenView): Re
   const lines: RenderItem[] = [];
   const pointTargets: {
     id: string;
+    pointRole: "free" | "constructed";
     text: string;
     mark: Point2;
   }[] = [];
+  const freePointIds = new Set(
+    evaluation.meanings
+      .filter((meaning) => meaning.expression.kind === "free-point")
+      .map((meaning) => meaning.id),
+  );
 
   for (const primitive of evaluation.primitives) {
     if (primitive.kind === "point") {
       pointTargets.push({
         id: primitive.id,
+        pointRole: freePointIds.has(primitive.id) ? "free" : "constructed",
         text: primitive.label,
         mark: projectPoint(frame, primitive.position),
       });
@@ -94,6 +102,7 @@ export function sceneForEvaluation(evaluation: Evaluation, view: ScreenView): Re
   const pointObstacles: RenderItem[] = pointTargets.map((target) => ({
     id: target.id,
     kind: "point",
+    pointRole: target.pointRole,
     mark: target.mark,
     label: fallbackLabelFor(target.text, target.mark),
   }));
@@ -105,6 +114,7 @@ export function sceneForEvaluation(evaluation: Evaluation, view: ScreenView): Re
   const points: RenderItem[] = pointTargets.map((target) => ({
     id: target.id,
     kind: "point",
+    pointRole: target.pointRole,
     mark: target.mark,
     label: labelPlacements.get(target.id) ?? fallbackLabelFor(target.text, target.mark),
   }));

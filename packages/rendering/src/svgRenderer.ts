@@ -32,7 +32,8 @@ export function renderSceneToSvgString(scene: RenderScene, options: SvgRendererO
   // Draw items
   for (const item of scene.items) {
     const isSelected = selectedIds ? selectedIds.has(item.id) : item.id === selectedId;
-    const baseClass = `primitive ${item.kind}`;
+    const baseClass =
+      item.kind === "point" ? `primitive ${item.kind} ${item.pointRole ?? "free"}` : `primitive ${item.kind}`;
     const className = isSelected ? `${baseClass} selected` : baseClass;
     const id = escapeXmlAttribute(item.id);
 

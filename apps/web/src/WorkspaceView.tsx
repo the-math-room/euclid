@@ -1,7 +1,9 @@
 import {
   drawSceneToCanvas,
+  findIntersectionAtPosition,
   findItemAtPosition,
   SVG_THEME_STYLES,
+  type IntersectionHit,
   type RenderItem,
   type RenderScene,
 } from "@euclid/rendering";
@@ -94,6 +96,8 @@ export function WorkspaceView({
   onBeginPointDrag,
   onMovePoint,
   onEndPointDrag,
+  onAddIntersection,
+  canDragPoint,
 }: {
   scene: RenderScene;
   selectedIds: ReadonlySet<ConstructionId>;
@@ -106,6 +110,8 @@ export function WorkspaceView({
   onBeginPointDrag: (id: ConstructionId) => void;
   onMovePoint: (id: ConstructionId, coords: Point2) => void;
   onEndPointDrag: () => void;
+  onAddIntersection: (hit: IntersectionHit) => void;
+  canDragPoint: (id: ConstructionId) => boolean;
 }) {
   const [renderMode, setRenderMode] = useState<"svg" | "canvas">("svg");
 
@@ -205,7 +211,7 @@ export function WorkspaceView({
         );
         const item = findItemAtPosition(scene, coords);
 
-        if (item?.kind === "point") {
+        if (item?.kind === "point" && canDragPoint(item.id)) {
           g.activePointDrag = {
             pointerId: event.pointerId,
             id: item.id,
@@ -321,7 +327,12 @@ export function WorkspaceView({
       );
 
       if (activeTool === "point") {
-        onAddPoint(coords);
+        const intersection = findIntersectionAtPosition(scene, coords);
+        if (intersection) {
+          onAddIntersection(intersection);
+        } else {
+          onAddPoint(coords);
+        }
       } else {
         const item = findItemAtPosition(scene, coords);
         if (item) {
@@ -436,7 +447,10 @@ function RenderItemView({
   selected: boolean;
   onSelect: (modifiers?: { ctrlKey?: boolean; shiftKey?: boolean }) => void;
 }) {
-  const className = selected ? `primitive ${item.kind} selected` : `primitive ${item.kind}`;
+  const roleClass = item.kind === "point" ? ` ${item.pointRole ?? "free"}` : "";
+  const className = selected
+    ? `primitive ${item.kind}${roleClass} selected`
+    : `primitive ${item.kind}${roleClass}`;
   const label = `${item.kind} ${item.kind === "point" ? item.label.text : item.id}`;
 
   const sharedProps = {

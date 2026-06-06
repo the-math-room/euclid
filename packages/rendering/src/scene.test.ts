@@ -78,6 +78,29 @@ describe("sceneForEvaluation", () => {
     expect(line).not.toHaveProperty("through");
   });
 
+  it("marks constructed point render items separately from free points", () => {
+    const evaluation = evaluateConstruction({
+      constructions: [
+        { id: "A", kind: "free-point", label: "A", position: { x: 0, y: 0 } },
+        { id: "B", kind: "free-point", label: "B", position: { x: 2, y: 2 } },
+        { id: "C", kind: "free-point", label: "C", position: { x: 0, y: 2 } },
+        { id: "D", kind: "free-point", label: "D", position: { x: 2, y: 0 } },
+        { id: "line-ab", kind: "line-through", label: "AB", points: ["A", "B"] },
+        { id: "line-cd", kind: "line-through", label: "CD", points: ["C", "D"] },
+        {
+          id: "intersection",
+          kind: "line-line-intersection",
+          label: "E",
+          lines: ["line-ab", "line-cd"],
+        },
+      ],
+    });
+    const scene = sceneForEvaluation(evaluation, screenViewFor(evaluation, { width: 100, height: 100 }));
+
+    expect(pointIn(scene, "A").pointRole).toBe("free");
+    expect(pointIn(scene, "intersection").pointRole).toBe("constructed");
+  });
+
   it("rotates marks while keeping labels screen-facing", () => {
     const evaluation = evaluateConstruction({
       constructions: [

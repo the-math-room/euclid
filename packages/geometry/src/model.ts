@@ -28,6 +28,12 @@ export type Construction =
       label: string;
       center: ConstructionId;
       pointOnCircle: ConstructionId;
+    }>
+  | Readonly<{
+      id: ConstructionId;
+      kind: "line-line-intersection";
+      label: string;
+      lines: readonly [ConstructionId, ConstructionId];
     }>;
 
 export type EvaluatedPrimitive =
@@ -50,6 +56,30 @@ export type EvaluatedPrimitive =
       center: Point2;
       pointOnCircle: Point2;
     }>;
+
+export type ConstructionExpression =
+  | Readonly<{
+      kind: "free-point";
+    }>
+  | Readonly<{
+      kind: "line-through";
+      points: readonly [ConstructionId, ConstructionId];
+    }>
+  | Readonly<{
+      kind: "circle-through";
+      center: ConstructionId;
+      pointOnCircle: ConstructionId;
+    }>
+  | Readonly<{
+      kind: "line-line-intersection";
+      lines: readonly [ConstructionId, ConstructionId];
+    }>;
+
+export type ConstructionMeaning = Readonly<{
+  id: ConstructionId;
+  label: string;
+  expression: ConstructionExpression;
+}>;
 
 export type EvaluationDiagnostic = Readonly<{
   constructionId: ConstructionId;
@@ -75,6 +105,7 @@ export type DependencyGraph = Readonly<{
 
 export type Evaluation = Readonly<{
   graph: DependencyGraph;
+  meanings: readonly ConstructionMeaning[];
   primitives: readonly EvaluatedPrimitive[];
   diagnostics: readonly EvaluationDiagnostic[];
 }>;

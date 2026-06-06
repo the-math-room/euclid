@@ -41,7 +41,7 @@ describe("svg renderer", () => {
     expect(svgStr).toContain('<line x1="0" y1="0" x2="400" y2="0" />');
 
     // Point
-    expect(svgStr).toContain('<g class="primitive point" data-id="pt-A">');
+    expect(svgStr).toContain('<g class="primitive point free" data-id="pt-A">');
     expect(svgStr).toContain('<circle cx="100" cy="100" r="5" />');
     expect(svgStr).toContain('<text x="110" y="90">A</text>');
 
@@ -56,7 +56,7 @@ describe("svg renderer", () => {
 
   it("handles selected ID", () => {
     const svgStr = renderSceneToSvgString(mockScene, { selectedId: "pt-A" });
-    expect(svgStr).toContain('<g class="primitive point selected" data-id="pt-A">');
+    expect(svgStr).toContain('<g class="primitive point free selected" data-id="pt-A">');
     expect(svgStr).toContain(
       '<line class="primitive line" x1="10" y1="10" x2="90" y2="90" data-id="ln-B" />',
     );
@@ -71,7 +71,7 @@ describe("svg renderer", () => {
     const svgStr = renderSceneToSvgString(mockScene, {
       selectedIds: new Set(["pt-A", "cr-C"]),
     });
-    expect(svgStr).toContain('<g class="primitive point selected" data-id="pt-A">');
+    expect(svgStr).toContain('<g class="primitive point free selected" data-id="pt-A">');
     expect(svgStr).toContain(
       '<line class="primitive line" x1="10" y1="10" x2="90" y2="90" data-id="ln-B" />',
     );
@@ -97,5 +97,24 @@ describe("svg renderer", () => {
 
     expect(svgStr).toContain(`data-id="pt-&quot;A&quot;&amp;&apos;B&apos;&lt;C&gt;"`);
     expect(svgStr).toContain(`<text x="30" y="20">A &amp; B &lt; C &gt; D "quote" 'apostrophe'</text>`);
+  });
+
+  it("includes constructed point role classes", () => {
+    const scene: RenderScene = {
+      size: { width: 100, height: 100 },
+      grid: [],
+      items: [
+        {
+          id: "constructed-point",
+          kind: "point",
+          pointRole: "constructed",
+          mark: { x: 20, y: 30 },
+          label: { text: "D", anchor: { x: 30, y: 20 } },
+        },
+      ],
+    };
+    const svgStr = renderSceneToSvgString(scene);
+
+    expect(svgStr).toContain('<g class="primitive point constructed" data-id="constructed-point">');
   });
 });

@@ -34,6 +34,7 @@ describe("evaluateConstruction", () => {
       { from: "line-ab", to: "A" },
       { from: "line-ab", to: "B" },
     ]);
+    expect(evaluation.meanings.map((meaning) => meaning.id)).toEqual(["A", "B", "line-ab"]);
     expect(evaluation.primitives.map((primitive) => primitive.id)).toEqual(["A", "B", "line-ab"]);
   });
 
@@ -58,6 +59,7 @@ describe("evaluateConstruction", () => {
     const evaluation = evaluateConstruction(program);
 
     expect(evaluation.primitives.map((primitive) => primitive.id)).toEqual(["A"]);
+    expect(evaluation.meanings.map((meaning) => meaning.id)).toEqual(["A"]);
     expect(evaluation.diagnostics).toEqual([
       {
         constructionId: "line-ab",
@@ -145,6 +147,7 @@ describe("evaluateConstruction", () => {
     const evaluation = evaluateConstruction(program);
 
     expect(evaluation.primitives.map((primitive) => primitive.id)).toEqual(["A", "B"]);
+    expect(evaluation.meanings.map((meaning) => meaning.id)).toEqual(["A", "B", "line-ab"]);
     expect(evaluation.diagnostics).toEqual([
       {
         constructionId: "line-ab",
@@ -181,11 +184,92 @@ describe("evaluateConstruction", () => {
     const evaluation = evaluateConstruction(program);
 
     expect(evaluation.primitives.map((primitive) => primitive.id)).toEqual(["A", "B"]);
+    expect(evaluation.meanings.map((meaning) => meaning.id)).toEqual(["A", "B", "circle-ab"]);
     expect(evaluation.diagnostics).toEqual([
       {
         constructionId: "circle-ab",
         message: "Circle circle(A, B) needs distinct center and circumference points.",
       },
     ]);
+  });
+
+  it("realizes a line-line intersection as a constructed point", () => {
+    const program: ConstructionProgram = {
+      constructions: [
+        { id: "A", kind: "free-point", label: "A", position: { x: 0, y: 0 } },
+        { id: "B", kind: "free-point", label: "B", position: { x: 2, y: 2 } },
+        { id: "C", kind: "free-point", label: "C", position: { x: 0, y: 2 } },
+        { id: "D", kind: "free-point", label: "D", position: { x: 2, y: 0 } },
+        { id: "line-ab", kind: "line-through", label: "AB", points: ["A", "B"] },
+        { id: "line-cd", kind: "line-through", label: "CD", points: ["C", "D"] },
+        {
+          id: "intersection",
+          kind: "line-line-intersection",
+          label: "X",
+          lines: ["line-ab", "line-cd"],
+        },
+      ],
+    };
+
+    const evaluation = evaluateConstruction(program);
+    const intersection = evaluation.primitives.find((primitive) => primitive.id === "intersection");
+
+    expect(evaluation.meanings.find((meaning) => meaning.id === "intersection")).toEqual({
+      id: "intersection",
+      label: "X",
+      expression: {
+        kind: "line-line-intersection",
+        lines: ["line-ab", "line-cd"],
+      },
+    });
+    expect(intersection).toEqual({
+      id: "intersection",
+      kind: "point",
+      label: "X",
+      position: { x: 1, y: 1 },
+    });
+  });
+
+  it("keeps line-line intersection meaning when parallel lines have no realization", () => {
+    const program: ConstructionProgram = {
+      constructions: [
+        { id: "A", kind: "free-point", label: "A", position: { x: 0, y: 0 } },
+        { id: "B", kind: "free-point", label: "B", position: { x: 2, y: 0 } },
+        { id: "C", kind: "free-point", label: "C", position: { x: 0, y: 1 } },
+        { id: "D", kind: "free-point", label: "D", position: { x: 2, y: 1 } },
+        { id: "line-ab", kind: "line-through", label: "AB", points: ["A", "B"] },
+        { id: "line-cd", kind: "line-through", label: "CD", points: ["C", "D"] },
+        {
+          id: "intersection",
+          kind: "line-line-intersection",
+          label: "X",
+          lines: ["line-ab", "line-cd"],
+        },
+      ],
+    };
+
+    const evaluation = evaluateConstruction(program);
+
+    expect(evaluation.meanings.map((meaning) => meaning.id)).toEqual([
+      "A",
+      "B",
+      "C",
+      "D",
+      "line-ab",
+      "line-cd",
+      "intersection",
+    ]);
+    expect(evaluation.primitives.map((primitive) => primitive.id)).toEqual([
+      "A",
+      "B",
+      "C",
+      "D",
+      "line-ab",
+      "line-cd",
+    ]);
+    expect(evaluation.diagnostics).toContainEqual({
+      constructionId: "intersection",
+      message: "Intersection X needs non-parallel line dependencies.",
+    });
   });
 });

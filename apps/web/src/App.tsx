@@ -2,12 +2,20 @@ import { Circle, MousePointer2, Ruler, Waypoints, Undo2, Redo2, Trash2 } from "l
 import { seedDocument, createHistory, pushState, undo, redo, canUndo, canRedo } from "@euclid/document";
 import {
   evaluateConstruction,
+  addLineLineIntersection,
+  addLineThroughPoints,
   deleteConstructions,
   generateNextPointLabel,
   moveFreePoint,
 } from "@euclid/geometry";
 import type { Construction, ConstructionId, ConstructionProgram, Point2 } from "@euclid/geometry";
-import { defaultScreenViewFor, sceneForEvaluation, unprojectPoint, worldFrameFor } from "@euclid/rendering";
+import {
+  defaultScreenViewFor,
+  sceneForEvaluation,
+  unprojectPoint,
+  worldFrameFor,
+  type IntersectionHit,
+} from "@euclid/rendering";
 import { useMemo, useState, useEffect, useCallback, useRef } from "react";
 import { ObjectList } from "./objects/ObjectList";
 import { SelectionDetails } from "./objects/SelectionDetails";
@@ -25,6 +33,7 @@ export function App() {
   const [selectedIds, setSelectedIds] = useState<ReadonlySet<ConstructionId>>(new Set());
   const [lastSelectedId, setLastSelectedId] = useState<ConstructionId | undefined>();
   const [activeTool, setActiveTool] = useState<"select" | "point" | "line" | "circle">("select");
+  const [lineDraftPointId, setLineDraftPointId] = useState<ConstructionId | undefined>();
   const dragStartProgram = useRef<ConstructionProgram | undefined>(undefined);
   const camera = useCameraController(defaultView);
 
@@ -41,8 +50,35 @@ export function App() {
     [currentEvaluated, camera.camera],
   );
 
+  const realizedPointIds = useMemo(
+    () =>
+      new Set(
+        currentEvaluated.primitives
+          .filter((primitive) => primitive.kind === "point")
+          .map((primitive) => primitive.id),
+      ),
+    [currentEvaluated.primitives],
+  );
+
+  const freePointIds = useMemo(
+    () =>
+      new Set(
+        program.constructions
+          .filter((construction) => construction.kind === "free-point")
+          .map((construction) => construction.id),
+      ),
+    [program.constructions],
+  );
+
   const updateProgram = useCallback((nextProgram: { constructions: readonly Construction[] }) => {
     setHistory((prev) => pushState(prev, nextProgram));
+  }, []);
+
+  const setTool = useCallback((tool: "select" | "point" | "line" | "circle") => {
+    setActiveTool(tool);
+    if (tool !== "line") {
+      setLineDraftPointId(undefined);
+    }
   }, []);
 
   const handleUndo = useCallback(() => {
@@ -66,6 +102,30 @@ export function App() {
     if (id === undefined) {
       setSelectedIds(new Set());
       setLastSelectedId(undefined);
+      setLineDraftPointId(undefined);
+      return;
+    }
+
+    if (activeTool === "line") {
+      if (!realizedPointIds.has(id)) {
+        return;
+      }
+
+      if (!lineDraftPointId || lineDraftPointId === id) {
+        setLineDraftPointId(id);
+        setSelectedIds(new Set([id]));
+        setLastSelectedId(id);
+        return;
+      }
+
+      const points: readonly [ConstructionId, ConstructionId] = [lineDraftPointId, id];
+      const nextProgram = addLineThroughPoints(program, points);
+      const lineId = lineThroughId(nextProgram, points);
+
+      updateProgram(nextProgram);
+      setLineDraftPointId(undefined);
+      setSelectedIds(lineId ? new Set([lineId]) : new Set(points));
+      setLastSelectedId(lineId ?? id);
       return;
     }
 
@@ -126,6 +186,21 @@ export function App() {
     setLastSelectedId(newPoint.id);
   };
 
+  const handleAddIntersection = useCallback(
+    (hit: IntersectionHit) => {
+      const lines: readonly [ConstructionId, ConstructionId] = [hit.operands[0], hit.operands[1]];
+      const nextProgram = addLineLineIntersection(program, lines);
+      const intersectionId = lineLineIntersectionId(nextProgram, lines);
+
+      updateProgram(nextProgram);
+      if (intersectionId) {
+        setSelectedIds(new Set([intersectionId]));
+        setLastSelectedId(intersectionId);
+      }
+    },
+    [program, updateProgram],
+  );
+
   const screenToWorld = useCallback(
     (screenCoords: Point2): Point2 => {
       const frame = worldFrameFor({
@@ -139,12 +214,18 @@ export function App() {
 
   const handleBeginPointDrag = useCallback(
     (id: ConstructionId) => {
+      if (!freePointIds.has(id)) {
+        return;
+      }
+
       dragStartProgram.current = history.present;
       setSelectedIds(new Set([id]));
       setLastSelectedId(id);
     },
-    [history.present],
+    [freePointIds, history.present],
   );
+
+  const canDragPoint = useCallback((id: ConstructionId) => freePointIds.has(id), [freePointIds]);
 
   const handleMovePoint = useCallback(
     (id: ConstructionId, screenCoords: Point2) => {
@@ -243,7 +324,7 @@ export function App() {
                 type="button"
                 className={`tool-button ${activeTool === "select" ? "active" : ""}`}
                 title="Select"
-                onClick={() => setActiveTool("select")}
+                onClick={() => setTool("select")}
               >
                 <MousePointer2 size={16} aria-hidden />
               </button>
@@ -251,7 +332,7 @@ export function App() {
                 type="button"
                 className={`tool-button ${activeTool === "point" ? "active" : ""}`}
                 title="Point"
-                onClick={() => setActiveTool("point")}
+                onClick={() => setTool("point")}
               >
                 <Waypoints size={16} aria-hidden />
               </button>
@@ -259,7 +340,7 @@ export function App() {
                 type="button"
                 className={`tool-button ${activeTool === "line" ? "active" : ""}`}
                 title="Line"
-                onClick={() => setActiveTool("line")}
+                onClick={() => setTool("line")}
               >
                 <Ruler size={16} aria-hidden />
               </button>
@@ -267,7 +348,7 @@ export function App() {
                 type="button"
                 className={`tool-button ${activeTool === "circle" ? "active" : ""}`}
                 title="Circle"
-                onClick={() => setActiveTool("circle")}
+                onClick={() => setTool("circle")}
               >
                 <Circle size={16} aria-hidden />
               </button>
@@ -332,7 +413,37 @@ export function App() {
         onBeginPointDrag={handleBeginPointDrag}
         onMovePoint={handleMovePoint}
         onEndPointDrag={handleEndPointDrag}
+        onAddIntersection={handleAddIntersection}
+        canDragPoint={canDragPoint}
       />
     </main>
   );
+}
+
+function lineThroughId(
+  program: ConstructionProgram,
+  points: readonly [ConstructionId, ConstructionId],
+): ConstructionId | undefined {
+  const line = program.constructions.find(
+    (construction) =>
+      construction.kind === "line-through" &&
+      ((construction.points[0] === points[0] && construction.points[1] === points[1]) ||
+        (construction.points[0] === points[1] && construction.points[1] === points[0])),
+  );
+
+  return line?.id;
+}
+
+function lineLineIntersectionId(
+  program: ConstructionProgram,
+  lines: readonly [ConstructionId, ConstructionId],
+): ConstructionId | undefined {
+  const intersection = program.constructions.find(
+    (construction) =>
+      construction.kind === "line-line-intersection" &&
+      ((construction.lines[0] === lines[0] && construction.lines[1] === lines[1]) ||
+        (construction.lines[0] === lines[1] && construction.lines[1] === lines[0])),
+  );
+
+  return intersection?.id;
 }

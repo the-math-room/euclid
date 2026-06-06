@@ -5,21 +5,31 @@ Euclid models a construction as a small program whose meaning is geometric.
 The core distinction:
 
 - **Syntax**: typed construction records authored by users and tools.
-- **Semantics**: evaluated Euclidean primitives derived from those records.
+- **Meaning**: exact construction expressions and provenance derived from syntax.
+- **Realization**: approximate numeric primitives derived from meaning for rendering and interaction.
 - **Dependency graph**: explicit references between construction records.
 - **Document**: versioned persisted data containing a construction program.
 - **Rendering**: renderable scene data derived from evaluated primitives.
 - **Presentation**: React, SVG, DOM controls, exports, and editor affordances.
 
-React owns composition and presentation. The geometry core owns meaning. Rendering converts evaluated meaning into scene data but does not own construction semantics.
+React owns composition and presentation. The geometry core owns meaning. Rendering converts approximate realization into scene data but does not own construction semantics.
+
+Euclid should favor meaning over representation in the Conal Elliott sense: first state what a construction denotes, then choose representations and algorithms that preserve that denotation. Floating point coordinates, vector arithmetic, and complex-number formulas are implementation techniques for approximate realization. They are not the ground truth of a construction document.
 
 Package-layer functions should be memoizable in theory: their meaning comes from explicit inputs, not ambient effects or hidden mutable module state.
 
 Source order is not semantic order. A document is evaluated by its dependency graph, and invalid graph structure produces diagnostics rather than partial implicit behavior.
 
+Evaluation currently exposes both:
+
+- `meanings`: graph-valid exact construction expressions.
+- `primitives`: approximate realized primitives suitable for rendering.
+
+A construction can have meaning without a current approximate primitive. For example, a line through two point dependencies is still an authored construction expression, but if those points currently coincide, there is no realized line primitive to render. Dependent realizations should disappear and reappear as their dependencies become constructible again.
+
 ## Layer Map
 
-- `packages/geometry/src`: construction syntax, dependency graph, and evaluation semantics.
+- `packages/geometry/src`: construction syntax, dependency graph, exact meaning, and approximate realization.
 - `packages/document/src`: versioned document data and seed/example documents.
 - `packages/rendering/src`: viewport projection and renderable scene descriptions.
 - `apps/web/src`: React components that compose documents, evaluation, rendering, and controls.
@@ -52,6 +62,7 @@ The initial domain supports:
 - Free points.
 - Lines through two points.
 - Circles with a center point and point on circumference.
+- Line-line intersection points.
 
 This is deliberately small. It gives future construction operations a clear pattern without pretending the domain is complete.
 
@@ -63,8 +74,9 @@ To add a construction:
 2. Add the evaluated primitive shape if needed.
 3. Add its dependency extraction to `packages/geometry/src/dependencies.ts`.
 4. Implement the meaning in `packages/geometry/src/evaluate.ts`.
-5. Keep invalid dependencies explicit as diagnostics.
-6. Add scene conversion in `packages/rendering/src/scene.ts`.
-7. Render the new scene item in `apps/web/src/WorkspaceView.tsx`.
+5. Implement approximate realization in `packages/geometry/src/realize.ts`.
+6. Keep invalid dependencies and absent/degenerate realization explicit as diagnostics.
+7. Add scene conversion in `packages/rendering/src/scene.ts`.
+8. Render the new scene item in `apps/web/src/WorkspaceView.tsx`.
 
 The target style is algebraic and boring: explicit data, explicit cases, no implicit mutation.

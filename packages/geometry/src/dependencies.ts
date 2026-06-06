@@ -9,7 +9,11 @@ export function dependencyIds(construction: Construction): readonly Construction
     return construction.points;
   }
 
-  return [construction.center, construction.pointOnCircle];
+  if (construction.kind === "circle-through") {
+    return [construction.center, construction.pointOnCircle];
+  }
+
+  return construction.lines;
 }
 
 export function dependencyGraphFor(constructions: readonly Construction[]): DependencyGraph {

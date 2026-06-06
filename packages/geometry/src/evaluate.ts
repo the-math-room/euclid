@@ -2,35 +2,29 @@ import type {
   Construction,
   ConstructionId,
   ConstructionProgram,
-  EvaluatedPrimitive,
+  ConstructionMeaning,
   Evaluation,
   EvaluationDiagnostic,
 } from "./model";
 import { dependencyGraphFor, dependencyIds } from "./dependencies";
+import { realizeConstructions } from "./realize";
 
 export function evaluateConstruction(program: ConstructionProgram): Evaluation {
   const graph = dependencyGraphFor(program.constructions);
   const plan = evaluationPlanFor(program.constructions);
-  const primitives = new Map<ConstructionId, EvaluatedPrimitive>();
+  const meanings = new Map<ConstructionId, ConstructionMeaning>();
   const diagnostics: EvaluationDiagnostic[] = [...plan.diagnostics];
 
   for (const construction of plan.ordered) {
-    const primitive = evaluateOne(construction, primitives);
-
-    if (primitive.kind === "diagnostic") {
-      diagnostics.push({
-        constructionId: construction.id,
-        message: primitive.message,
-      });
-    } else {
-      primitives.set(construction.id, primitive);
-    }
+    meanings.set(construction.id, meaningFor(construction));
   }
+  const realization = realizeConstructions(plan.ordered);
 
   return {
     graph,
-    primitives: Array.from(primitives.values()),
-    diagnostics,
+    meanings: Array.from(meanings.values()),
+    primitives: realization.primitives,
+    diagnostics: [...diagnostics, ...realization.diagnostics],
   };
 }
 
@@ -39,12 +33,49 @@ type EvaluationPlan = Readonly<{
   diagnostics: readonly EvaluationDiagnostic[];
 }>;
 
-type EvaluationStep =
-  | EvaluatedPrimitive
-  | Readonly<{
-      kind: "diagnostic";
-      message: string;
-    }>;
+function meaningFor(construction: Construction): ConstructionMeaning {
+  if (construction.kind === "free-point") {
+    return {
+      id: construction.id,
+      label: construction.label,
+      expression: {
+        kind: "free-point",
+      },
+    };
+  }
+
+  if (construction.kind === "line-through") {
+    return {
+      id: construction.id,
+      label: construction.label,
+      expression: {
+        kind: "line-through",
+        points: construction.points,
+      },
+    };
+  }
+
+  if (construction.kind === "circle-through") {
+    return {
+      id: construction.id,
+      label: construction.label,
+      expression: {
+        kind: "circle-through",
+        center: construction.center,
+        pointOnCircle: construction.pointOnCircle,
+      },
+    };
+  }
+
+  return {
+    id: construction.id,
+    label: construction.label,
+    expression: {
+      kind: "line-line-intersection",
+      lines: construction.lines,
+    },
+  };
+}
 
 function evaluationPlanFor(constructions: readonly Construction[]): EvaluationPlan {
   const diagnostics: EvaluationDiagnostic[] = [];
@@ -135,78 +166,4 @@ function visit(construction: Construction, state: VisitState): boolean {
 
   state.ordered.push(construction);
   return true;
-}
-
-function evaluateOne(
-  construction: Construction,
-  previous: ReadonlyMap<ConstructionId, EvaluatedPrimitive>,
-): EvaluationStep {
-  if (construction.kind === "free-point") {
-    return {
-      id: construction.id,
-      kind: "point",
-      label: construction.label,
-      position: construction.position,
-    };
-  }
-
-  if (construction.kind === "line-through") {
-    const a = pointNamed(previous, construction.points[0]);
-    const b = pointNamed(previous, construction.points[1]);
-
-    if (!a || !b) {
-      return {
-        kind: "diagnostic",
-        message: `Line ${construction.label} needs two point dependencies.`,
-      };
-    }
-
-    if (samePoint(a.position, b.position)) {
-      return {
-        kind: "diagnostic",
-        message: `Line ${construction.label} needs two distinct point dependencies.`,
-      };
-    }
-
-    return {
-      id: construction.id,
-      kind: "line",
-      label: construction.label,
-      through: [a.position, b.position],
-    };
-  }
-
-  const center = pointNamed(previous, construction.center);
-  const pointOnCircle = pointNamed(previous, construction.pointOnCircle);
-
-  if (!center || !pointOnCircle) {
-    return {
-      kind: "diagnostic",
-      message: `Circle ${construction.label} needs point dependencies for its center and circumference.`,
-    };
-  }
-
-  if (samePoint(center.position, pointOnCircle.position)) {
-    return {
-      kind: "diagnostic",
-      message: `Circle ${construction.label} needs distinct center and circumference points.`,
-    };
-  }
-
-  return {
-    id: construction.id,
-    kind: "circle",
-    label: construction.label,
-    center: center.position,
-    pointOnCircle: pointOnCircle.position,
-  };
-}
-
-function pointNamed(previous: ReadonlyMap<ConstructionId, EvaluatedPrimitive>, id: ConstructionId) {
-  const primitive = previous.get(id);
-  return primitive?.kind === "point" ? primitive : undefined;
-}
-
-function samePoint(a: { x: number; y: number }, b: { x: number; y: number }): boolean {
-  return a.x === b.x && a.y === b.y;
 }

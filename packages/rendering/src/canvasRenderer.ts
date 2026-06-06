@@ -94,6 +94,10 @@ export function drawSceneToCanvas(
         ctx.fillStyle = THEME.colors.pointActiveFill;
         ctx.strokeStyle = THEME.colors.pointActiveStroke;
         ctx.lineWidth = 3;
+      } else if (item.pointRole === "constructed") {
+        ctx.fillStyle = THEME.colors.constructedPointFill;
+        ctx.strokeStyle = THEME.colors.constructedPointStroke;
+        ctx.lineWidth = 3;
       } else {
         ctx.fillStyle = THEME.colors.pointFill;
         ctx.strokeStyle = THEME.colors.pointStroke;

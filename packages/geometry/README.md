@@ -6,7 +6,8 @@ Owns construction meaning.
 
 - Construction syntax types.
 - Dependency extraction and graph shape.
-- Deterministic evaluation into geometric primitives.
+- Deterministic evaluation into exact construction meanings.
+- Approximate realization into geometric primitives for downstream interpreters.
 - Geometry diagnostics.
 
 Functions in this package should be memoizable in theory.
@@ -27,12 +28,22 @@ Functions in this package should be memoizable in theory.
 - `src/model.ts`: construction and evaluated primitive types.
 - `src/dependencies.ts`: dependency extraction and graph construction.
 - `src/edit.ts`: pure construction edit helpers.
-- `src/evaluate.ts`: construction semantics.
+- `src/evaluate.ts`: graph planning and exact construction meaning.
 - `src/index.ts`: public package entrypoint.
+- `src/realize.ts`: approximate numeric realization.
+
+## Meaning And Realization
+
+The construction graph is the ground truth. Evaluation exposes exact construction meanings separately from approximate primitives:
+
+- `meanings`: graph-valid construction expressions and provenance.
+- `primitives`: floating-point realizations used by rendering, hit testing, and interaction.
+
+Floating coordinates and complex-number style helpers are allowed as realization techniques, not as the document's semantic ground truth.
 
 ## Change Pattern
 
-When adding construction meaning, update model, dependency extraction, evaluator, and geometry tests together.
+When adding construction meaning, update model, dependency extraction, exact meaning, realization, and geometry tests together.
 
 ## Instructions for LLM Agents
 

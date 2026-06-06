@@ -27,10 +27,15 @@ const mockScene: RenderScene = {
   ],
 };
 
-function createMockContext(): CanvasRenderingContext2DLike & { calls: string[] } {
+function createMockContext(): CanvasRenderingContext2DLike & { calls: string[]; styleCalls: string[] } {
   const calls: string[] = [];
-  return {
+  const styleCalls: string[] = [];
+  let strokeStyle: string | CanvasGradient | CanvasPattern = "";
+  let fillStyle: string | CanvasGradient | CanvasPattern = "";
+  let lineWidth = 1;
+  const context: CanvasRenderingContext2DLike & { calls: string[]; styleCalls: string[] } = {
     calls,
+    styleCalls,
     clearRect: vi.fn(() => calls.push("clearRect")),
     fillRect: vi.fn(() => calls.push("fillRect")),
     beginPath: vi.fn(() => calls.push("beginPath")),
@@ -51,6 +56,30 @@ function createMockContext(): CanvasRenderingContext2DLike & { calls: string[] }
     textBaseline: "middle",
     lineJoin: "round",
   };
+  Object.defineProperties(context, {
+    strokeStyle: {
+      get: () => strokeStyle,
+      set: (value) => {
+        strokeStyle = value;
+        styleCalls.push(`strokeStyle(${String(value)})`);
+      },
+    },
+    fillStyle: {
+      get: () => fillStyle,
+      set: (value) => {
+        fillStyle = value;
+        styleCalls.push(`fillStyle(${String(value)})`);
+      },
+    },
+    lineWidth: {
+      get: () => lineWidth,
+      set: (value) => {
+        lineWidth = value;
+        styleCalls.push(`lineWidth(${value})`);
+      },
+    },
+  });
+  return context;
 }
 
 describe("canvas renderer", () => {
@@ -87,5 +116,27 @@ describe("canvas renderer", () => {
 
     expect(ctx.strokeStyle).toBe("#e3c057"); // THEME.colors.circleActive
     expect(ctx.lineWidth).toBe(4); // active circle stroke width
+  });
+
+  it("applies constructed point styles", () => {
+    const ctx = createMockContext();
+    drawSceneToCanvas(ctx, {
+      size: { width: 100, height: 100 },
+      grid: [],
+      items: [
+        {
+          id: "constructed-point",
+          kind: "point",
+          pointRole: "constructed",
+          mark: { x: 50, y: 50 },
+          label: { text: "D", anchor: { x: 60, y: 40 } },
+        },
+      ],
+    });
+
+    expect(ctx.styleCalls).toContain("fillStyle(#fbfaf6)");
+    expect(ctx.styleCalls).toContain("strokeStyle(#246a73)");
+    expect(ctx.styleCalls).toContain("lineWidth(3)");
+    expect(ctx.arc).toHaveBeenCalledWith(50, 50, 5, 0, 2 * Math.PI);
   });
 });

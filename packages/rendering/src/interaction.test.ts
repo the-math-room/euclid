@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { RenderScene } from "./scene";
-import { findItemAtPosition } from "./interaction";
+import { findIntersectionAtPosition, findItemAtPosition } from "./interaction";
 
 const mockScene: RenderScene = {
   size: { width: 100, height: 100 },
@@ -81,5 +81,55 @@ describe("interaction hit testing", () => {
     // Distance to point is 1. Distance to line is 1.
     // Point should be prioritized and selected.
     expect(findItemAtPosition(sceneWithOverlap, { x: 50, y: 11 })?.id).toBe("overlap-point");
+  });
+
+  it("finds line-line intersection candidates close to query position", () => {
+    const scene: RenderScene = {
+      size: { width: 100, height: 100 },
+      grid: [],
+      items: [
+        {
+          id: "line-a",
+          kind: "line",
+          from: { x: 10, y: 10 },
+          to: { x: 90, y: 90 },
+        },
+        {
+          id: "line-b",
+          kind: "line",
+          from: { x: 10, y: 90 },
+          to: { x: 90, y: 10 },
+        },
+      ],
+    };
+
+    expect(findIntersectionAtPosition(scene, { x: 52, y: 51 })).toEqual({
+      kind: "intersection",
+      operands: ["line-a", "line-b"],
+      position: { x: 50, y: 50 },
+    });
+  });
+
+  it("does not find intersection candidates for parallel lines", () => {
+    const scene: RenderScene = {
+      size: { width: 100, height: 100 },
+      grid: [],
+      items: [
+        {
+          id: "line-a",
+          kind: "line",
+          from: { x: 10, y: 10 },
+          to: { x: 90, y: 10 },
+        },
+        {
+          id: "line-b",
+          kind: "line",
+          from: { x: 10, y: 20 },
+          to: { x: 90, y: 20 },
+        },
+      ],
+    };
+
+    expect(findIntersectionAtPosition(scene, { x: 50, y: 15 })).toBeUndefined();
   });
 });

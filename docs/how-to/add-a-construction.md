@@ -19,6 +19,7 @@ Touch these files:
 - `packages/geometry/src/model.ts`
 - `packages/geometry/src/dependencies.ts`
 - `packages/geometry/src/evaluate.ts`
+- `packages/geometry/src/realize.ts`
 - `packages/geometry/src/evaluate.test.ts`
 
 Add:
@@ -26,8 +27,9 @@ Add:
 - A `Construction` union case.
 - Any needed `EvaluatedPrimitive` case.
 - Dependency extraction.
-- Evaluation semantics.
-- Diagnostics for invalid or degenerate inputs.
+- Exact construction meaning.
+- Approximate realization.
+- Diagnostics for invalid graph structure or absent/degenerate realization.
 
 ## 3. Update Rendering
 
