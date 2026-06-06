@@ -286,13 +286,16 @@ export function WorkspaceView({
     g.pointers.set(event.pointerId, { id: event.pointerId, x: event.clientX, y: event.clientY });
     g.lastPos.set(event.pointerId, { x: event.clientX, y: event.clientY });
 
+    const el = event.currentTarget as Element;
+    const rect = el.getBoundingClientRect();
+    const { scale } = getCanvasProjection(rect.width, rect.height, scene.size.width, scene.size.height);
+    const panScale = scale > 0 ? scale : 1;
+
     if (g.activePointDrag?.pointerId === event.pointerId && g.pointers.size === 1) {
       const totalDist = Math.hypot(event.clientX - g.dragStartX, event.clientY - g.dragStartY);
       if (totalDist > 4) g.hasMoved = true;
 
       if (g.hasMoved) {
-        const el = event.currentTarget as Element;
-        const rect = el.getBoundingClientRect();
         const coords = clientToSceneCoords(
           event.clientX,
           event.clientY,
@@ -309,8 +312,8 @@ export function WorkspaceView({
       const midpoint = pointerMidpoint(a, b);
 
       const panDelta: Point2 = {
-        x: midpoint.x - g.pinchLastMidpoint.x,
-        y: midpoint.y - g.pinchLastMidpoint.y,
+        x: (midpoint.x - g.pinchLastMidpoint.x) / panScale,
+        y: (midpoint.y - g.pinchLastMidpoint.y) / panScale,
       };
       if (panDelta.x !== 0 || panDelta.y !== 0) onPanBy(panDelta);
 
@@ -326,7 +329,7 @@ export function WorkspaceView({
       const totalDist = Math.hypot(event.clientX - g.dragStartX, event.clientY - g.dragStartY);
       if (totalDist > 4) g.hasMoved = true;
       if (g.hasMoved && (dx !== 0 || dy !== 0)) {
-        onPanBy({ x: dx, y: dy });
+        onPanBy({ x: dx / panScale, y: dy / panScale });
         if (renderMode === "canvas" && activeTool !== "point") {
           const canvas = canvasRef.current;
           if (canvas) canvas.style.cursor = "grabbing";
