@@ -39,6 +39,19 @@ Functions in this package should be memoizable in theory.
 - `src/theme.ts`: centralized color palette, typography constants, and SVG stylesheet generation.
 - `src/index.ts`: public package entrypoint.
 
+## Public API
+
+The package entrypoint uses explicit named exports. Treat these groups as the intentional rendering surface:
+
+- Scene construction: `RenderScene`, `RenderItem`, `RenderLabel`, `RenderGridLine`, `defaultScreenViewFor`, `sceneForEvaluation`.
+- Viewport and camera math: `ViewportSize`, `Viewport`, `ViewRotation`, `ViewCamera`, `ScreenView`, `WorldFrame`, `fitCameraFor`, `worldFrameFor`, `rotateCamera`, `zoomCamera`, `moveCameraInScreen`, `projectPoint`, `unprojectPoint`.
+- Interaction: `IntersectionHit`, `findItemAtPosition`, `findIntersectionAtPosition`.
+- Label layout: `LabelCandidateName`, `Rect`, `LabelPlacement`, `layoutPointLabels`.
+- Renderers: `drawSceneToCanvas`, `CanvasRendererOptions`, `CanvasRenderingContext2DLike`, `renderSceneToSvgString`, `SvgRendererOptions`.
+- Theme: `THEME`, `SVG_THEME_STYLES`.
+
+Do not add wildcard exports to `src/index.ts`. New public exports should be named intentionally.
+
 ## Camera Semantics
 
 `moveCameraInScreen(camera, delta)` moves the camera in screen coordinates. The rendered scene moves in the opposite direction.

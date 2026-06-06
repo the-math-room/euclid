@@ -39,6 +39,20 @@ Functions in this package should be memoizable in theory.
 - `src/names.ts`: point label generation (`generateNextPointLabel`).
 - `src/index.ts`: public package entrypoint.
 
+## Public API
+
+The package entrypoint uses explicit named exports. Treat these groups as the intentional SDK surface:
+
+- Model and branded coordinates: `ConstructionProgram`, `Construction`, `ConstructionExpression`, `EvaluatedPrimitive`, `Evaluation`, `Point2`, `WorldPoint`, `ScenePoint`, `toWorldPoint`, `toScenePoint`.
+- Evaluation and realization: `evaluateConstruction`, `realizeConstructions`.
+- Pure edits: `moveFreePoint`, `addLineThroughPoints`, `addCircleThroughPoints`, `addCircleThreePoints`, `addLineLineIntersection`, `addLineCircleIntersection`, `addCircleCircleIntersection`, `translateShape`.
+- Dependency inspection and deletion: `dependencyIds`, `dependencyGraphFor`, `transitiveDependentsOf`, `deleteConstructions`.
+- Provenance: `explainConstruction`, `traceDependencies`, `traceDependents`.
+- Floating-point helpers used by interpreters: `lineLineIntersection`, `lineCircleIntersections`, `circleCircleIntersections`, `samePoint`, `cross`, `dot`.
+- Naming: `generateNextPointLabel`.
+
+Do not add wildcard exports to `src/index.ts`. New public exports should be named intentionally.
+
 ## Meaning And Realization
 
 The construction graph is the ground truth. Evaluation produces two distinct things:

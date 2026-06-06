@@ -29,6 +29,16 @@ Functions in this package should be memoizable in theory.
 - `src/seed.ts`: seed document.
 - `src/index.ts`: public package entrypoint.
 
+## Public API
+
+The package entrypoint uses explicit named exports. Treat these groups as the intentional document surface:
+
+- Document model and fixture: `EuclidDocument`, `seedDocument`.
+- Codec boundary: `DocumentParseResult`, `parseEuclidDocument`, `serializeEuclidDocument`.
+- Pure history wrapper: `DocumentHistory`, `createHistory`, `pushState`, `undo`, `redo`, `canUndo`, `canRedo`.
+
+Do not add wildcard exports to `src/index.ts`. New public exports should be named intentionally.
+
 ## Change Pattern
 
 When changing persistence, keep the document version explicit and add codec tests for accepted and rejected input.

@@ -72,6 +72,8 @@ Added the first headless SDK examples:
 
 The assessment goal fixture is covered by `tests/examples/assessmentGoalFixture.test.ts`, so the example stays aligned with the public `@euclid/assessment` API.
 
+Curated package entrypoints to use explicit named exports rather than wildcard exports. Added a boundary test that rejects wildcard exports from package `src/index.ts` files. Package READMEs now document the intentional public API groups for geometry, assessment, document, and rendering.
+
 ## Why
 
 This is the first code-level step toward the headless edTech SDK direction. Assessment is intentionally separate from geometry meaning: a learning platform can use this reference package or provide its own assessment engine over `@euclid/geometry` data.

@@ -1,4 +1,6 @@
-export * from "./codec";
-export * from "./model";
-export * from "./seed";
-export * from "./history";
+export type { DocumentParseResult } from "./codec";
+export { parseEuclidDocument, serializeEuclidDocument } from "./codec";
+export type { DocumentHistory } from "./history";
+export { canRedo, canUndo, createHistory, pushState, redo, undo } from "./history";
+export type { EuclidDocument } from "./model";
+export { seedDocument } from "./seed";

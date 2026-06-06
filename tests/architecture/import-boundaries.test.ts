@@ -72,6 +72,18 @@ describe("architecture import boundaries", () => {
     expect(violations).toEqual([]);
   });
 
+  it("keeps package entrypoint exports explicit", () => {
+    const entrypoints = [
+      resolve(layerRoots.assessment, "index.ts"),
+      resolve(layerRoots.document, "index.ts"),
+      resolve(layerRoots.geometry, "index.ts"),
+      resolve(layerRoots.rendering, "index.ts"),
+    ];
+    const violations = entrypoints.flatMap(wildcardExportViolationsIn);
+
+    expect(violations).toEqual([]);
+  });
+
   it("keeps package production code free of ambient effects", () => {
     const packageFiles = [
       ...productionSourceFilesIn(layerRoots.assessment),
@@ -318,6 +330,26 @@ function moduleSpecifiersIn(sourceFile: ts.SourceFile): readonly string[] {
   });
 
   return specifiers;
+}
+
+function wildcardExportViolationsIn(file: string): readonly SourceViolation[] {
+  const sourceFile = parseSourceFile(file);
+  const violations: SourceViolation[] = [];
+
+  for (const statement of sourceFile.statements) {
+    if (
+      ts.isExportDeclaration(statement) &&
+      statement.moduleSpecifier &&
+      statement.exportClause === undefined
+    ) {
+      violations.push({
+        file: relative(workspaceRoot, file),
+        message: "Package entrypoints must use explicit named exports.",
+      });
+    }
+  }
+
+  return violations;
 }
 
 function productionSourceFilesIn(directory: string): readonly string[] {

@@ -34,6 +34,18 @@ Functions in this package should be memoizable in theory.
 - `src/goals.ts`: serializable assessment goal specs and reference goal evaluation.
 - `src/index.ts`: public package entrypoint.
 
+## Public API
+
+The package entrypoint uses explicit named exports. Treat these groups as the intentional reference assessment surface:
+
+- Predicate interface: `AssessmentContext`, `AssessmentPredicate`, `AssessmentResult`, `AssessmentTolerance`.
+- Predicate composition and factories: `assessAll`, `assessAny`, `requiresConstructionKind`, `requiresDependency`, `requiresMeaning`, `requiresPointOnLine`, `requiresPointOnCircle`.
+- Low-level boolean helpers: `hasConstructionKind`, `constructionIdsOfKind`, `directlyDependsOn`, `dependsOn`, `hasConstructionMeaning`, `isPointOnLine`, `isPointOnCircle`.
+- Serializable goals: `AssessmentGoal`, `predicateForGoal`, `evaluateGoal`.
+- Goal codec: `AssessmentGoalParseResult`, `parseAssessmentGoal`, `serializeAssessmentGoal`.
+
+Do not add wildcard exports to `src/index.ts`. New public exports should be named intentionally.
+
 ## Design Intent
 
 Assessment is an interpretation of construction meaning, not the owner of meaning. Hosts may use this package as a reference implementation or bring their own assessment engine against `@euclid/geometry` data.

@@ -1,8 +1,49 @@
-export * from "./approx";
-export * from "./dependencies";
-export * from "./edit";
-export * from "./evaluate";
-export * from "./explain";
-export * from "./model";
-export * from "./names";
-export * from "./realize";
+export type { ApproxLine } from "./approx";
+export {
+  circleCircleIntersections,
+  cross,
+  dot,
+  lineCircleIntersections,
+  lineLineIntersection,
+  samePoint,
+} from "./approx";
+export {
+  deleteConstructions,
+  dependencyGraphFor,
+  dependencyIds,
+  transitiveDependentsOf,
+} from "./dependencies";
+export type { AddConstructionResult } from "./edit";
+export {
+  addCircleCircleIntersection,
+  addCircleThreePoints,
+  addCircleThroughPoints,
+  addLineCircleIntersection,
+  addLineLineIntersection,
+  addLineThroughPoints,
+  moveFreePoint,
+  translateShape,
+} from "./edit";
+export { evaluateConstruction } from "./evaluate";
+export type { ConstructionExplanation, ConstructionReference } from "./explain";
+export { explainConstruction, traceDependencies, traceDependents } from "./explain";
+export type {
+  Construction,
+  ConstructionExpression,
+  ConstructionId,
+  ConstructionMeaning,
+  ConstructionProgram,
+  DependencyEdge,
+  DependencyGraph,
+  DependencyNode,
+  EvaluatedPrimitive,
+  Evaluation,
+  EvaluationDiagnostic,
+  Point2,
+  ScenePoint,
+  WorldPoint,
+} from "./model";
+export { toScenePoint, toWorldPoint } from "./model";
+export { generateNextPointLabel } from "./names";
+export type { Realization } from "./realize";
+export { realizeConstructions } from "./realize";
