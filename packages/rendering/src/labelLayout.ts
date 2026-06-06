@@ -1,7 +1,6 @@
 import type { Point2 } from "@euclid/geometry";
 import type { RenderItem, RenderLabel } from "./scene";
 import { THEME } from "./theme";
-import type { ViewportSize } from "./viewport";
 
 export type LabelCandidateName = "ne" | "e" | "se" | "s" | "sw" | "w" | "nw" | "n";
 
@@ -33,13 +32,12 @@ type PointLabelTarget = Readonly<{
 export function layoutPointLabels(
   targets: readonly PointLabelTarget[],
   obstacles: readonly RenderItem[],
-  size: ViewportSize,
   fontSize: number = THEME.typography.fontSize,
 ): ReadonlyMap<string, LabelPlacement> {
   const candidateSets = targets.map((target) =>
     candidatesFor(target, fontSize).map((candidate) => ({
       ...candidate,
-      score: scoreCandidate(candidate, target, obstacles, size, fontSize),
+      score: scoreCandidate(candidate, target, obstacles, fontSize),
     })),
   );
   const selected = optimizeCandidateSelection(candidateSets);
@@ -106,11 +104,9 @@ function scoreCandidate(
   candidate: LabelCandidate,
   target: PointLabelTarget,
   obstacles: readonly RenderItem[],
-  size: ViewportSize,
   fontSize: number,
 ): number {
   let score = candidatePreference(candidate.candidate) + candidate.offsetCost;
-  score += viewportOverflowArea(candidate.bounds, size) * 20;
   score += rectPointDistance(candidate.bounds, target.mark) * 0.9;
 
   const scale = fontSize / THEME.typography.fontSize;
@@ -123,7 +119,7 @@ function scoreCandidate(
         score += associationAmbiguityPenalty(candidate.bounds, target.mark, obstacle.mark);
       }
     } else if (obstacle.kind === "line") {
-      score += segmentIntersectsRect(obstacle.from, obstacle.to, candidate.bounds) ? 120 : 0;
+      score += lineIntersectsRect(obstacle.supportLine[0], obstacle.supportLine[1], candidate.bounds) ? 120 : 0;
     } else if (obstacle.kind === "circle") {
       score += circlePerimeterIntersectsRect(obstacle.center, obstacle.radius, candidate.bounds) ? 90 : 0;
     }
@@ -262,10 +258,6 @@ function candidatePreference(candidate: LabelCandidateName): number {
   return preferences[candidate];
 }
 
-function viewportOverflowArea(rect: Rect, size: ViewportSize): number {
-  return rect.width * rect.height - overlapArea(rect, { x: 0, y: 0, width: size.width, height: size.height });
-}
-
 function overlapArea(a: Rect, b: Rect): number {
   const width = Math.max(0, Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x));
   const height = Math.max(0, Math.min(a.y + a.height, b.y + b.height) - Math.max(a.y, b.y));
@@ -289,10 +281,10 @@ function circlePerimeterIntersectsRect(center: Point2, radius: number, rect: Rec
   return distance(closest, center) <= radius && radius <= farthest;
 }
 
-function segmentIntersectsRect(a: Point2, b: Point2, rect: Rect): boolean {
-  if (pointInRect(a, rect) || pointInRect(b, rect)) {
-    return true;
-  }
+function lineIntersectsRect(p1: Point2, p2: Point2, rect: Rect): boolean {
+  const a = p1.y - p2.y;
+  const b = p2.x - p1.x;
+  const c = p1.x * p2.y - p2.x * p1.y;
 
   const corners = [
     { x: rect.x, y: rect.y },
@@ -301,31 +293,25 @@ function segmentIntersectsRect(a: Point2, b: Point2, rect: Rect): boolean {
     { x: rect.x, y: rect.y + rect.height },
   ];
 
-  return corners.some((corner, index) =>
-    segmentsIntersect(a, b, corner, corners[(index + 1) % corners.length]),
-  );
-}
+  let positive = false;
+  let negative = false;
 
-function segmentsIntersect(a: Point2, b: Point2, c: Point2, d: Point2): boolean {
-  const denominator = (b.x - a.x) * (d.y - c.y) - (b.y - a.y) * (d.x - c.x);
-
-  if (denominator === 0) {
-    return false;
+  for (const corner of corners) {
+    const val = a * corner.x + b * corner.y + c;
+    if (Math.abs(val) < 1e-9) {
+      return true;
+    }
+    if (val > 0) {
+      positive = true;
+    } else {
+      negative = true;
+    }
+    if (positive && negative) {
+      return true;
+    }
   }
 
-  const ua = ((d.x - c.x) * (a.y - c.y) - (d.y - c.y) * (a.x - c.x)) / denominator;
-  const ub = ((b.x - a.x) * (a.y - c.y) - (b.y - a.y) * (a.x - c.x)) / denominator;
-
-  return ua >= 0 && ua <= 1 && ub >= 0 && ub <= 1;
-}
-
-function pointInRect(point: Point2, rect: Rect): boolean {
-  return (
-    point.x >= rect.x &&
-    point.x <= rect.x + rect.width &&
-    point.y >= rect.y &&
-    point.y <= rect.y + rect.height
-  );
+  return false;
 }
 
 function farthestRectCornerDistance(point: Point2, rect: Rect): number {

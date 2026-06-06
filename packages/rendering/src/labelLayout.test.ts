@@ -4,10 +4,7 @@ import { layoutPointLabels } from "./labelLayout";
 
 describe("label layout", () => {
   it("uses the preferred northeast candidate when it is clear", () => {
-    const labels = layoutPointLabels([{ id: "A", text: "A", mark: { x: 50, y: 50 } }], [], {
-      width: 100,
-      height: 100,
-    });
+    const labels = layoutPointLabels([{ id: "A", text: "A", mark: { x: 50, y: 50 } }], []);
     const label = labels.get("A");
 
     expect(label).toEqual(
@@ -26,7 +23,6 @@ describe("label layout", () => {
         { id: "B", text: "B", mark: { x: 50, y: 50 } },
       ],
       [],
-      { width: 100, height: 100 },
     );
 
     expect(labels.get("A")?.candidate).not.toBe(labels.get("B")?.candidate);
@@ -43,10 +39,7 @@ describe("label layout", () => {
         { x: 100, y: 31 },
       ],
     };
-    const labels = layoutPointLabels([{ id: "A", text: "A", mark: { x: 50, y: 50 } }], [line], {
-      width: 100,
-      height: 100,
-    });
+    const labels = layoutPointLabels([{ id: "A", text: "A", mark: { x: 50, y: 50 } }], [line]);
 
     expect(labels.get("A")?.candidate).toBe("e");
   });
@@ -71,7 +64,6 @@ describe("label layout", () => {
           label: { text: "B", anchor: { x: 0, y: 0 } },
         },
       ],
-      { width: 140, height: 120 },
     );
 
     expect(labels.get("A")?.candidate).not.toBe("ne");

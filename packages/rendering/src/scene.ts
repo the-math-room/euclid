@@ -117,7 +117,6 @@ export function sceneForEvaluation(
   const labelPlacements = layoutPointLabels(
     pointTargets,
     [...circles, ...lines, ...pointObstacles],
-    view.viewport.size,
     fontSize,
   );
   const points: RenderItem[] = pointTargets.map((target) => ({
