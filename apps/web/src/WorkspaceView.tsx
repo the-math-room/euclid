@@ -5,6 +5,7 @@ import {
   type RenderItem,
   type RenderScene,
   findIntersectionAtPosition,
+  findItemAtPosition,
 } from "@euclid/rendering";
 import type { Construction, ConstructionId, Point2 } from "@euclid/geometry";
 import { Trash2 } from "lucide-react";
@@ -66,9 +67,27 @@ export function WorkspaceView({
   const svgRef = useRef<SVGSVGElement>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState<{ width: number; height: number } | null>(null);
-  const [hoveredId, setHoveredId] = useState<ConstructionId | undefined>();
   const [pointerCoords, setPointerCoords] = useState<Point2 | undefined>();
   const [isPointerDown, setIsPointerDown] = useState(false);
+
+  const hoveredId = useMemo(() => {
+    if (renderMode !== "canvas" || !pointerCoords || isPointerDown) {
+      return undefined;
+    }
+    const threshold = 8;
+    const item = findItemAtPosition(scene, pointerCoords, threshold);
+    return item?.id;
+  }, [renderMode, pointerCoords, isPointerDown, scene]);
+
+  const cursor = useMemo(() => {
+    if (renderMode !== "canvas") return undefined;
+    if (activeTool === "point") return "crosshair";
+    if (activeTool === "select") {
+      if (isPointerDown) return "grabbing";
+      return hoveredId ? "pointer" : "grab";
+    }
+    return hoveredId ? "pointer" : "crosshair";
+  }, [renderMode, activeTool, isPointerDown, hoveredId]);
 
   const previewPoint = useMemo(() => {
     if (!pointerCoords || !isPointerDown || activeTool === "select") {
@@ -196,26 +215,10 @@ export function WorkspaceView({
     previewPoint,
   ]);
 
-  // Synchronize canvas cursor based on activeTool, renderMode and hoveredId
-  useEffect(() => {
-    if (renderMode !== "canvas") return;
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    if (activeTool === "point") {
-      canvas.style.cursor = "crosshair";
-    } else {
-      canvas.style.cursor = hoveredId ? "pointer" : "grab";
-    }
-  }, [activeTool, renderMode, hoveredId]);
-
   const sharedPointerProps = useWorkspaceGestures({
     scene,
-    renderMode,
     activeTool,
     currentZoom,
-    canvasRef,
-    setHoveredId,
     onSelect,
     onPanBy,
     onZoom,
@@ -335,7 +338,12 @@ export function WorkspaceView({
           <canvas
             ref={canvasRef}
             aria-label="Seed Euclidean construction (Canvas)"
-            style={{ "--size-scale": sizeScale } as React.CSSProperties}
+            style={
+              {
+                "--size-scale": sizeScale,
+                cursor,
+              } as React.CSSProperties
+            }
             {...sharedPointerProps}
           >
             <div style={{ display: "none" }}>

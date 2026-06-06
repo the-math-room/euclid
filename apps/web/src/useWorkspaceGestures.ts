@@ -5,14 +5,7 @@ import {
   type RenderScene,
 } from "@euclid/rendering";
 import type { ConstructionId, Point2 } from "@euclid/geometry";
-import {
-  useEffect,
-  useRef,
-  type Dispatch,
-  type PointerEvent,
-  type RefObject,
-  type SetStateAction,
-} from "react";
+import { useEffect, useRef, type PointerEvent } from "react";
 import type { ActiveTool } from "./construction/tools";
 import { clientToSceneCoords, getCanvasProjection } from "./workspaceCoordinates";
 
@@ -48,11 +41,8 @@ export type WorkspacePointerProps = Readonly<{
 
 export function useWorkspaceGestures({
   scene,
-  renderMode,
   activeTool,
   currentZoom,
-  canvasRef,
-  setHoveredId,
   onSelect,
   onPanBy,
   onZoom,
@@ -66,11 +56,8 @@ export function useWorkspaceGestures({
   onPointerDownStateChange,
 }: {
   scene: RenderScene;
-  renderMode: "svg" | "canvas";
   activeTool: ActiveTool;
   currentZoom: number;
-  canvasRef: RefObject<HTMLCanvasElement | null>;
-  setHoveredId: Dispatch<SetStateAction<ConstructionId | undefined>>;
   onSelect: (id: ConstructionId | undefined, modifiers?: { ctrlKey?: boolean; shiftKey?: boolean }) => void;
   onPanBy: (delta: Point2) => void;
   onZoom: (zoom: number) => void;
@@ -196,13 +183,6 @@ export function useWorkspaceGestures({
     onPointerMoveCoords?.(coords);
 
     if (!g.pointers.has(event.pointerId)) {
-      updateCanvasHover(event, {
-        activeTool,
-        canvasRef,
-        renderMode,
-        scene,
-        setHoveredId,
-      });
       return;
     }
 
@@ -244,10 +224,6 @@ export function useWorkspaceGestures({
       if (g.hasMoved && (dx !== 0 || dy !== 0)) {
         if (activeTool === "select") {
           onPanBy({ x: dx / panScale, y: dy / panScale });
-          if (renderMode === "canvas") {
-            const canvas = canvasRef.current;
-            if (canvas) canvas.style.cursor = "grabbing";
-          }
         }
       }
     }
@@ -306,7 +282,6 @@ export function useWorkspaceGestures({
       g.activePointDrag = undefined;
     }
     releasePointerCapture(event);
-    updateCanvasCursorAfterRelease(event, { activeTool, canvasRef, renderMode, scene });
 
     if (g.pointers.size === 1) {
       const remaining = Array.from(g.pointers.values())[0];
@@ -326,14 +301,7 @@ export function useWorkspaceGestures({
   };
 
   const onPointerLeave = () => {
-    setHoveredId(undefined);
     onPointerMoveCoords?.(undefined);
-    if (renderMode === "canvas") {
-      const canvas = canvasRef.current;
-      if (canvas) {
-        canvas.style.cursor = activeTool === "point" ? "crosshair" : "grab";
-      }
-    }
   };
 
   return {
@@ -344,79 +312,6 @@ export function useWorkspaceGestures({
     onLostPointerCapture,
     onPointerLeave,
   };
-}
-
-function updateCanvasHover(
-  event: PointerEvent<Element>,
-  {
-    activeTool,
-    canvasRef,
-    renderMode,
-    scene,
-    setHoveredId,
-  }: {
-    activeTool: ActiveTool;
-    canvasRef: RefObject<HTMLCanvasElement | null>;
-    renderMode: "svg" | "canvas";
-    scene: RenderScene;
-    setHoveredId: Dispatch<SetStateAction<ConstructionId | undefined>>;
-  },
-): void {
-  if (event.pointerType !== "mouse" || renderMode !== "canvas") {
-    return;
-  }
-
-  const canvas = canvasRef.current;
-  if (!canvas) {
-    return;
-  }
-
-  const rect = canvas.getBoundingClientRect();
-  const coords = clientToSceneCoords(event.clientX, event.clientY, rect, scene.size.width, scene.size.height);
-  const threshold = getHitThreshold(event.pointerType);
-  const item = findItemAtPosition(scene, coords, threshold);
-  if (activeTool === "point") {
-    setHoveredId(undefined);
-    canvas.style.cursor = "crosshair";
-  } else {
-    setHoveredId(item?.id);
-    canvas.style.cursor = item ? "pointer" : "grab";
-  }
-}
-
-function updateCanvasCursorAfterRelease(
-  event: PointerEvent<Element>,
-  {
-    activeTool,
-    canvasRef,
-    renderMode,
-    scene,
-  }: {
-    activeTool: ActiveTool;
-    canvasRef: RefObject<HTMLCanvasElement | null>;
-    renderMode: "svg" | "canvas";
-    scene: RenderScene;
-  },
-): void {
-  if (renderMode !== "canvas") {
-    return;
-  }
-
-  const canvas = canvasRef.current;
-  if (!canvas) {
-    return;
-  }
-
-  if (activeTool === "point") {
-    canvas.style.cursor = "crosshair";
-    return;
-  }
-
-  const rect = canvas.getBoundingClientRect();
-  const coords = clientToSceneCoords(event.clientX, event.clientY, rect, scene.size.width, scene.size.height);
-  const threshold = getHitThreshold(event.pointerType);
-  const item = findItemAtPosition(scene, coords, threshold);
-  canvas.style.cursor = item ? "pointer" : "grab";
 }
 
 function pointerDistance(a: ActivePointer, b: ActivePointer): number {
