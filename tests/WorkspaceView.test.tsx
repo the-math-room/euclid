@@ -5,7 +5,9 @@ import { createRoot, type Root } from "react-dom/client";
 import type { ConstructionId } from "@euclid/geometry";
 import { WorkspaceView } from "../apps/web/src/WorkspaceView";
 
-type ResizeObserverCallback = (entries: readonly { readonly contentRect: { readonly width: number; readonly height: number } }[]) => void;
+type ResizeObserverCallback = (
+  entries: readonly { readonly contentRect: { readonly width: number; readonly height: number } }[],
+) => void;
 
 let resizeCallback: ResizeObserverCallback | null = null;
 
