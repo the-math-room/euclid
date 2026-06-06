@@ -50,6 +50,7 @@ Construction-adding edits return `{ program, id, changed }` so app commands can 
 ## Layer Map
 
 - `packages/geometry/src`: construction syntax, dependency graph, exact meaning, approximate realization, and pure edit transformations.
+- `packages/activity/src`: headless activity policy over construction and editing capabilities.
 - `packages/assessment/src`: reference assessment predicates over construction programs and evaluations.
 - `packages/document/src`: versioned document data, history container, and seed/example documents.
 - `packages/rendering/src`: viewport projection, label layout, hit testing, and renderable scene descriptions.
@@ -71,6 +72,7 @@ The dependency direction is intentionally one-way:
 
 ```text
 app -> document -> geometry
+app -> activity -> geometry
 app -> assessment -> geometry
 app -> rendering -> geometry
 ```

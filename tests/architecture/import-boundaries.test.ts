@@ -5,6 +5,7 @@ import ts from "typescript";
 
 const workspaceRoot = process.cwd();
 const layerRoots = {
+  activity: resolve(workspaceRoot, "packages/activity/src"),
   assessment: resolve(workspaceRoot, "packages/assessment/src"),
   app: resolve(workspaceRoot, "apps/web/src"),
   document: resolve(workspaceRoot, "packages/document/src"),
@@ -22,23 +23,28 @@ type LayerPolicy = Readonly<{
 
 const layerPolicies: readonly LayerPolicy[] = [
   {
-    layer: "assessment",
-    forbiddenLayers: ["app", "document", "rendering", "interaction"],
-    forbidsUiLibraries: true,
-  },
-  {
-    layer: "geometry",
+    layer: "activity",
     forbiddenLayers: ["app", "assessment", "document", "rendering", "interaction"],
     forbidsUiLibraries: true,
   },
   {
+    layer: "assessment",
+    forbiddenLayers: ["activity", "app", "document", "rendering", "interaction"],
+    forbidsUiLibraries: true,
+  },
+  {
+    layer: "geometry",
+    forbiddenLayers: ["activity", "app", "assessment", "document", "rendering", "interaction"],
+    forbidsUiLibraries: true,
+  },
+  {
     layer: "document",
-    forbiddenLayers: ["app", "assessment", "rendering", "interaction"],
+    forbiddenLayers: ["activity", "app", "assessment", "rendering", "interaction"],
     forbidsUiLibraries: true,
   },
   {
     layer: "rendering",
-    forbiddenLayers: ["app", "assessment", "document", "interaction"],
+    forbiddenLayers: ["activity", "app", "assessment", "document", "interaction"],
     forbidsUiLibraries: true,
   },
 ];
@@ -63,6 +69,7 @@ describe("architecture import boundaries", () => {
   it("uses package entrypoints for cross-package imports", () => {
     const packageImports = [
       ...importsIn(layerRoots.app),
+      ...importsIn(layerRoots.activity),
       ...importsIn(layerRoots.assessment),
       ...importsIn(layerRoots.document),
       ...importsIn(layerRoots.rendering),
@@ -74,6 +81,7 @@ describe("architecture import boundaries", () => {
 
   it("keeps package entrypoint exports explicit", () => {
     const entrypoints = [
+      resolve(layerRoots.activity, "index.ts"),
       resolve(layerRoots.assessment, "index.ts"),
       resolve(layerRoots.document, "index.ts"),
       resolve(layerRoots.geometry, "index.ts"),
@@ -86,6 +94,7 @@ describe("architecture import boundaries", () => {
 
   it("keeps package production code free of ambient effects", () => {
     const packageFiles = [
+      ...productionSourceFilesIn(layerRoots.activity),
       ...productionSourceFilesIn(layerRoots.assessment),
       ...productionSourceFilesIn(layerRoots.geometry),
       ...productionSourceFilesIn(layerRoots.document),
@@ -98,6 +107,7 @@ describe("architecture import boundaries", () => {
 
   it("keeps package production code free of module-level mutable state", () => {
     const packageFiles = [
+      ...productionSourceFilesIn(layerRoots.activity),
       ...productionSourceFilesIn(layerRoots.assessment),
       ...productionSourceFilesIn(layerRoots.geometry),
       ...productionSourceFilesIn(layerRoots.document),

@@ -6,6 +6,7 @@ export default defineConfig({
   base: "/euclid/",
   resolve: {
     alias: {
+      "@euclid/activity": resolve(__dirname, "packages/activity/src"),
       "@euclid/assessment": resolve(__dirname, "packages/assessment/src"),
       "@euclid/document": resolve(__dirname, "packages/document/src"),
       "@euclid/geometry": resolve(__dirname, "packages/geometry/src"),

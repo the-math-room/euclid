@@ -6,6 +6,7 @@ Euclid is still a single npm project, but the source tree is shaped as if the co
 
 ```text
 apps/web/src
+packages/activity/src
 packages/assessment/src
 packages/geometry/src
 packages/document/src
@@ -19,9 +20,11 @@ Allowed production dependencies:
 
 ```text
 apps/web -> packages/document
+apps/web -> packages/activity
 apps/web -> packages/assessment
 apps/web -> packages/geometry
 apps/web -> packages/rendering
+packages/activity -> packages/geometry
 packages/assessment -> packages/geometry
 packages/document -> packages/geometry
 packages/rendering -> packages/geometry
@@ -30,17 +33,25 @@ packages/rendering -> packages/geometry
 Forbidden dependencies:
 
 ```text
+packages/activity -> packages/assessment
+packages/activity -> packages/document
+packages/activity -> packages/rendering
+packages/activity -> apps/web
 packages/geometry -> packages/document
+packages/geometry -> packages/activity
 packages/geometry -> packages/assessment
 packages/geometry -> packages/rendering
 packages/geometry -> apps/web
+packages/assessment -> packages/activity
 packages/assessment -> packages/document
 packages/assessment -> packages/rendering
 packages/assessment -> apps/web
 packages/document -> packages/rendering
+packages/document -> packages/activity
 packages/document -> packages/assessment
 packages/document -> apps/web
 packages/rendering -> packages/document
+packages/rendering -> packages/activity
 packages/rendering -> packages/assessment
 packages/rendering -> apps/web
 ```
@@ -54,6 +65,7 @@ Package layers are the pure core. Browser and React effects belong in the web ap
 Tests should generally obey the same layer boundaries as production code.
 
 - Geometry tests may import geometry.
+- Activity tests may import activity and geometry.
 - Assessment tests may import assessment and geometry.
 - Document tests may import document and geometry.
 - Rendering tests may import rendering and geometry.
@@ -82,6 +94,7 @@ This keeps a future move to npm workspaces or separate packages mostly mechanica
 
 ```text
 packages/geometry
+packages/activity
 packages/assessment
 packages/document
 packages/rendering

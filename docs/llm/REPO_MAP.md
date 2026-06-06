@@ -15,6 +15,17 @@ Run or update:
 
 - `packages/assessment/src/*.test.ts`
 
+## Activity Policy
+
+Start here:
+
+- `packages/activity/README.md`
+- `packages/activity/src/policy.ts`
+
+Run or update:
+
+- `packages/activity/src/*.test.ts`
+
 ## Construction Meaning
 
 Start here:

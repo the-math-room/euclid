@@ -14,6 +14,7 @@ Use a package-shaped source tree without npm workspaces for now:
 
 ```text
 apps/web/src
+packages/activity/src
 packages/assessment/src
 packages/geometry/src
 packages/document/src
@@ -25,6 +26,7 @@ Use package-style aliases for cross-layer imports:
 
 ```text
 @euclid/geometry
+@euclid/activity
 @euclid/assessment
 @euclid/document
 @euclid/rendering

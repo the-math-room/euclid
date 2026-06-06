@@ -24,6 +24,7 @@ npm run dev
 ## Project Map
 
 - `packages/geometry/src`: domain model, dependency graph, construction evaluation, and pure edit commands.
+- `packages/activity/src`: headless activity policy for controlled learning experiences.
 - `packages/assessment/src`: reference assessment predicates over construction programs and evaluations.
 - `packages/document/src`: versioned document data, seed documents, and pure history wrappers.
 - `packages/rendering/src`: viewport projection, renderable scene descriptions, label layout, and screen-space hit testing.
@@ -33,4 +34,4 @@ npm run dev
 - `docs/llm`: agent-oriented project guidance.
 - `docs/architecture`: design notes for the geometry model.
 
-Cross-layer imports use package-style aliases: `@euclid/geometry`, `@euclid/assessment`, `@euclid/document`, and `@euclid/rendering`.
+Cross-layer imports use package-style aliases: `@euclid/geometry`, `@euclid/activity`, `@euclid/assessment`, `@euclid/document`, and `@euclid/rendering`.

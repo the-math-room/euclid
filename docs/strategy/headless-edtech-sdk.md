@@ -9,6 +9,7 @@ The core offer:
 EdTech platforms should be able to adopt pieces independently:
 
 - Use `@euclid/geometry` to define, edit, evaluate, and inspect construction programs without a DOM.
+- Use `@euclid/activity` to describe controlled learning policy such as allowed tools, locked constructions, deletion, and drag behavior.
 - Use `@euclid/assessment` as a reference set of semantic assessment predicates, or bring a custom assessment engine against geometry data.
 - Use `@euclid/document` to persist versioned construction documents.
 - Use `@euclid/rendering` to convert evaluated geometry into render scenes, SVG output, Canvas drawing, hit testing, and viewport math.
@@ -58,6 +59,16 @@ The first assessment surface belongs in `@euclid/assessment` and should stay hea
 - a predicate/result interface that hosts can compose or replace
 - serializable goal specs for curriculum-authored checks
 - explicit goal JSON parsing so stored curriculum content can be validated before evaluation
+
+### Controlled Activity Policy
+
+Learning products often need constrained workspaces rather than a fully open editor. Activity policy should stay headless and describe permissions independently of React controls:
+
+- allowed construction tools
+- locked seed constructions
+- delete permissions
+- point drag permissions
+- shape drag permissions
 
 ## Defer
 

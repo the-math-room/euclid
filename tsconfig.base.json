@@ -11,6 +11,7 @@
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "paths": {
+      "@euclid/activity": ["./packages/activity/src"],
       "@euclid/assessment": ["./packages/assessment/src"],
       "@euclid/document": ["./packages/document/src"],
       "@euclid/geometry": ["./packages/geometry/src"],
