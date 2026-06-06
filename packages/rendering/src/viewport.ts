@@ -86,11 +86,23 @@ export function zoomCamera(camera: ViewCamera, factor: number): ViewCamera {
 }
 
 export function moveCameraInScreen(camera: ViewCamera, screenDelta: Point2): ViewCamera {
+  const rotatedDelta = rotatePoint(
+    {
+      x: screenDelta.x / camera.scale,
+      y: -screenDelta.y / camera.scale,
+    },
+    { turns: -camera.rotation.turns },
+  );
+
   return {
     ...camera,
+    center: toWorldPoint({
+      x: camera.center.x + rotatedDelta.x,
+      y: camera.center.y + rotatedDelta.y,
+    }),
     screenOffset: {
-      x: camera.screenOffset.x - screenDelta.x,
-      y: camera.screenOffset.y - screenDelta.y,
+      x: 0,
+      y: 0,
     },
   };
 }

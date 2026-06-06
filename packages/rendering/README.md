@@ -45,6 +45,8 @@ Functions in this package should be memoizable in theory.
 
 Example: moving the camera left makes the construction appear to move right.
 
+Pan updates the camera's world center, not a persistent SVG-style screen transform. This keeps the visible viewport center as the rotation pivot after panning.
+
 Direct manipulation in the web app is different: dragging the scene right should make the scene follow the pointer. The app shell adapts that gesture by negating the drag delta before calling `moveCameraInScreen`.
 
 ## Change Pattern

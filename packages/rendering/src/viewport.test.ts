@@ -22,7 +22,30 @@ describe("camera operations", () => {
   it("moves the camera in screen coordinates, so the scene moves oppositely", () => {
     expect(moveCameraInScreen(camera, { x: -5, y: -7 })).toEqual({
       ...camera,
-      screenOffset: { x: 8, y: 11 },
+      center: { x: 0.5, y: 2.7 },
+      screenOffset: { x: 0, y: 0 },
+    });
+  });
+
+  it("keeps the visible scene center as the rotation pivot after panning", () => {
+    const viewport = { size: { width: 100, height: 100 } };
+    const initial: ViewCamera = {
+      center: { x: 0, y: 0 } as WorldPoint,
+      rotation: { turns: 0 },
+      scale: 10,
+      screenOffset: { x: 0, y: 0 },
+    };
+    const panned = moveCameraInScreen(initial, { x: 10, y: 0 });
+    const rotated = rotateCamera(panned, { turns: 0.25 });
+    const visibleCenter = panned.center;
+
+    expect(projectPoint(worldFrameFor({ viewport, camera: panned }), visibleCenter)).toEqual({
+      x: 50,
+      y: 50,
+    });
+    expect(projectPoint(worldFrameFor({ viewport, camera: rotated }), visibleCenter)).toEqual({
+      x: 50,
+      y: 50,
     });
   });
 
