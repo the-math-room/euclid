@@ -32,7 +32,7 @@ Functions in this package should be memoizable in theory.
 
 - `src/scene.ts`: evaluated geometry to render scene conversion. Integrates label layout, line extension, grid generation, and point role classification (free vs. constructed).
 - `src/labelLayout.ts`: deterministic label candidate generation and scoring. Evaluates 8 compass positions × 3 distance rings per point, scores candidates against point/line/circle obstacles, viewport overflow, and association ambiguity, then uses greedy hill-climbing for multi-label coordination.
-- `src/interaction.ts`: screen-space hit testing. `findItemAtPosition` prioritizes points over lines/circles. `findIntersectionAtPosition` detects line-line intersections near a screen position for construction snapping.
+- `src/interaction.ts`: screen-space hit testing. `findItemAtPosition` prioritizes points over lines/circles. `findIntersectionAtPosition` detects curve intersections near a screen position and returns command-shaped discriminated hits (`line-line-intersection`, `line-circle-intersection`, or `circle-circle-intersection`).
 - `src/viewport.ts`: world-to-viewport projection and unprojection. Camera model with center, rotation, scale, and screen offset.
 - `src/canvasRenderer.ts`: draws a `RenderScene` to a Canvas 2D context with point role styling (free vs. constructed).
 - `src/svgRenderer.ts`: renders a `RenderScene` to a standalone SVG string.
@@ -63,6 +63,7 @@ When adding a new evaluated primitive, add a render scene representation, label 
 ### 2. Projections & Render-scene Abstractions
 
 - **No UI Coupling**: This package converts geometry primitives to abstract renderable shapes (`RenderItem`). The React component layer handles actual SVG/Canvas DOM rendering.
+- **Command-Shaped Hits**: Interaction helpers should return typed, command-ready data such as discriminated intersection hits. The app shell should not have to re-infer operand kinds from render items or evaluated primitives.
 - **Dual-View Rendering Support**: Ensure canvas rendering helpers in `src/canvasRenderer.ts` and SVG render logic in `src/svgRenderer.ts` remain mathematically aligned. Both must render the same scene identically.
 - **Camera Math**: Direct panning operations must be handled using the pure algebraic camera functions in `src/viewport.ts`.
 - **Label Layout**: Label placement is part of scene construction, not part of rendering. `layoutPointLabels` is called during `sceneForEvaluation` so that label positions are available to both Canvas and SVG renderers.

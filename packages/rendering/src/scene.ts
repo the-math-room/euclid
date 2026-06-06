@@ -28,7 +28,7 @@ export type RenderItem =
       kind: "line";
       from: Point2;
       to: Point2;
-      hitTestLine?: readonly [Point2, Point2];
+      supportLine: readonly [Point2, Point2];
     }>
   | Readonly<{
       id: string;
@@ -93,7 +93,7 @@ export function sceneForEvaluation(
         kind: "line",
         from,
         to,
-        hitTestLine: [a, b],
+        supportLine: [a, b],
       });
     } else if (primitive.kind === "circle") {
       const center = projectPoint(frame, primitive.center);

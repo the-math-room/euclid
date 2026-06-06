@@ -44,9 +44,9 @@ When changing persistence, keep the document version explicit and add codec test
 
 ### 2. History & Persistence Boundaries
 
-- **Document History**: Design document state transitions (`DocumentHistory`) as pure functional state wrappers (e.g. `undo`, `redo`, `pushState`, `canUndo`, `canRedo`) in [history.ts](file:///home/johna/Projects/euclid/packages/document/src/history.ts).
+- **Document History**: Design document state transitions (`DocumentHistory`) as pure functional state wrappers (e.g. `undo`, `redo`, `pushState`, `canUndo`, `canRedo`) in `src/history.ts`.
 - **History Snapshot Deduplication**: Ensure consecutive identical document states are filtered out when pushing to history to prevent duplicate state history snapshots.
-- **Codec Schema Validation**: Keep document parsing/serialization validation checks defined explicitly in [codec.ts](file:///home/johna/Projects/euclid/packages/document/src/codec.ts).
+- **Codec Schema Validation**: Keep document parsing/serialization validation checks defined explicitly in `src/codec.ts`.
 
 ### 3. Verification Command
 

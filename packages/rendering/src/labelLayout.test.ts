@@ -38,6 +38,10 @@ describe("label layout", () => {
       kind: "line",
       from: { x: 0, y: 31 },
       to: { x: 100, y: 31 },
+      supportLine: [
+        { x: 0, y: 31 },
+        { x: 100, y: 31 },
+      ],
     };
     const labels = layoutPointLabels([{ id: "A", text: "A", mark: { x: 50, y: 50 } }], [line], {
       width: 100,

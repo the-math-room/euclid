@@ -45,7 +45,7 @@ Add approximate numeric realization in `realizeOne`. Return a diagnostic for inv
 
 - `packages/geometry/src/edit.ts`
 
-If the construction can be created interactively, add a pure `ConstructionProgram → ConstructionProgram` creation function with idempotent duplicate detection. The function should return the original program reference unchanged when the edit is a no-op.
+If the construction can be created interactively, add a pure creation function with idempotent duplicate detection. Construction-adding edits should return `{ program, id, changed }`, where `id` is the construction created or found. The result should preserve the original program reference when the edit is a no-op.
 
 ### Tests
 
@@ -86,7 +86,8 @@ Keep examples serializable and versioned.
 Touch these files as needed:
 
 - `apps/web/src/construction/useConstructionController.ts` (if adding interactive creation or tool modes)
-- `apps/web/src/WorkspaceView.tsx` (if adding SVG rendering or gesture handling for the new shape)
+- `apps/web/src/useWorkspaceGestures.ts` (if adding gesture handling for the new shape)
+- `apps/web/src/WorkspaceView.tsx` (if adding SVG/Canvas surface rendering for the new shape)
 - `apps/web/src/App.tsx` (if adding toolbar UI for the new tool)
 
 React should render scene data. It should not define construction meaning.

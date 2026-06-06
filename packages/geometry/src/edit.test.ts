@@ -52,8 +52,10 @@ describe("construction edits", () => {
       ],
     };
 
-    const updated = addLineThroughPoints(program, ["A", "B"]);
+    const result = addLineThroughPoints(program, ["A", "B"]);
+    const updated = result.program;
 
+    expect(result).toMatchObject({ id: "line-a-b", changed: true });
     expect(updated.constructions.at(-1)).toEqual({
       id: "line-a-b",
       kind: "line-through",
@@ -74,10 +76,18 @@ describe("construction edits", () => {
         { id: "B", kind: "free-point", label: "B", position: { x: 1, y: 0 } },
       ],
     };
-    const withLine = addLineThroughPoints(program, ["A", "B"]);
+    const withLine = addLineThroughPoints(program, ["A", "B"]).program;
 
-    expect(addLineThroughPoints(withLine, ["B", "A"])).toBe(withLine);
-    expect(addLineThroughPoints(withLine, ["A", "A"])).toBe(withLine);
+    expect(addLineThroughPoints(withLine, ["B", "A"])).toEqual({
+      program: withLine,
+      id: "line-a-b",
+      changed: false,
+    });
+    expect(addLineThroughPoints(withLine, ["A", "A"])).toEqual({
+      program: withLine,
+      id: undefined,
+      changed: false,
+    });
   });
 
   it("adds a line-line intersection with an identity independent of realization", () => {
@@ -92,9 +102,11 @@ describe("construction edits", () => {
       ],
     };
 
-    const updated = addLineLineIntersection(program, ["line-a-b", "line-c-d"]);
+    const result = addLineLineIntersection(program, ["line-a-b", "line-c-d"]);
+    const updated = result.program;
     const evaluation = evaluateConstruction(updated);
 
+    expect(result).toMatchObject({ id: "intersection-line-a-b-line-c-d", changed: true });
     expect(updated.constructions.at(-1)).toEqual({
       id: "intersection-line-a-b-line-c-d",
       kind: "line-line-intersection",
@@ -115,8 +127,10 @@ describe("construction edits", () => {
       ],
     };
 
-    const updated = addCircleThroughPoints(program, "A", "B");
+    const result = addCircleThroughPoints(program, "A", "B");
+    const updated = result.program;
 
+    expect(result).toMatchObject({ id: "circle-a-b", changed: true });
     expect(updated.constructions.at(-1)).toEqual({
       id: "circle-a-b",
       kind: "circle-through",
@@ -126,8 +140,16 @@ describe("construction edits", () => {
     });
 
     // Idempotent duplicate check
-    expect(addCircleThroughPoints(updated, "A", "B")).toBe(updated);
-    expect(addCircleThroughPoints(updated, "A", "A")).toBe(updated); // same points
+    expect(addCircleThroughPoints(updated, "A", "B")).toEqual({
+      program: updated,
+      id: "circle-a-b",
+      changed: false,
+    });
+    expect(addCircleThroughPoints(updated, "A", "A")).toEqual({
+      program: updated,
+      id: undefined,
+      changed: false,
+    }); // same points
   });
 
   it("adds a 3-point circumscribed circle", () => {
@@ -139,8 +161,10 @@ describe("construction edits", () => {
       ],
     };
 
-    const updated = addCircleThreePoints(program, ["A", "B", "C"]);
+    const result = addCircleThreePoints(program, ["A", "B", "C"]);
+    const updated = result.program;
 
+    expect(result).toMatchObject({ id: "circle-a-b-c", changed: true });
     expect(updated.constructions.at(-1)).toEqual({
       id: "circle-a-b-c",
       kind: "circle-three-points",
@@ -149,8 +173,16 @@ describe("construction edits", () => {
     });
 
     // Idempotent duplicate check with different order
-    expect(addCircleThreePoints(updated, ["C", "B", "A"])).toBe(updated);
-    expect(addCircleThreePoints(updated, ["A", "B", "A"])).toBe(updated); // coincident points
+    expect(addCircleThreePoints(updated, ["C", "B", "A"])).toEqual({
+      program: updated,
+      id: "circle-a-b-c",
+      changed: false,
+    });
+    expect(addCircleThreePoints(updated, ["A", "B", "A"])).toEqual({
+      program: updated,
+      id: undefined,
+      changed: false,
+    }); // coincident points
   });
 
   it("adds line-circle intersections", () => {
@@ -163,7 +195,9 @@ describe("construction edits", () => {
       ],
     };
 
-    const updated = addLineCircleIntersection(program, "line", "circle", 0);
+    const result = addLineCircleIntersection(program, "line", "circle", 0);
+    const updated = result.program;
+    expect(result).toMatchObject({ id: "intersection-line-circle-0", changed: true });
     expect(updated.constructions.at(-1)).toEqual({
       id: "intersection-line-circle-0",
       kind: "line-circle-intersection",
@@ -173,7 +207,11 @@ describe("construction edits", () => {
       intersectionIndex: 0,
     });
 
-    expect(addLineCircleIntersection(updated, "line", "circle", 0)).toBe(updated);
+    expect(addLineCircleIntersection(updated, "line", "circle", 0)).toEqual({
+      program: updated,
+      id: "intersection-line-circle-0",
+      changed: false,
+    });
   });
 
   it("adds circle-circle intersections with canonical ordering", () => {
@@ -187,7 +225,9 @@ describe("construction edits", () => {
     };
 
     // circle-x and circle-y should be canonicalized by alphabetical ID sorting: circle-x first, circle-y second
-    const updated = addCircleCircleIntersection(program, "circle-y", "circle-x", 1);
+    const result = addCircleCircleIntersection(program, "circle-y", "circle-x", 1);
+    const updated = result.program;
+    expect(result).toMatchObject({ id: "intersection-circle-x-circle-y-1", changed: true });
     expect(updated.constructions.at(-1)).toEqual({
       id: "intersection-circle-x-circle-y-1",
       kind: "circle-circle-intersection",
@@ -197,7 +237,15 @@ describe("construction edits", () => {
       intersectionIndex: 1,
     });
 
-    expect(addCircleCircleIntersection(updated, "circle-x", "circle-y", 1)).toBe(updated);
-    expect(addCircleCircleIntersection(updated, "circle-y", "circle-x", 1)).toBe(updated);
+    expect(addCircleCircleIntersection(updated, "circle-x", "circle-y", 1)).toEqual({
+      program: updated,
+      id: "intersection-circle-x-circle-y-1",
+      changed: false,
+    });
+    expect(addCircleCircleIntersection(updated, "circle-y", "circle-x", 1)).toEqual({
+      program: updated,
+      id: "intersection-circle-x-circle-y-1",
+      changed: false,
+    });
   });
 });

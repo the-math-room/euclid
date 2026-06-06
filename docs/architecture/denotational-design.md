@@ -39,13 +39,13 @@ This separation is not merely organizational. It preserves the option of exact a
 
 ## Construction Edits
 
-Construction edits are pure `ConstructionProgram → ConstructionProgram` transformations in `edit.ts`:
+Construction edits are pure transformations in `edit.ts`:
 
 - `moveFreePoint`: relocates a free point. Returns the original program reference unchanged if the point is not found, is not free, or the position has not changed.
 - `addLineThroughPoints`: adds a line with idempotent duplicate detection and stable dependency-based IDs.
 - `addLineLineIntersection`: adds an intersection point with automatic label generation.
 
-Edit functions should preserve structural identity when nothing changes, enabling cheap reference equality checks in React and history management.
+Construction-adding edits return `{ program, id, changed }` so app commands can select the construction the edit denotes without rediscovering IDs. Edit results should preserve structural identity when nothing changes, enabling cheap reference equality checks in React and history management.
 
 ## Layer Map
 
@@ -82,7 +82,7 @@ The initial domain supports:
 - Free points.
 - Lines through two points.
 - Circles with a center point and point on circumference.
-- Line-line intersection points.
+- Line-line, line-circle, and circle-circle intersection points.
 
 This is deliberately small. It gives future construction operations a clear pattern without pretending the domain is complete.
 
@@ -95,7 +95,7 @@ Point labels are placed by an optimization-based layout engine (`labelLayout.ts`
 The current interaction model uses modal tools:
 
 - **Select mode**: tap to select, drag to pan, multi-touch pinch to zoom, drag free points to reposition.
-- **Point mode**: tap to add a free point or construct a line-line intersection. Intersection snapping is automatic: when the point tool detects a tap near a line-line crossing, it creates an intersection construction rather than a free point.
+- **Point mode**: tap to add a free point or construct a curve intersection. Intersection snapping is automatic: when the point tool detects a tap near a curve crossing, it creates an intersection construction rather than a free point.
 - **Line mode**: tap two points to construct a line through them.
 
 Point drag batches the entire gesture into a single undo step by snapshotting the program at drag start and pushing it to history at drag end.

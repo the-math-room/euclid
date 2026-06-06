@@ -1,7 +1,5 @@
 import {
   drawSceneToCanvas,
-  findIntersectionAtPosition,
-  findItemAtPosition,
   SVG_THEME_STYLES,
   type IntersectionHit,
   type RenderItem,
@@ -10,76 +8,9 @@ import {
 import type { Construction, ConstructionId, Point2 } from "@euclid/geometry";
 import { Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-
-// ---------------------------------------------------------------------------
-// Multi-touch gesture tracking
-// ---------------------------------------------------------------------------
-
-type ActivePointer = Readonly<{
-  id: number;
-  x: number;
-  y: number;
-}>;
-
-type GestureState = {
-  /** All currently active pointers, keyed by pointerId */
-  pointers: Map<number, ActivePointer>;
-  /** Previous screen position per pointer, for incremental delta computation */
-  lastPos: Map<number, Point2>;
-  /** Screen position at gesture start — used to detect taps vs. drags */
-  dragStartX: number;
-  dragStartY: number;
-  /** Whether the gesture has moved enough to count as a drag (not a tap) */
-  hasMoved: boolean;
-  /** Distance between fingers at the start of a pinch gesture */
-  pinchStartDistance: number;
-  /** Camera zoom at the start of a pinch gesture */
-  pinchStartZoom: number;
-  /** Last midpoint between fingers, used for pan-during-pinch */
-  pinchLastMidpoint: Point2;
-  /** Active one-pointer point drag, if any */
-  activePointDrag?: {
-    pointerId: number;
-    id: ConstructionId;
-  };
-};
-
-function pointerDistance(a: ActivePointer, b: ActivePointer): number {
-  return Math.hypot(a.x - b.x, a.y - b.y);
-}
-
-function pointerMidpoint(a: ActivePointer, b: ActivePointer): Point2 {
-  return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
-}
-
-// ---------------------------------------------------------------------------
-// Canvas projection helpers
-// ---------------------------------------------------------------------------
-
-function getCanvasProjection(
-  layoutWidth: number,
-  layoutHeight: number,
-  sceneWidth: number,
-  sceneHeight: number,
-) {
-  const scale = Math.min(layoutWidth / sceneWidth, layoutHeight / sceneHeight);
-  const dx = (layoutWidth - sceneWidth * scale) / 2;
-  const dy = (layoutHeight - sceneHeight * scale) / 2;
-  return { scale, dx, dy };
-}
-
-function clientToSceneCoords(
-  clientX: number,
-  clientY: number,
-  rect: DOMRect,
-  sceneWidth: number,
-  sceneHeight: number,
-): Point2 {
-  const x = clientX - rect.left;
-  const y = clientY - rect.top;
-  const { scale, dx, dy } = getCanvasProjection(rect.width, rect.height, sceneWidth, sceneHeight);
-  return { x: (x - dx) / scale, y: (y - dy) / scale };
-}
+import type { ActiveTool } from "./construction/tools";
+import { useWorkspaceGestures } from "./useWorkspaceGestures";
+import { getCanvasProjection } from "./workspaceCoordinates";
 
 // ---------------------------------------------------------------------------
 // WorkspaceView component
@@ -110,7 +41,7 @@ export function WorkspaceView({
   onPanBy: (delta: Point2) => void;
   onZoom: (zoom: number) => void;
   currentZoom: number;
-  activeTool: "select" | "point" | "line" | "circle";
+  activeTool: ActiveTool;
   onAddPoint: (coords: Point2) => void;
   onBeginPointDrag: (id: ConstructionId) => void;
   onMovePoint: (id: ConstructionId, coords: Point2) => void;
@@ -130,25 +61,6 @@ export function WorkspaceView({
   const viewportRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState<{ width: number; height: number } | null>(null);
   const [hoveredId, setHoveredId] = useState<ConstructionId | undefined>();
-
-  // All gesture state lives in a ref — never causes re-renders
-  const gestureRef = useRef<GestureState>({
-    pointers: new Map(),
-    lastPos: new Map(),
-    dragStartX: 0,
-    dragStartY: 0,
-    hasMoved: false,
-    pinchStartDistance: 0,
-    pinchStartZoom: 1,
-    pinchLastMidpoint: { x: 0, y: 0 },
-    activePointDrag: undefined,
-  });
-
-  // Keep currentZoom accessible inside event handlers without stale closure
-  const currentZoomRef = useRef(currentZoom);
-  useEffect(() => {
-    currentZoomRef.current = currentZoom;
-  }, [currentZoom]);
 
   // Track size changes of viewport container for dynamic layout and DPI-correct rendering
   useEffect(() => {
@@ -209,281 +121,23 @@ export function WorkspaceView({
     }
   }, [activeTool, renderMode, hoveredId]);
 
-  // ---------------------------------------------------------------------------
-  // Unified pointer event handlers — shared by SVG and Canvas
-  // ---------------------------------------------------------------------------
-
-  const onPointerDown = (event: React.PointerEvent<Element>) => {
-    (event.currentTarget as Element & { setPointerCapture?: (id: number) => void }).setPointerCapture?.(
-      event.pointerId,
-    );
-
-    const g = gestureRef.current;
-    const p: ActivePointer = { id: event.pointerId, x: event.clientX, y: event.clientY };
-    g.pointers.set(event.pointerId, p);
-    g.lastPos.set(event.pointerId, { x: event.clientX, y: event.clientY });
-
-    if (g.pointers.size === 1) {
-      g.dragStartX = event.clientX;
-      g.dragStartY = event.clientY;
-      g.hasMoved = false;
-
-      if (activeTool === "select" && !event.ctrlKey && !event.shiftKey) {
-        const el = event.currentTarget as Element;
-        const rect = el.getBoundingClientRect();
-        const coords = clientToSceneCoords(
-          event.clientX,
-          event.clientY,
-          rect,
-          scene.size.width,
-          scene.size.height,
-        );
-        const threshold = getHitThreshold(event.pointerType);
-        const item = findItemAtPosition(scene, coords, threshold);
-
-        if (item?.kind === "point" && canDragPoint(item.id)) {
-          g.activePointDrag = {
-            pointerId: event.pointerId,
-            id: item.id,
-          };
-          onBeginPointDrag(item.id);
-        }
-      }
-    } else if (g.pointers.size === 2) {
-      const [a, b] = Array.from(g.pointers.values()) as [ActivePointer, ActivePointer];
-      g.pinchStartDistance = pointerDistance(a, b);
-      g.pinchStartZoom = currentZoomRef.current;
-      g.pinchLastMidpoint = pointerMidpoint(a, b);
-      g.hasMoved = true; // cancel pending tap from finger 1
-      if (g.activePointDrag) {
-        onEndPointDrag();
-      }
-      g.activePointDrag = undefined;
-    }
-  };
-
-  const releasePointerCapture = (event: React.PointerEvent<Element>) => {
-    const target = event.currentTarget as Element & {
-      hasPointerCapture?: (id: number) => boolean;
-      releasePointerCapture?: (id: number) => void;
-    };
-    if (target.hasPointerCapture?.(event.pointerId)) {
-      target.releasePointerCapture?.(event.pointerId);
-    }
-  };
-
-  const clearPointerGesture = (pointerId: number) => {
-    const g = gestureRef.current;
-    if (g.activePointDrag?.pointerId === pointerId) {
-      onEndPointDrag();
-      g.activePointDrag = undefined;
-    }
-    g.pointers.delete(pointerId);
-    g.lastPos.delete(pointerId);
-    if (g.pointers.size === 0) {
-      g.hasMoved = false;
-    }
-  };
-
-  const onPointerMove = (event: React.PointerEvent<Element>) => {
-    const g = gestureRef.current;
-
-    // Mouse-only hover tracking (no button pressed) for Canvas mode
-    if (!g.pointers.has(event.pointerId)) {
-      if (event.pointerType === "mouse" && renderMode === "canvas") {
-        const canvas = canvasRef.current;
-        if (canvas) {
-          const rect = canvas.getBoundingClientRect();
-          const coords = clientToSceneCoords(
-            event.clientX,
-            event.clientY,
-            rect,
-            scene.size.width,
-            scene.size.height,
-          );
-          const threshold = getHitThreshold(event.pointerType);
-          const item = findItemAtPosition(scene, coords, threshold);
-          if (activeTool === "point") {
-            setHoveredId(undefined);
-            canvas.style.cursor = "crosshair";
-          } else {
-            setHoveredId(item?.id);
-            canvas.style.cursor = item ? "pointer" : "grab";
-          }
-        }
-      }
-      return;
-    }
-
-    const prev = g.lastPos.get(event.pointerId);
-    g.pointers.set(event.pointerId, { id: event.pointerId, x: event.clientX, y: event.clientY });
-    g.lastPos.set(event.pointerId, { x: event.clientX, y: event.clientY });
-
-    const el = event.currentTarget as Element;
-    const rect = el.getBoundingClientRect();
-    const { scale } = getCanvasProjection(rect.width, rect.height, scene.size.width, scene.size.height);
-    const panScale = scale > 0 ? scale : 1;
-
-    if (g.activePointDrag?.pointerId === event.pointerId && g.pointers.size === 1) {
-      const totalDist = Math.hypot(event.clientX - g.dragStartX, event.clientY - g.dragStartY);
-      if (totalDist > 4) g.hasMoved = true;
-
-      if (g.hasMoved) {
-        const coords = clientToSceneCoords(
-          event.clientX,
-          event.clientY,
-          rect,
-          scene.size.width,
-          scene.size.height,
-        );
-        onMovePoint(g.activePointDrag.id, coords);
-      }
-    } else if (g.pointers.size >= 2) {
-      // --- Pinch: zoom + mid-pan ---
-      const [a, b] = Array.from(g.pointers.values()) as [ActivePointer, ActivePointer];
-      const currentDist = pointerDistance(a, b);
-      const midpoint = pointerMidpoint(a, b);
-
-      const panDelta: Point2 = {
-        x: (midpoint.x - g.pinchLastMidpoint.x) / panScale,
-        y: (midpoint.y - g.pinchLastMidpoint.y) / panScale,
-      };
-      if (panDelta.x !== 0 || panDelta.y !== 0) onPanBy(panDelta);
-
-      if (g.pinchStartDistance > 0) {
-        onZoom(g.pinchStartZoom * (currentDist / g.pinchStartDistance));
-      }
-
-      g.pinchLastMidpoint = midpoint;
-    } else if (prev) {
-      // --- Single-finger drag: pan ---
-      const dx = event.clientX - prev.x;
-      const dy = event.clientY - prev.y;
-      const totalDist = Math.hypot(event.clientX - g.dragStartX, event.clientY - g.dragStartY);
-      if (totalDist > 4) g.hasMoved = true;
-      if (g.hasMoved && (dx !== 0 || dy !== 0)) {
-        onPanBy({ x: dx / panScale, y: dy / panScale });
-        if (renderMode === "canvas" && activeTool !== "point") {
-          const canvas = canvasRef.current;
-          if (canvas) canvas.style.cursor = "grabbing";
-        }
-      }
-    }
-  };
-
-  const onPointerUp = (event: React.PointerEvent<Element>) => {
-    const g = gestureRef.current;
-    const wasOnlyPointer = g.pointers.size === 1;
-    const wasTap = !g.hasMoved;
-
-    g.pointers.delete(event.pointerId);
-    g.lastPos.delete(event.pointerId);
-
-    if (wasOnlyPointer && wasTap) {
-      // Tap: identify coordinates against the correct coordinate space
-      const el = event.currentTarget as Element;
-      const rect = el.getBoundingClientRect();
-      const coords = clientToSceneCoords(
-        event.clientX,
-        event.clientY,
-        rect,
-        scene.size.width,
-        scene.size.height,
-      );
-
-      const threshold = getHitThreshold(event.pointerType);
-      const isTouch = event.pointerType === "touch" || event.pointerType === "pen";
-
-      if (activeTool === "point" || activeTool === "line" || activeTool === "circle") {
-        // Check for curve intersections FIRST. A defining point of a line
-        // or circle often sits exactly at an intersection, so
-        // findItemAtPosition would return that point and prevent the user
-        // from ever reaching the intersection-creation path.
-        const intersection = findIntersectionAtPosition(scene, coords, threshold);
-        if (intersection) {
-          onAddIntersection(intersection);
-        } else {
-          const item = findItemAtPosition(scene, coords, threshold);
-          if (item?.kind === "point") {
-            onSelect(item.id, { ctrlKey: event.ctrlKey || isTouch, shiftKey: event.shiftKey });
-          } else {
-            onAddPoint(coords);
-          }
-        }
-      } else {
-        const item = findItemAtPosition(scene, coords, threshold);
-        if (item) {
-          onSelect(item.id, { ctrlKey: event.ctrlKey || isTouch, shiftKey: event.shiftKey });
-        } else {
-          onSelect(undefined);
-        }
-      }
-    }
-
-    if (g.activePointDrag?.pointerId === event.pointerId) {
-      onEndPointDrag();
-      g.activePointDrag = undefined;
-    }
-    releasePointerCapture(event);
-
-    if (renderMode === "canvas") {
-      const canvas = canvasRef.current;
-      if (canvas) {
-        if (activeTool === "point") {
-          canvas.style.cursor = "crosshair";
-        } else {
-          // Re-evaluate cursor based on pointer position at release
-          const rect = canvas.getBoundingClientRect();
-          const coords = clientToSceneCoords(
-            event.clientX,
-            event.clientY,
-            rect,
-            scene.size.width,
-            scene.size.height,
-          );
-          const threshold = getHitThreshold(event.pointerType);
-          const item = findItemAtPosition(scene, coords, threshold);
-          canvas.style.cursor = item ? "pointer" : "grab";
-        }
-      }
-    }
-
-    // Transitioning from 2-finger to 1-finger: reset drag origin
-    if (g.pointers.size === 1) {
-      const remaining = Array.from(g.pointers.values())[0];
-      g.dragStartX = remaining.x;
-      g.dragStartY = remaining.y;
-      g.hasMoved = false;
-    }
-  };
-
-  const onPointerCancel = (event: React.PointerEvent<Element>) => {
-    clearPointerGesture(event.pointerId);
-    releasePointerCapture(event);
-  };
-
-  const onLostPointerCapture = (event: React.PointerEvent<Element>) => {
-    clearPointerGesture(event.pointerId);
-  };
-
-  const onPointerLeave = () => {
-    setHoveredId(undefined);
-    if (renderMode === "canvas") {
-      const canvas = canvasRef.current;
-      if (canvas) {
-        canvas.style.cursor = activeTool === "point" ? "crosshair" : "grab";
-      }
-    }
-  };
-
-  const sharedPointerProps = {
-    onPointerDown,
-    onPointerMove,
-    onPointerUp,
-    onPointerCancel,
-    onLostPointerCapture,
-    onPointerLeave,
-  };
+  const sharedPointerProps = useWorkspaceGestures({
+    scene,
+    renderMode,
+    activeTool,
+    currentZoom,
+    canvasRef,
+    setHoveredId,
+    onSelect,
+    onPanBy,
+    onZoom,
+    onAddPoint,
+    onBeginPointDrag,
+    onMovePoint,
+    onEndPointDrag,
+    onAddIntersection,
+    canDragPoint,
+  });
 
   return (
     <section className="workspace" aria-label="Euclidean construction workspace">
@@ -716,8 +370,4 @@ function Grid({ lines }: { lines: RenderScene["grid"] }) {
       ))}
     </g>
   );
-}
-
-function getHitThreshold(pointerType: string): number {
-  return pointerType === "touch" || pointerType === "pen" ? 20 : 8;
 }

@@ -17,6 +17,10 @@ const mockScene: RenderScene = {
       kind: "line",
       from: { x: 10, y: 10 },
       to: { x: 90, y: 90 },
+      supportLine: [
+        { x: 10, y: 10 },
+        { x: 90, y: 90 },
+      ],
     },
     {
       id: "cr-C",

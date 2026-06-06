@@ -1,6 +1,12 @@
 import type { Construction, ConstructionId, ConstructionProgram, Point2 } from "./model";
 import { generateNextPointLabel } from "./names";
 
+export type AddConstructionResult = Readonly<{
+  program: ConstructionProgram;
+  id: ConstructionId | undefined;
+  changed: boolean;
+}>;
+
 export function moveFreePoint(
   program: ConstructionProgram,
   id: ConstructionId,
@@ -35,9 +41,9 @@ export function moveFreePoint(
 export function addLineThroughPoints(
   program: ConstructionProgram,
   points: readonly [ConstructionId, ConstructionId],
-): ConstructionProgram {
+): AddConstructionResult {
   if (points[0] === points[1]) {
-    return program;
+    return unchanged(program);
   }
 
   const existing = program.constructions.find(
@@ -45,31 +51,35 @@ export function addLineThroughPoints(
   );
 
   if (existing) {
-    return program;
+    return unchanged(program, existing.id);
   }
 
   const label = points.join("");
   const id = uniqueConstructionId(program, `line-${slugFor(points[0])}-${slugFor(points[1])}`);
 
   return {
-    constructions: [
-      ...program.constructions,
-      {
-        id,
-        kind: "line-through",
-        label,
-        points,
-      },
-    ],
+    program: {
+      constructions: [
+        ...program.constructions,
+        {
+          id,
+          kind: "line-through",
+          label,
+          points,
+        },
+      ],
+    },
+    id,
+    changed: true,
   };
 }
 
 export function addLineLineIntersection(
   program: ConstructionProgram,
   lines: readonly [ConstructionId, ConstructionId],
-): ConstructionProgram {
+): AddConstructionResult {
   if (lines[0] === lines[1]) {
-    return program;
+    return unchanged(program);
   }
 
   const existing = program.constructions.find(
@@ -77,21 +87,25 @@ export function addLineLineIntersection(
   );
 
   if (existing) {
-    return program;
+    return unchanged(program, existing.id);
   }
 
   const id = uniqueConstructionId(program, `intersection-${slugFor(lines[0])}-${slugFor(lines[1])}`);
 
   return {
-    constructions: [
-      ...program.constructions,
-      {
-        id,
-        kind: "line-line-intersection",
-        label: generateNextPointLabel(program.constructions),
-        lines,
-      },
-    ],
+    program: {
+      constructions: [
+        ...program.constructions,
+        {
+          id,
+          kind: "line-line-intersection",
+          label: generateNextPointLabel(program.constructions),
+          lines,
+        },
+      ],
+    },
+    id,
+    changed: true,
   };
 }
 
@@ -114,9 +128,9 @@ export function addCircleThroughPoints(
   program: ConstructionProgram,
   center: ConstructionId,
   pointOnCircle: ConstructionId,
-): ConstructionProgram {
+): AddConstructionResult {
   if (center === pointOnCircle) {
-    return program;
+    return unchanged(program);
   }
 
   const existing = program.constructions.find(
@@ -127,31 +141,35 @@ export function addCircleThroughPoints(
   );
 
   if (existing) {
-    return program;
+    return unchanged(program, existing.id);
   }
 
   const id = uniqueConstructionId(program, `circle-${slugFor(center)}-${slugFor(pointOnCircle)}`);
 
   return {
-    constructions: [
-      ...program.constructions,
-      {
-        id,
-        kind: "circle-through",
-        label: `Circle(${center}, ${pointOnCircle})`,
-        center,
-        pointOnCircle,
-      },
-    ],
+    program: {
+      constructions: [
+        ...program.constructions,
+        {
+          id,
+          kind: "circle-through",
+          label: `Circle(${center}, ${pointOnCircle})`,
+          center,
+          pointOnCircle,
+        },
+      ],
+    },
+    id,
+    changed: true,
   };
 }
 
 export function addCircleThreePoints(
   program: ConstructionProgram,
   points: readonly [ConstructionId, ConstructionId, ConstructionId],
-): ConstructionProgram {
+): AddConstructionResult {
   if (points[0] === points[1] || points[1] === points[2] || points[2] === points[0]) {
-    return program;
+    return unchanged(program);
   }
 
   const existing = program.constructions.find(
@@ -160,7 +178,7 @@ export function addCircleThreePoints(
   );
 
   if (existing) {
-    return program;
+    return unchanged(program, existing.id);
   }
 
   const id = uniqueConstructionId(
@@ -169,15 +187,19 @@ export function addCircleThreePoints(
   );
 
   return {
-    constructions: [
-      ...program.constructions,
-      {
-        id,
-        kind: "circle-three-points",
-        label: `Circle(${points[0]}${points[1]}${points[2]})`,
-        points,
-      },
-    ],
+    program: {
+      constructions: [
+        ...program.constructions,
+        {
+          id,
+          kind: "circle-three-points",
+          label: `Circle(${points[0]}${points[1]}${points[2]})`,
+          points,
+        },
+      ],
+    },
+    id,
+    changed: true,
   };
 }
 
@@ -186,7 +208,7 @@ export function addLineCircleIntersection(
   line: ConstructionId,
   circle: ConstructionId,
   intersectionIndex: 0 | 1,
-): ConstructionProgram {
+): AddConstructionResult {
   const existing = program.constructions.find(
     (construction) =>
       construction.kind === "line-circle-intersection" &&
@@ -196,7 +218,7 @@ export function addLineCircleIntersection(
   );
 
   if (existing) {
-    return program;
+    return unchanged(program, existing.id);
   }
 
   const id = uniqueConstructionId(
@@ -205,17 +227,21 @@ export function addLineCircleIntersection(
   );
 
   return {
-    constructions: [
-      ...program.constructions,
-      {
-        id,
-        kind: "line-circle-intersection",
-        label: generateNextPointLabel(program.constructions),
-        line,
-        circle,
-        intersectionIndex,
-      },
-    ],
+    program: {
+      constructions: [
+        ...program.constructions,
+        {
+          id,
+          kind: "line-circle-intersection",
+          label: generateNextPointLabel(program.constructions),
+          line,
+          circle,
+          intersectionIndex,
+        },
+      ],
+    },
+    id,
+    changed: true,
   };
 }
 
@@ -224,10 +250,10 @@ export function addCircleCircleIntersection(
   firstCircle: ConstructionId,
   secondCircle: ConstructionId,
   intersectionIndex: 0 | 1,
-): ConstructionProgram {
+): AddConstructionResult {
   const [c1, c2] = [firstCircle, secondCircle].sort();
   if (c1 === c2) {
-    return program;
+    return unchanged(program);
   }
 
   const existing = program.constructions.find(
@@ -239,23 +265,35 @@ export function addCircleCircleIntersection(
   );
 
   if (existing) {
-    return program;
+    return unchanged(program, existing.id);
   }
 
   const id = uniqueConstructionId(program, `intersection-${slugFor(c1)}-${slugFor(c2)}-${intersectionIndex}`);
 
   return {
-    constructions: [
-      ...program.constructions,
-      {
-        id,
-        kind: "circle-circle-intersection",
-        label: generateNextPointLabel(program.constructions),
-        firstCircle: c1,
-        secondCircle: c2,
-        intersectionIndex,
-      },
-    ],
+    program: {
+      constructions: [
+        ...program.constructions,
+        {
+          id,
+          kind: "circle-circle-intersection",
+          label: generateNextPointLabel(program.constructions),
+          firstCircle: c1,
+          secondCircle: c2,
+          intersectionIndex,
+        },
+      ],
+    },
+    id,
+    changed: true,
+  };
+}
+
+function unchanged(program: ConstructionProgram, id?: ConstructionId): AddConstructionResult {
+  return {
+    program,
+    id,
+    changed: false,
   };
 }
 

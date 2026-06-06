@@ -300,6 +300,10 @@ describe("WorkspaceView Integration", () => {
           kind: "line" as const,
           from: { x: 0, y: 100 },
           to: { x: 200, y: 100 },
+          supportLine: [
+            { x: 0, y: 100 },
+            { x: 200, y: 100 },
+          ] as const,
         },
         {
           id: "circle-o",

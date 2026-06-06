@@ -2,16 +2,31 @@ import {
   lineLineIntersection,
   lineCircleIntersections,
   circleCircleIntersections,
+  type ConstructionId,
   type Point2,
 } from "@euclid/geometry";
 import type { RenderItem, RenderScene } from "./scene";
 
-export type IntersectionHit = Readonly<{
-  kind: "intersection";
-  operands: readonly [string, string];
-  position: Point2;
-  intersectionIndex?: 0 | 1;
-}>;
+export type IntersectionHit =
+  | Readonly<{
+      kind: "line-line-intersection";
+      lines: readonly [ConstructionId, ConstructionId];
+      position: Point2;
+    }>
+  | Readonly<{
+      kind: "line-circle-intersection";
+      line: ConstructionId;
+      circle: ConstructionId;
+      position: Point2;
+      intersectionIndex: 0 | 1;
+    }>
+  | Readonly<{
+      kind: "circle-circle-intersection";
+      firstCircle: ConstructionId;
+      secondCircle: ConstructionId;
+      position: Point2;
+      intersectionIndex: 0 | 1;
+    }>;
 
 export function distance(a: Point2, b: Point2): number {
   return Math.hypot(a.x - b.x, a.y - b.y);
@@ -96,21 +111,13 @@ function getIntersections(
     return pt ? [{ position: pt }] : [];
   }
   if (first.kind === "line" && second.kind === "circle") {
-    return lineCircleIntersections(
-      first.hitTestLine ?? [first.from, first.to],
-      second.center,
-      second.radius,
-    ).map((pt, idx) => ({
+    return lineCircleIntersections(first.supportLine, second.center, second.radius).map((pt, idx) => ({
       position: pt,
       index: idx as 0 | 1,
     }));
   }
   if (first.kind === "circle" && second.kind === "line") {
-    return lineCircleIntersections(
-      second.hitTestLine ?? [second.from, second.to],
-      first.center,
-      first.radius,
-    ).map((pt, idx) => ({
+    return lineCircleIntersections(second.supportLine, first.center, first.radius).map((pt, idx) => ({
       position: pt,
       index: idx as 0 | 1,
     }));
@@ -146,29 +153,58 @@ export function findIntersectionAtPosition(
         if (hitDistance <= threshold && hitDistance < closestDistance) {
           closestDistance = hitDistance;
 
-          // Standardize operands order:
-          // - For line-circle, the line is always first, circle second.
-          // - For circle-circle, they are sorted alphabetically by ID.
-          // - For line-line, they are in the order found.
-          let operands: readonly [string, string];
-          if (first.kind === "circle" && second.kind === "line") {
-            operands = [second.id, first.id];
-          } else if (first.kind === "circle" && second.kind === "circle") {
-            operands = first.id < second.id ? [first.id, second.id] : [second.id, first.id];
-          } else {
-            operands = [first.id, second.id];
-          }
-
-          closest = {
-            kind: "intersection",
-            operands,
-            position: pt.position,
-            ...(pt.index !== undefined ? { intersectionIndex: pt.index } : {}),
-          };
+          closest = intersectionHitFor(first, second, pt);
         }
       }
     }
   }
 
   return closest;
+}
+
+function intersectionHitFor(
+  first: RenderItem,
+  second: RenderItem,
+  intersection: { position: Point2; index?: 0 | 1 },
+): IntersectionHit {
+  if (first.kind === "line" && second.kind === "line") {
+    return {
+      kind: "line-line-intersection",
+      lines: [first.id, second.id],
+      position: intersection.position,
+    };
+  }
+
+  if (first.kind === "line" && second.kind === "circle") {
+    return {
+      kind: "line-circle-intersection",
+      line: first.id,
+      circle: second.id,
+      position: intersection.position,
+      intersectionIndex: intersection.index ?? 0,
+    };
+  }
+
+  if (first.kind === "circle" && second.kind === "line") {
+    return {
+      kind: "line-circle-intersection",
+      line: second.id,
+      circle: first.id,
+      position: intersection.position,
+      intersectionIndex: intersection.index ?? 0,
+    };
+  }
+
+  if (first.kind === "circle" && second.kind === "circle") {
+    const [firstCircle, secondCircle] = first.id < second.id ? [first.id, second.id] : [second.id, first.id];
+    return {
+      kind: "circle-circle-intersection",
+      firstCircle,
+      secondCircle,
+      position: intersection.position,
+      intersectionIndex: intersection.index ?? 0,
+    };
+  }
+
+  throw new Error("Unsupported intersection operands.");
 }

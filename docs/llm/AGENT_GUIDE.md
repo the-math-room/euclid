@@ -44,8 +44,9 @@ When changing behavior, inspect files in this order:
 
 ### Edit Operations
 
-- Construction edits are pure `ConstructionProgram → ConstructionProgram` transformations in `edit.ts`.
-- Edit functions should return the original program reference unchanged when the edit is a no-op. This enables cheap identity checks.
+- Construction edits are pure transformations in `edit.ts`.
+- Point movement returns a `ConstructionProgram`. Construction-adding edits return command results with `{ program, id, changed }`, where `id` is the construction created or found by idempotent duplicate detection.
+- Edit results should preserve the original program reference when the edit is a no-op. This enables cheap identity checks.
 - Do not create ad-hoc point or line creation logic in UI code. Use the edit module.
 
 ### Extension Pattern
@@ -58,7 +59,7 @@ When changing behavior, inspect files in this order:
 
 - `App.tsx` is a composition root. It should wire packages together and render JSX. It should not contain construction logic.
 - `useConstructionController.ts` owns construction history, tool state, selection, and command wiring. Construction-level state changes belong here.
-- `WorkspaceView.tsx` owns gesture interpretation. It translates pointer events into construction commands. It should not own construction state.
+- `useWorkspaceGestures.ts` owns gesture interpretation. It translates pointer events into construction commands. `WorkspaceView.tsx` composes workspace surfaces and should not own construction state.
 - Prefer command-shaped changes and serializable data over hidden mutable UI state.
 
 ### Verification
@@ -81,7 +82,7 @@ When changing behavior, inspect files in this order:
 - **Realization**: approximate numeric primitives derived from meaning — what a construction's floating-point position _currently looks like_.
 - **Render scene**: presentation-ready data derived from realized primitives, including label placement and viewport projection.
 - **Label layout**: optimization-based placement of point labels to avoid overlapping obstacles.
-- **Intersection snapping**: when the point tool detects and constructs a line-line intersection point rather than a free point.
+- **Intersection snapping**: when the point tool detects and constructs a curve intersection point rather than a free point.
 - **Point drag**: direct manipulation of free point positions, batched into a single undo step.
 - **Interpretation**: a view of the same construction program, such as rendering, serialization, validation, or export.
 

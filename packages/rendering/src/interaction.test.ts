@@ -17,6 +17,10 @@ const mockScene: RenderScene = {
       kind: "line",
       from: { x: 10, y: 10 },
       to: { x: 90, y: 10 },
+      supportLine: [
+        { x: 10, y: 10 },
+        { x: 90, y: 10 },
+      ],
     },
     {
       id: "circle-C",
@@ -67,6 +71,10 @@ describe("interaction hit testing", () => {
           kind: "line",
           from: { x: 10, y: 10 },
           to: { x: 90, y: 10 },
+          supportLine: [
+            { x: 10, y: 10 },
+            { x: 90, y: 10 },
+          ],
         },
         {
           id: "overlap-point",
@@ -93,19 +101,27 @@ describe("interaction hit testing", () => {
           kind: "line",
           from: { x: 10, y: 10 },
           to: { x: 90, y: 90 },
+          supportLine: [
+            { x: 10, y: 10 },
+            { x: 90, y: 90 },
+          ],
         },
         {
           id: "line-b",
           kind: "line",
           from: { x: 10, y: 90 },
           to: { x: 90, y: 10 },
+          supportLine: [
+            { x: 10, y: 90 },
+            { x: 90, y: 10 },
+          ],
         },
       ],
     };
 
     expect(findIntersectionAtPosition(scene, { x: 52, y: 51 })).toEqual({
-      kind: "intersection",
-      operands: ["line-a", "line-b"],
+      kind: "line-line-intersection",
+      lines: ["line-a", "line-b"],
       position: { x: 50, y: 50 },
     });
   });
@@ -120,12 +136,20 @@ describe("interaction hit testing", () => {
           kind: "line",
           from: { x: 10, y: 10 },
           to: { x: 90, y: 10 },
+          supportLine: [
+            { x: 10, y: 10 },
+            { x: 90, y: 10 },
+          ],
         },
         {
           id: "line-b",
           kind: "line",
           from: { x: 10, y: 20 },
           to: { x: 90, y: 20 },
+          supportLine: [
+            { x: 10, y: 20 },
+            { x: 90, y: 20 },
+          ],
         },
       ],
     };
@@ -143,6 +167,10 @@ describe("interaction hit testing", () => {
           kind: "line",
           from: { x: 10, y: 50 },
           to: { x: 90, y: 50 },
+          supportLine: [
+            { x: 10, y: 50 },
+            { x: 90, y: 50 },
+          ],
         },
         {
           id: "circle-b",
@@ -155,15 +183,17 @@ describe("interaction hit testing", () => {
 
     // Intersections at { x: 40, y: 50 } and { x: 60, y: 50 }
     expect(findIntersectionAtPosition(scene, { x: 41, y: 51 })).toEqual({
-      kind: "intersection",
-      operands: ["line-a", "circle-b"],
+      kind: "line-circle-intersection",
+      line: "line-a",
+      circle: "circle-b",
       position: { x: 40, y: 50 },
       intersectionIndex: 0,
     });
 
     expect(findIntersectionAtPosition(scene, { x: 59, y: 49 })).toEqual({
-      kind: "intersection",
-      operands: ["line-a", "circle-b"],
+      kind: "line-circle-intersection",
+      line: "line-a",
+      circle: "circle-b",
       position: { x: 60, y: 50 },
       intersectionIndex: 1,
     });
@@ -192,8 +222,13 @@ describe("interaction hit testing", () => {
     // Intersection points at x = 50, y = 50 +- sqrt(75) (approx 58.66 and 41.34)
     // circle-x and circle-y should be canonicalized by alphabetical ID sorting: circle-x first, circle-y second
     const hit = findIntersectionAtPosition(scene, { x: 51, y: 58 });
-    expect(hit?.kind).toBe("intersection");
-    expect(hit?.operands).toEqual(["circle-x", "circle-y"]);
-    expect(hit?.intersectionIndex).toBe(1); // The one with +y vector in screen space, inverted relative to world space
+    expect(hit?.kind).toBe("circle-circle-intersection");
+    expect(hit).toEqual(
+      expect.objectContaining({
+        firstCircle: "circle-x",
+        secondCircle: "circle-y",
+        intersectionIndex: 1,
+      }),
+    );
   });
 });

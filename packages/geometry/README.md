@@ -33,7 +33,7 @@ Functions in this package should be memoizable in theory.
 - `src/evaluate.ts`: graph planning and exact construction meaning. Delegates to `realize.ts` for approximate primitives.
 - `src/realize.ts`: approximate numeric realization. Converts constructions to floating-point primitives. Produces diagnostics for degenerate or invalid geometry.
 - `src/approx.ts`: shared floating-point geometry helpers (`lineLineIntersection`, `samePoint`, `cross`). Used by both `realize.ts` and `@euclid/rendering` for interaction hit testing.
-- `src/edit.ts`: pure construction edit helpers (`moveFreePoint`, `addLineThroughPoints`, `addLineLineIntersection`). Returns the original program reference unchanged for no-op edits.
+- `src/edit.ts`: pure construction edit helpers (`moveFreePoint`, `addLineThroughPoints`, `addLineLineIntersection`). Construction-adding edits return `{ program, id, changed }` and preserve the original program reference for no-op edits.
 - `src/names.ts`: point label generation (`generateNextPointLabel`).
 - `src/index.ts`: public package entrypoint.
 
@@ -67,7 +67,7 @@ When adding construction meaning, update model, dependency extraction, exact mea
 - **Discriminated Union**: Always extend the `Construction` union in `src/model.ts` using a unique `kind` field.
 - **Dependency Graph**: Implement transitively correct dependency calculations in `src/dependencies.ts` (e.g. `transitiveDependentsOf`, `deleteConstructions`).
 - **Meaning vs. Realization**: Add the exact meaning case in `evaluate.ts` and the approximate realization case in `realize.ts`. These are separate responsibilities.
-- **Edit Operations**: If the new construction can be created interactively, add a pure creation function in `edit.ts` with idempotent duplicate detection.
+- **Edit Operations**: If the new construction can be created interactively, add a pure creation function in `edit.ts` with idempotent duplicate detection. Construction-adding edits should return `{ program, id, changed }` so app commands can select created or pre-existing constructions without duplicating canonicalization rules.
 
 ### 3. Verification Command
 

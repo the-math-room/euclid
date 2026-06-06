@@ -23,10 +23,10 @@ npm run dev
 
 ## Project Map
 
-- `packages/geometry/src`: domain model, dependency graph, and construction evaluation.
-- `packages/document/src`: versioned document data and seed documents.
-- `packages/rendering/src`: viewport projection and renderable scene descriptions.
-- `apps/web/src`: React composition, SVG/DOM presentation, and browser entry point.
+- `packages/geometry/src`: domain model, dependency graph, construction evaluation, and pure edit commands.
+- `packages/document/src`: versioned document data, seed documents, and pure history wrappers.
+- `packages/rendering/src`: viewport projection, renderable scene descriptions, label layout, and screen-space hit testing.
+- `apps/web/src`: React composition, SVG/Canvas surfaces, gesture interpretation, and browser entry point.
 - `tests/architecture`: repository boundary tests.
 - `docs/llm`: agent-oriented project guidance.
 - `docs/architecture`: design notes for the geometry model.
