@@ -115,6 +115,16 @@ export function App() {
               >
                 <Trash2 size={16} aria-hidden />
               </button>
+              <button
+                type="button"
+                className="tool-button build-circle-button"
+                onClick={construction.handleBuildCircle}
+                disabled={!construction.canBuildCircle}
+                title="Build Circle (Select 2 or 3 points)"
+                aria-label="Build Circle"
+              >
+                <Circle size={16} aria-hidden />
+              </button>
             </div>
           </div>
         </div>

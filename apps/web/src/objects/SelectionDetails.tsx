@@ -110,10 +110,23 @@ function ConstructionSpecificDetails({ construction }: { construction: Construct
     );
   }
 
-  return (
-    <div>
-      <dt>Intersection</dt>
-      <dd>{construction.lines.join(", ")}</dd>
-    </div>
-  );
+  if (construction.kind === "circle-three-points") {
+    return (
+      <div>
+        <dt>Through</dt>
+        <dd>{construction.points.join(", ")}</dd>
+      </div>
+    );
+  }
+
+  if (construction.kind === "line-line-intersection") {
+    return (
+      <div>
+        <dt>Intersection</dt>
+        <dd>{construction.lines.join(", ")}</dd>
+      </div>
+    );
+  }
+
+  return null;
 }

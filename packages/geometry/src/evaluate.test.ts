@@ -272,4 +272,58 @@ describe("evaluateConstruction", () => {
       message: "Intersection X needs non-parallel line dependencies.",
     });
   });
+
+  it("evaluates and realizes a 3-point circumscribed circle", () => {
+    const program: ConstructionProgram = {
+      constructions: [
+        { id: "A", kind: "free-point", label: "A", position: { x: 0, y: 0 } },
+        { id: "B", kind: "free-point", label: "B", position: { x: 2, y: 0 } },
+        { id: "C", kind: "free-point", label: "C", position: { x: 0, y: 2 } },
+        {
+          id: "circle-abc",
+          kind: "circle-three-points",
+          label: "Circle(ABC)",
+          points: ["A", "B", "C"],
+        },
+      ],
+    };
+
+    const evaluation = evaluateConstruction(program);
+    const circle = evaluation.primitives.find((p) => p.id === "circle-abc");
+
+    expect(evaluation.diagnostics).toEqual([]);
+    expect(circle).toEqual({
+      id: "circle-abc",
+      kind: "circle",
+      label: "Circle(ABC)",
+      center: { x: 1, y: 1 },
+      pointOnCircle: { x: 0, y: 0 },
+    });
+  });
+
+  it("does not evaluate a 3-point circle if points are collinear", () => {
+    const program: ConstructionProgram = {
+      constructions: [
+        { id: "A", kind: "free-point", label: "A", position: { x: 0, y: 0 } },
+        { id: "B", kind: "free-point", label: "B", position: { x: 1, y: 1 } },
+        { id: "C", kind: "free-point", label: "C", position: { x: 2, y: 2 } },
+        {
+          id: "circle-abc",
+          kind: "circle-three-points",
+          label: "Circle(ABC)",
+          points: ["A", "B", "C"],
+        },
+      ],
+    };
+
+    const evaluation = evaluateConstruction(program);
+
+    expect(evaluation.primitives.map((p) => p.id)).toEqual(["A", "B", "C"]);
+    expect(evaluation.diagnostics).toEqual([
+      {
+        constructionId: "circle-abc",
+        message: "Circle Circle(ABC) cannot be circumscribed through collinear points.",
+      },
+    ]);
+  });
 });

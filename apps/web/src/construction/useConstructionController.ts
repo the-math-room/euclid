@@ -7,6 +7,8 @@ import {
   undo,
 } from "@euclid/document";
 import {
+  addCircleThreePoints,
+  addCircleThroughPoints,
   addLineLineIntersection,
   addLineThroughPoints,
   deleteConstructions,
@@ -41,6 +43,8 @@ export type ConstructionController = Readonly<{
   handleMovePoint: (id: ConstructionId, screenCoords: Point2) => void;
   handleEndPointDrag: () => void;
   canDragPoint: (id: ConstructionId) => boolean;
+  handleBuildCircle: () => void;
+  canBuildCircle: boolean;
 }>;
 
 export function useConstructionController({
@@ -57,6 +61,7 @@ export function useConstructionController({
   const [lastSelectedId, setLastSelectedId] = useState<ConstructionId | undefined>();
   const [activeTool, setActiveTool] = useState<ActiveTool>("select");
   const [lineDraftPointId, setLineDraftPointId] = useState<ConstructionId | undefined>();
+  const [circleDraftPointId, setCircleDraftPointId] = useState<ConstructionId | undefined>();
   const dragStartProgram = useRef<ConstructionProgram | undefined>(undefined);
 
   const program = history.present;
@@ -92,6 +97,9 @@ export function useConstructionController({
     if (tool !== "line") {
       setLineDraftPointId(undefined);
     }
+    if (tool !== "circle") {
+      setCircleDraftPointId(undefined);
+    }
   }, []);
 
   const handleUndo = useCallback(() => {
@@ -111,6 +119,7 @@ export function useConstructionController({
       if (id === undefined) {
         clearSelection(setSelectedIds, setLastSelectedId);
         setLineDraftPointId(undefined);
+        setCircleDraftPointId(undefined);
         return;
       }
 
@@ -134,6 +143,29 @@ export function useConstructionController({
         setLineDraftPointId(undefined);
         setSelectedIds(lineId ? new Set([lineId]) : new Set(points));
         setLastSelectedId(lineId ?? id);
+        return;
+      }
+
+      if (activeTool === "circle") {
+        if (!realizedPointIds.has(id)) {
+          return;
+        }
+
+        if (!circleDraftPointId || circleDraftPointId === id) {
+          setCircleDraftPointId(id);
+          setSelectedIds(new Set([id]));
+          setLastSelectedId(id);
+          return;
+        }
+
+        const center = circleDraftPointId;
+        const nextProgram = addCircleThroughPoints(program, center, id);
+        const circleId = circleThroughId(nextProgram, center, id);
+
+        updateProgram(nextProgram);
+        setCircleDraftPointId(undefined);
+        setSelectedIds(circleId ? new Set([circleId]) : new Set([center, id]));
+        setLastSelectedId(circleId ?? id);
         return;
       }
 
@@ -170,7 +202,15 @@ export function useConstructionController({
         setLastSelectedId(id);
       }
     },
-    [activeTool, lastSelectedId, lineDraftPointId, program, realizedPointIds, updateProgram],
+    [
+      activeTool,
+      lastSelectedId,
+      lineDraftPointId,
+      circleDraftPointId,
+      program,
+      realizedPointIds,
+      updateProgram,
+    ],
   );
 
   const screenToWorld = useCallback(
@@ -195,6 +235,54 @@ export function useConstructionController({
         position: screenToWorld(screenCoords),
       };
 
+      if (activeTool === "line") {
+        if (!lineDraftPointId) {
+          updateProgram({
+            constructions: [...program.constructions, newPoint],
+          });
+          setLineDraftPointId(newPoint.id);
+          setSelectedIds(new Set([newPoint.id]));
+          setLastSelectedId(newPoint.id);
+        } else {
+          const points: readonly [ConstructionId, ConstructionId] = [lineDraftPointId, newPoint.id];
+          const programWithPoint = {
+            constructions: [...program.constructions, newPoint],
+          };
+          const nextProgram = addLineThroughPoints(programWithPoint, points);
+          const lineId = lineThroughId(nextProgram, points);
+
+          updateProgram(nextProgram);
+          setLineDraftPointId(undefined);
+          setSelectedIds(lineId ? new Set([lineId]) : new Set(points));
+          setLastSelectedId(lineId ?? newPoint.id);
+        }
+        return;
+      }
+
+      if (activeTool === "circle") {
+        if (!circleDraftPointId) {
+          updateProgram({
+            constructions: [...program.constructions, newPoint],
+          });
+          setCircleDraftPointId(newPoint.id);
+          setSelectedIds(new Set([newPoint.id]));
+          setLastSelectedId(newPoint.id);
+        } else {
+          const center = circleDraftPointId;
+          const programWithPoint = {
+            constructions: [...program.constructions, newPoint],
+          };
+          const nextProgram = addCircleThroughPoints(programWithPoint, center, newPoint.id);
+          const circleId = circleThroughId(nextProgram, center, newPoint.id);
+
+          updateProgram(nextProgram);
+          setCircleDraftPointId(undefined);
+          setSelectedIds(circleId ? new Set([circleId]) : new Set([center, newPoint.id]));
+          setLastSelectedId(circleId ?? newPoint.id);
+        }
+        return;
+      }
+
       updateProgram({
         constructions: [...program.constructions, newPoint],
       });
@@ -202,22 +290,62 @@ export function useConstructionController({
       setSelectedIds(new Set([newPoint.id]));
       setLastSelectedId(newPoint.id);
     },
-    [program.constructions, screenToWorld, updateProgram],
+    [activeTool, lineDraftPointId, circleDraftPointId, program, screenToWorld, updateProgram],
   );
 
   const handleAddIntersection = useCallback(
     (hit: IntersectionHit) => {
       const lines: readonly [ConstructionId, ConstructionId] = [hit.operands[0], hit.operands[1]];
-      const nextProgram = addLineLineIntersection(program, lines);
-      const intersectionId = lineLineIntersectionId(nextProgram, lines);
+      const nextProgramWithIntersection = addLineLineIntersection(program, lines);
+      const intersectionId = lineLineIntersectionId(nextProgramWithIntersection, lines);
 
-      updateProgram(nextProgram);
-      if (intersectionId) {
-        setSelectedIds(new Set([intersectionId]));
-        setLastSelectedId(intersectionId);
+      if (!intersectionId) {
+        return;
       }
+
+      if (activeTool === "line") {
+        if (!lineDraftPointId) {
+          updateProgram(nextProgramWithIntersection);
+          setLineDraftPointId(intersectionId);
+          setSelectedIds(new Set([intersectionId]));
+          setLastSelectedId(intersectionId);
+        } else {
+          const points: readonly [ConstructionId, ConstructionId] = [lineDraftPointId, intersectionId];
+          const nextProgram = addLineThroughPoints(nextProgramWithIntersection, points);
+          const lineId = lineThroughId(nextProgram, points);
+
+          updateProgram(nextProgram);
+          setLineDraftPointId(undefined);
+          setSelectedIds(lineId ? new Set([lineId]) : new Set(points));
+          setLastSelectedId(lineId ?? intersectionId);
+        }
+        return;
+      }
+
+      if (activeTool === "circle") {
+        if (!circleDraftPointId) {
+          updateProgram(nextProgramWithIntersection);
+          setCircleDraftPointId(intersectionId);
+          setSelectedIds(new Set([intersectionId]));
+          setLastSelectedId(intersectionId);
+        } else {
+          const center = circleDraftPointId;
+          const nextProgram = addCircleThroughPoints(nextProgramWithIntersection, center, intersectionId);
+          const circleId = circleThroughId(nextProgram, center, intersectionId);
+
+          updateProgram(nextProgram);
+          setCircleDraftPointId(undefined);
+          setSelectedIds(circleId ? new Set([circleId]) : new Set([center, intersectionId]));
+          setLastSelectedId(circleId ?? intersectionId);
+        }
+        return;
+      }
+
+      updateProgram(nextProgramWithIntersection);
+      setSelectedIds(new Set([intersectionId]));
+      setLastSelectedId(intersectionId);
     },
-    [program, updateProgram],
+    [activeTool, lineDraftPointId, circleDraftPointId, program, updateProgram],
   );
 
   const handleBeginPointDrag = useCallback(
@@ -312,6 +440,31 @@ export function useConstructionController({
     };
   }, [handleUndo, handleRedo, handleDeleteSelected]);
 
+  const selectedPointsCount = useMemo(() => {
+    return Array.from(selectedIds).filter((id) => realizedPointIds.has(id)).length;
+  }, [selectedIds, realizedPointIds]);
+
+  const canBuildCircle = selectedPointsCount === 2 || selectedPointsCount === 3;
+
+  const handleBuildCircle = useCallback(() => {
+    const selectedPoints = Array.from(selectedIds).filter((id) => realizedPointIds.has(id));
+    if (selectedPoints.length === 2) {
+      const [center, pointOnCircle] = selectedPoints;
+      const nextProgram = addCircleThroughPoints(program, center, pointOnCircle);
+      const circleId = circleThroughId(nextProgram, center, pointOnCircle);
+      updateProgram(nextProgram);
+      setSelectedIds(circleId ? new Set([circleId]) : new Set([center, pointOnCircle]));
+      setLastSelectedId(circleId ?? pointOnCircle);
+    } else if (selectedPoints.length === 3) {
+      const points = selectedPoints as [ConstructionId, ConstructionId, ConstructionId];
+      const nextProgram = addCircleThreePoints(program, points);
+      const circleId = circleThreePointsId(nextProgram, points);
+      updateProgram(nextProgram);
+      setSelectedIds(circleId ? new Set([circleId]) : new Set(points));
+      setLastSelectedId(circleId ?? points[2]);
+    }
+  }, [selectedIds, realizedPointIds, program, updateProgram]);
+
   return {
     program,
     evaluated,
@@ -330,6 +483,8 @@ export function useConstructionController({
     handleMovePoint,
     handleEndPointDrag,
     canDragPoint,
+    handleBuildCircle,
+    canBuildCircle,
   };
 }
 
@@ -353,6 +508,34 @@ function lineThroughId(
   );
 
   return line?.id;
+}
+
+function circleThroughId(
+  program: ConstructionProgram,
+  center: ConstructionId,
+  pointOnCircle: ConstructionId,
+): ConstructionId | undefined {
+  const circle = program.constructions.find(
+    (construction) =>
+      construction.kind === "circle-through" &&
+      construction.center === center &&
+      construction.pointOnCircle === pointOnCircle,
+  );
+
+  return circle?.id;
+}
+
+function circleThreePointsId(
+  program: ConstructionProgram,
+  points: readonly [ConstructionId, ConstructionId, ConstructionId],
+): ConstructionId | undefined {
+  const setPoints = new Set(points);
+  const circle = program.constructions.find(
+    (construction) =>
+      construction.kind === "circle-three-points" && construction.points.every((p) => setPoints.has(p)),
+  );
+
+  return circle?.id;
 }
 
 function lineLineIntersectionId(

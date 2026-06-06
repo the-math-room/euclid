@@ -64,6 +64,11 @@ When changing behavior, inspect files in this order:
 ### Verification
 
 - Before finishing a code change, run `npm run check` or state exactly why it was not run.
+- **Static Code Audit**: If terminal execution tools are unavailable or fail, you MUST perform a manual static audit of all modified/new files:
+  - **No Empty Arrow Functions**: Avoid `() => {}` in callbacks, mock handlers, or tests (use `vi.fn()` or include a comment inside like `// no-op` to satisfy `@typescript-eslint/no-empty-function`).
+  - **Prettier Conformity**: Verify trailing commas, single quotes, and semicolons are consistent with formatting rules.
+  - **No Implicit `any`**: Strictly define types for all new parameters or variables.
+  - **Clean Imports**: Ensure every added import exists and unused imports are cleaned up.
 
 ## Useful Vocabulary
 

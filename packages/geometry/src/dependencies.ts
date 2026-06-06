@@ -13,6 +13,10 @@ export function dependencyIds(construction: Construction): readonly Construction
     return [construction.center, construction.pointOnCircle];
   }
 
+  if (construction.kind === "circle-three-points") {
+    return construction.points;
+  }
+
   return construction.lines;
 }
 

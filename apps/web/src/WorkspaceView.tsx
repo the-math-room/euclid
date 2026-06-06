@@ -358,12 +358,17 @@ export function WorkspaceView({
         scene.size.height,
       );
 
-      if (activeTool === "point") {
-        const intersection = findIntersectionAtPosition(scene, coords);
-        if (intersection) {
-          onAddIntersection(intersection);
+      if (activeTool === "point" || activeTool === "line" || activeTool === "circle") {
+        const item = findItemAtPosition(scene, coords);
+        if (item?.kind === "point") {
+          onSelect(item.id, { ctrlKey: event.ctrlKey, shiftKey: event.shiftKey });
         } else {
-          onAddPoint(coords);
+          const intersection = findIntersectionAtPosition(scene, coords);
+          if (intersection) {
+            onAddIntersection(intersection);
+          } else {
+            onAddPoint(coords);
+          }
         }
       } else {
         const item = findItemAtPosition(scene, coords);

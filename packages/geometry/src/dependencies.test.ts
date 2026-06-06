@@ -9,21 +9,23 @@ const mockConstructions: readonly Construction[] = [
   { id: "AB", kind: "line-through", label: "AB", points: ["A", "B"] },
   { id: "circleAB", kind: "circle-through", label: "circle(A,B)", center: "A", pointOnCircle: "B" },
   { id: "circleBC", kind: "circle-through", label: "circle(B,C)", center: "B", pointOnCircle: "C" },
+  { id: "circleABC", kind: "circle-three-points", label: "circle(A,B,C)", points: ["A", "B", "C"] },
 ];
 
 describe("transitiveDependentsOf", () => {
   it("returns empty set if there are no dependents", () => {
-    expect(transitiveDependentsOf(mockConstructions, new Set(["circleBC"]))).toEqual(new Set());
+    expect(transitiveDependentsOf(mockConstructions, new Set(["circleBC", "circleABC"]))).toEqual(new Set());
   });
 
   it("identifies direct dependents", () => {
-    expect(transitiveDependentsOf(mockConstructions, new Set(["C"]))).toEqual(new Set(["circleBC"]));
+    expect(transitiveDependentsOf(mockConstructions, new Set(["C"]))).toEqual(
+      new Set(["circleBC", "circleABC"]),
+    );
   });
 
   it("identifies direct and transitive dependents", () => {
-    // AB, circleAB, circleBC all depend on B (AB has B, circleAB has B, circleBC has B as center)
     expect(transitiveDependentsOf(mockConstructions, new Set(["B"]))).toEqual(
-      new Set(["AB", "circleAB", "circleBC"]),
+      new Set(["AB", "circleAB", "circleBC", "circleABC"]),
     );
   });
 
@@ -53,6 +55,6 @@ describe("deleteConstructions", () => {
 
   it("leaves unrelated constructions unaffected", () => {
     const result = deleteConstructions(mockConstructions, new Set(["circleAB"]));
-    expect(result.map((c) => c.id)).toEqual(["A", "B", "C", "AB", "circleBC"]);
+    expect(result.map((c) => c.id)).toEqual(["A", "B", "C", "AB", "circleBC", "circleABC"]);
   });
 });

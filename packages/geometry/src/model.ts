@@ -31,6 +31,12 @@ export type Construction =
     }>
   | Readonly<{
       id: ConstructionId;
+      kind: "circle-three-points";
+      label: string;
+      points: readonly [ConstructionId, ConstructionId, ConstructionId];
+    }>
+  | Readonly<{
+      id: ConstructionId;
       kind: "line-line-intersection";
       label: string;
       lines: readonly [ConstructionId, ConstructionId];
@@ -69,6 +75,10 @@ export type ConstructionExpression =
       kind: "circle-through";
       center: ConstructionId;
       pointOnCircle: ConstructionId;
+    }>
+  | Readonly<{
+      kind: "circle-three-points";
+      points: readonly [ConstructionId, ConstructionId, ConstructionId];
     }>
   | Readonly<{
       kind: "line-line-intersection";

@@ -110,11 +110,90 @@ function uniqueConstructionId(program: ConstructionProgram, baseId: Construction
   return `${baseId}-${suffix}`;
 }
 
+export function addCircleThroughPoints(
+  program: ConstructionProgram,
+  center: ConstructionId,
+  pointOnCircle: ConstructionId,
+): ConstructionProgram {
+  if (center === pointOnCircle) {
+    return program;
+  }
+
+  const existing = program.constructions.find(
+    (construction) =>
+      construction.kind === "circle-through" &&
+      construction.center === center &&
+      construction.pointOnCircle === pointOnCircle,
+  );
+
+  if (existing) {
+    return program;
+  }
+
+  const id = uniqueConstructionId(program, `circle-${slugFor(center)}-${slugFor(pointOnCircle)}`);
+
+  return {
+    constructions: [
+      ...program.constructions,
+      {
+        id,
+        kind: "circle-through",
+        label: `Circle(${center}, ${pointOnCircle})`,
+        center,
+        pointOnCircle,
+      },
+    ],
+  };
+}
+
+export function addCircleThreePoints(
+  program: ConstructionProgram,
+  points: readonly [ConstructionId, ConstructionId, ConstructionId],
+): ConstructionProgram {
+  if (points[0] === points[1] || points[1] === points[2] || points[2] === points[0]) {
+    return program;
+  }
+
+  const existing = program.constructions.find(
+    (construction) =>
+      construction.kind === "circle-three-points" && sameThreeIdSet(construction.points, points),
+  );
+
+  if (existing) {
+    return program;
+  }
+
+  const id = uniqueConstructionId(
+    program,
+    `circle-${slugFor(points[0])}-${slugFor(points[1])}-${slugFor(points[2])}`,
+  );
+
+  return {
+    constructions: [
+      ...program.constructions,
+      {
+        id,
+        kind: "circle-three-points",
+        label: `Circle(${points[0]}${points[1]}${points[2]})`,
+        points,
+      },
+    ],
+  };
+}
+
 function sameIdSet(
   a: readonly [ConstructionId, ConstructionId],
   b: readonly [ConstructionId, ConstructionId],
 ) {
   return (a[0] === b[0] && a[1] === b[1]) || (a[0] === b[1] && a[1] === b[0]);
+}
+
+function sameThreeIdSet(
+  a: readonly [ConstructionId, ConstructionId, ConstructionId],
+  b: readonly [ConstructionId, ConstructionId, ConstructionId],
+) {
+  const setA = new Set(a);
+  return setA.has(b[0]) && setA.has(b[1]) && setA.has(b[2]);
 }
 
 function slugFor(id: ConstructionId): string {

@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { evaluateConstruction } from "./evaluate";
-import { addLineLineIntersection, addLineThroughPoints, moveFreePoint } from "./edit";
+import {
+  addCircleThreePoints,
+  addCircleThroughPoints,
+  addLineLineIntersection,
+  addLineThroughPoints,
+  moveFreePoint,
+} from "./edit";
 import type { ConstructionProgram } from "./model";
 
 describe("construction edits", () => {
@@ -97,5 +103,51 @@ describe("construction edits", () => {
     expect(evaluation.primitives.map((primitive) => primitive.id)).not.toContain(
       "intersection-line-a-b-line-c-d",
     );
+  });
+
+  it("adds a circle from center and boundary point", () => {
+    const program: ConstructionProgram = {
+      constructions: [
+        { id: "A", kind: "free-point", label: "A", position: { x: 0, y: 0 } },
+        { id: "B", kind: "free-point", label: "B", position: { x: 1, y: 0 } },
+      ],
+    };
+
+    const updated = addCircleThroughPoints(program, "A", "B");
+
+    expect(updated.constructions.at(-1)).toEqual({
+      id: "circle-a-b",
+      kind: "circle-through",
+      label: "Circle(A, B)",
+      center: "A",
+      pointOnCircle: "B",
+    });
+
+    // Idempotent duplicate check
+    expect(addCircleThroughPoints(updated, "A", "B")).toBe(updated);
+    expect(addCircleThroughPoints(updated, "A", "A")).toBe(updated); // same points
+  });
+
+  it("adds a 3-point circumscribed circle", () => {
+    const program: ConstructionProgram = {
+      constructions: [
+        { id: "A", kind: "free-point", label: "A", position: { x: 0, y: 0 } },
+        { id: "B", kind: "free-point", label: "B", position: { x: 2, y: 0 } },
+        { id: "C", kind: "free-point", label: "C", position: { x: 0, y: 2 } },
+      ],
+    };
+
+    const updated = addCircleThreePoints(program, ["A", "B", "C"]);
+
+    expect(updated.constructions.at(-1)).toEqual({
+      id: "circle-a-b-c",
+      kind: "circle-three-points",
+      label: "Circle(ABC)",
+      points: ["A", "B", "C"],
+    });
+
+    // Idempotent duplicate check with different order
+    expect(addCircleThreePoints(updated, ["C", "B", "A"])).toBe(updated);
+    expect(addCircleThreePoints(updated, ["A", "B", "A"])).toBe(updated); // coincident points
   });
 });

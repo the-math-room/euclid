@@ -67,6 +67,17 @@ function meaningFor(construction: Construction): ConstructionMeaning {
     };
   }
 
+  if (construction.kind === "circle-three-points") {
+    return {
+      id: construction.id,
+      label: construction.label,
+      expression: {
+        kind: "circle-three-points",
+        points: construction.points,
+      },
+    };
+  }
+
   return {
     id: construction.id,
     label: construction.label,

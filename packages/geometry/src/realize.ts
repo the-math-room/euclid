@@ -102,6 +102,56 @@ function realizeOne(
     };
   }
 
+  if (construction.kind === "circle-three-points") {
+    const a = pointNamed(previous, construction.points[0]);
+    const b = pointNamed(previous, construction.points[1]);
+    const c = pointNamed(previous, construction.points[2]);
+
+    if (!a || !b || !c) {
+      return {
+        kind: "diagnostic",
+        message: `Circle ${construction.label} needs three point dependencies.`,
+      };
+    }
+
+    const ap = a.position;
+    const bp = b.position;
+    const cp = c.position;
+
+    if (samePoint(ap, bp) || samePoint(bp, cp) || samePoint(cp, ap)) {
+      return {
+        kind: "diagnostic",
+        message: `Circle ${construction.label} needs three distinct points.`,
+      };
+    }
+
+    const d = 2 * (ap.x * (bp.y - cp.y) + bp.x * (cp.y - ap.y) + cp.x * (ap.y - bp.y));
+
+    if (Math.abs(d) < 1e-9) {
+      return {
+        kind: "diagnostic",
+        message: `Circle ${construction.label} cannot be circumscribed through collinear points.`,
+      };
+    }
+
+    const aSq = ap.x * ap.x + ap.y * ap.y;
+    const bSq = bp.x * bp.x + bp.y * bp.y;
+    const cSq = cp.x * cp.x + cp.y * cp.y;
+
+    const center = {
+      x: (aSq * (bp.y - cp.y) + bSq * (cp.y - ap.y) + cSq * (ap.y - bp.y)) / d,
+      y: (aSq * (cp.x - bp.x) + bSq * (ap.x - cp.x) + cSq * (bp.x - ap.x)) / d,
+    };
+
+    return {
+      id: construction.id,
+      kind: "circle",
+      label: construction.label,
+      center,
+      pointOnCircle: ap,
+    };
+  }
+
   const firstLine = lineNamed(previous, construction.lines[0]);
   const secondLine = lineNamed(previous, construction.lines[1]);
 
