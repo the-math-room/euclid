@@ -10,6 +10,8 @@ import {
   addCircleThreePoints,
   addCircleThroughPoints,
   addLineLineIntersection,
+  addLineCircleIntersection,
+  addCircleCircleIntersection,
   addLineThroughPoints,
   deleteConstructions,
   evaluateConstruction,
@@ -295,9 +297,36 @@ export function useConstructionController({
 
   const handleAddIntersection = useCallback(
     (hit: IntersectionHit) => {
-      const lines: readonly [ConstructionId, ConstructionId] = [hit.operands[0], hit.operands[1]];
-      const nextProgramWithIntersection = addLineLineIntersection(program, lines);
-      const intersectionId = lineLineIntersectionId(nextProgramWithIntersection, lines);
+      const prim1 = evaluated.primitives.find((p) => p.id === hit.operands[0]);
+      const prim2 = evaluated.primitives.find((p) => p.id === hit.operands[1]);
+
+      if (!prim1 || !prim2) {
+        return;
+      }
+
+      let nextProgram: ConstructionProgram;
+      let intersectionId: ConstructionId | undefined;
+
+      if (prim1.kind === "line" && prim2.kind === "line") {
+        const lines: readonly [ConstructionId, ConstructionId] = [prim1.id, prim2.id];
+        nextProgram = addLineLineIntersection(program, lines);
+        intersectionId = lineLineIntersectionId(nextProgram, lines);
+      } else if (
+        (prim1.kind === "line" && prim2.kind === "circle") ||
+        (prim1.kind === "circle" && prim2.kind === "line")
+      ) {
+        const lineId = prim1.kind === "line" ? prim1.id : prim2.id;
+        const circleId = prim1.kind === "circle" ? prim1.id : prim2.id;
+        const idx = hit.intersectionIndex ?? 0;
+        nextProgram = addLineCircleIntersection(program, lineId, circleId, idx);
+        intersectionId = lineCircleIntersectionId(nextProgram, lineId, circleId, idx);
+      } else if (prim1.kind === "circle" && prim2.kind === "circle") {
+        const idx = hit.intersectionIndex ?? 0;
+        nextProgram = addCircleCircleIntersection(program, prim1.id, prim2.id, idx);
+        intersectionId = circleCircleIntersectionId(nextProgram, prim1.id, prim2.id, idx);
+      } else {
+        return;
+      }
 
       if (!intersectionId) {
         return;
@@ -305,16 +334,16 @@ export function useConstructionController({
 
       if (activeTool === "line") {
         if (!lineDraftPointId) {
-          updateProgram(nextProgramWithIntersection);
+          updateProgram(nextProgram);
           setLineDraftPointId(intersectionId);
           setSelectedIds(new Set([intersectionId]));
           setLastSelectedId(intersectionId);
         } else {
           const points: readonly [ConstructionId, ConstructionId] = [lineDraftPointId, intersectionId];
-          const nextProgram = addLineThroughPoints(nextProgramWithIntersection, points);
-          const lineId = lineThroughId(nextProgram, points);
+          const nextProgramWithLine = addLineThroughPoints(nextProgram, points);
+          const lineId = lineThroughId(nextProgramWithLine, points);
 
-          updateProgram(nextProgram);
+          updateProgram(nextProgramWithLine);
           setLineDraftPointId(undefined);
           setSelectedIds(lineId ? new Set([lineId]) : new Set(points));
           setLastSelectedId(lineId ?? intersectionId);
@@ -324,16 +353,16 @@ export function useConstructionController({
 
       if (activeTool === "circle") {
         if (!circleDraftPointId) {
-          updateProgram(nextProgramWithIntersection);
+          updateProgram(nextProgram);
           setCircleDraftPointId(intersectionId);
           setSelectedIds(new Set([intersectionId]));
           setLastSelectedId(intersectionId);
         } else {
           const center = circleDraftPointId;
-          const nextProgram = addCircleThroughPoints(nextProgramWithIntersection, center, intersectionId);
-          const circleId = circleThroughId(nextProgram, center, intersectionId);
+          const nextProgramWithCircle = addCircleThroughPoints(nextProgram, center, intersectionId);
+          const circleId = circleThroughId(nextProgramWithCircle, center, intersectionId);
 
-          updateProgram(nextProgram);
+          updateProgram(nextProgramWithCircle);
           setCircleDraftPointId(undefined);
           setSelectedIds(circleId ? new Set([circleId]) : new Set([center, intersectionId]));
           setLastSelectedId(circleId ?? intersectionId);
@@ -341,11 +370,11 @@ export function useConstructionController({
         return;
       }
 
-      updateProgram(nextProgramWithIntersection);
+      updateProgram(nextProgram);
       setSelectedIds(new Set([intersectionId]));
       setLastSelectedId(intersectionId);
     },
-    [activeTool, lineDraftPointId, circleDraftPointId, program, updateProgram],
+    [activeTool, lineDraftPointId, circleDraftPointId, program, evaluated.primitives, updateProgram],
   );
 
   const handleBeginPointDrag = useCallback(
@@ -547,6 +576,41 @@ function lineLineIntersectionId(
       construction.kind === "line-line-intersection" &&
       ((construction.lines[0] === lines[0] && construction.lines[1] === lines[1]) ||
         (construction.lines[0] === lines[1] && construction.lines[1] === lines[0])),
+  );
+
+  return intersection?.id;
+}
+
+function lineCircleIntersectionId(
+  program: ConstructionProgram,
+  line: ConstructionId,
+  circle: ConstructionId,
+  intersectionIndex: 0 | 1,
+): ConstructionId | undefined {
+  const intersection = program.constructions.find(
+    (construction) =>
+      construction.kind === "line-circle-intersection" &&
+      construction.line === line &&
+      construction.circle === circle &&
+      construction.intersectionIndex === intersectionIndex,
+  );
+
+  return intersection?.id;
+}
+
+function circleCircleIntersectionId(
+  program: ConstructionProgram,
+  firstCircle: ConstructionId,
+  secondCircle: ConstructionId,
+  intersectionIndex: 0 | 1,
+): ConstructionId | undefined {
+  const [c1, c2] = [firstCircle, secondCircle].sort();
+  const intersection = program.constructions.find(
+    (construction) =>
+      construction.kind === "circle-circle-intersection" &&
+      construction.firstCircle === c1 &&
+      construction.secondCircle === c2 &&
+      construction.intersectionIndex === intersectionIndex,
   );
 
   return intersection?.id;

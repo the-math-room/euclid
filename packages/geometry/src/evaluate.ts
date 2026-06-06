@@ -78,14 +78,45 @@ function meaningFor(construction: Construction): ConstructionMeaning {
     };
   }
 
-  return {
-    id: construction.id,
-    label: construction.label,
-    expression: {
-      kind: "line-line-intersection",
-      lines: construction.lines,
-    },
-  };
+  if (construction.kind === "line-line-intersection") {
+    return {
+      id: construction.id,
+      label: construction.label,
+      expression: {
+        kind: "line-line-intersection",
+        lines: construction.lines,
+      },
+    };
+  }
+
+  if (construction.kind === "line-circle-intersection") {
+    return {
+      id: construction.id,
+      label: construction.label,
+      expression: {
+        kind: "line-circle-intersection",
+        line: construction.line,
+        circle: construction.circle,
+        intersectionIndex: construction.intersectionIndex,
+      },
+    };
+  }
+
+  if (construction.kind === "circle-circle-intersection") {
+    return {
+      id: construction.id,
+      label: construction.label,
+      expression: {
+        kind: "circle-circle-intersection",
+        firstCircle: construction.firstCircle,
+        secondCircle: construction.secondCircle,
+        intersectionIndex: construction.intersectionIndex,
+      },
+    };
+  }
+
+  const _exhaustiveCheck: never = construction;
+  return _exhaustiveCheck;
 }
 
 function evaluationPlanFor(constructions: readonly Construction[]): EvaluationPlan {

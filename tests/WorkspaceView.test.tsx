@@ -277,4 +277,99 @@ describe("WorkspaceView Integration", () => {
       root?.unmount();
     });
   });
+
+  it("prioritizes intersection over selecting a defining point in construction tools", async () => {
+    const onSelectMock = vi.fn();
+    const onAddIntersectionMock = vi.fn();
+    const onAddPointMock = vi.fn();
+
+    // Line and circle that intersect at (100, 100).
+    // Let's place a point P also at (100, 100).
+    const sceneWithIntersection = {
+      size: { width: 920, height: 620 },
+      grid: [],
+      items: [
+        {
+          id: "point-p",
+          kind: "point" as const,
+          mark: { x: 100, y: 100 },
+          label: { text: "P", anchor: { x: 110, y: 90 } },
+        },
+        {
+          id: "line-ab",
+          kind: "line" as const,
+          from: { x: 0, y: 100 },
+          to: { x: 200, y: 100 },
+        },
+        {
+          id: "circle-o",
+          kind: "circle" as const,
+          center: { x: 100, y: 150 },
+          radius: 50, // center (100, 150), radius 50 means it passes through (100, 100)
+        },
+      ],
+    };
+
+    let root: Root | undefined;
+    await act(async () => {
+      root = createRoot(container);
+      root.render(
+        <WorkspaceView
+          {...defaultProps}
+          scene={sceneWithIntersection}
+          onSelect={onSelectMock}
+          onAddIntersection={onAddIntersectionMock}
+          onAddPoint={onAddPointMock}
+          activeTool="point"
+        />,
+      );
+    });
+
+    const svg = container.querySelector("svg");
+    expect(svg).toBeTruthy();
+
+    if (svg) {
+      svg.getBoundingClientRect = () => ({
+        width: 920,
+        height: 620,
+        top: 0,
+        left: 0,
+        bottom: 620,
+        right: 920,
+        x: 0,
+        y: 0,
+        toJSON: vi.fn(),
+      });
+
+      // Click exactly at (100, 100) where the point "point-p" and the line-circle intersection coincide
+      const downEvent = new PointerEvent("pointerdown", {
+        clientX: 100,
+        clientY: 100,
+        pointerId: 1,
+        pointerType: "mouse",
+        bubbles: true,
+      });
+
+      const upEvent = new PointerEvent("pointerup", {
+        clientX: 100,
+        clientY: 100,
+        pointerId: 1,
+        pointerType: "mouse",
+        bubbles: true,
+      });
+
+      await act(async () => {
+        svg.dispatchEvent(downEvent);
+        svg.dispatchEvent(upEvent);
+      });
+
+      // It should call onAddIntersection instead of selecting the point
+      expect(onAddIntersectionMock).toHaveBeenCalled();
+      expect(onSelectMock).not.toHaveBeenCalled();
+    }
+
+    await act(async () => {
+      root?.unmount();
+    });
+  });
 });

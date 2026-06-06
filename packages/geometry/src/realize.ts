@@ -1,5 +1,10 @@
 import type { Construction, ConstructionId, EvaluatedPrimitive, EvaluationDiagnostic } from "./model";
-import { lineLineIntersection, samePoint } from "./approx";
+import {
+  lineLineIntersection,
+  samePoint,
+  lineCircleIntersections,
+  circleCircleIntersections,
+} from "./approx";
 
 export type Realization = Readonly<{
   primitives: readonly EvaluatedPrimitive[];
@@ -152,31 +157,120 @@ function realizeOne(
     };
   }
 
-  const firstLine = lineNamed(previous, construction.lines[0]);
-  const secondLine = lineNamed(previous, construction.lines[1]);
+  if (construction.kind === "line-line-intersection") {
+    const firstLine = lineNamed(previous, construction.lines[0]);
+    const secondLine = lineNamed(previous, construction.lines[1]);
 
-  if (!firstLine || !secondLine) {
+    if (!firstLine || !secondLine) {
+      return {
+        kind: "diagnostic",
+        message: `Intersection ${construction.label} needs two line dependencies.`,
+      };
+    }
+
+    const position = lineLineIntersection(firstLine.through, secondLine.through);
+
+    if (!position) {
+      return {
+        kind: "diagnostic",
+        message: `Intersection ${construction.label} needs non-parallel line dependencies.`,
+      };
+    }
+
     return {
-      kind: "diagnostic",
-      message: `Intersection ${construction.label} needs two line dependencies.`,
+      id: construction.id,
+      kind: "point",
+      label: construction.label,
+      position,
     };
   }
 
-  const position = lineLineIntersection(firstLine.through, secondLine.through);
+  if (construction.kind === "line-circle-intersection") {
+    const line = lineNamed(previous, construction.line);
+    const circle = circleNamed(previous, construction.circle);
 
-  if (!position) {
+    if (!line || !circle) {
+      return {
+        kind: "diagnostic",
+        message: `Intersection ${construction.label} needs line and circle dependencies.`,
+      };
+    }
+
+    const radius = Math.hypot(
+      circle.center.x - circle.pointOnCircle.x,
+      circle.center.y - circle.pointOnCircle.y,
+    );
+    const intersections = lineCircleIntersections(line.through, circle.center, radius);
+
+    if (intersections.length === 0) {
+      return {
+        kind: "diagnostic",
+        message: `Intersection ${construction.label} has no intersection points.`,
+      };
+    }
+
+    const position = intersections[construction.intersectionIndex];
+    if (!position) {
+      return {
+        kind: "diagnostic",
+        message: `Intersection ${construction.label} index out of bounds.`,
+      };
+    }
+
     return {
-      kind: "diagnostic",
-      message: `Intersection ${construction.label} needs non-parallel line dependencies.`,
+      id: construction.id,
+      kind: "point",
+      label: construction.label,
+      position,
     };
   }
 
-  return {
-    id: construction.id,
-    kind: "point",
-    label: construction.label,
-    position,
-  };
+  if (construction.kind === "circle-circle-intersection") {
+    const firstCircle = circleNamed(previous, construction.firstCircle);
+    const secondCircle = circleNamed(previous, construction.secondCircle);
+
+    if (!firstCircle || !secondCircle) {
+      return {
+        kind: "diagnostic",
+        message: `Intersection ${construction.label} needs two circle dependencies.`,
+      };
+    }
+
+    const r1 = Math.hypot(
+      firstCircle.center.x - firstCircle.pointOnCircle.x,
+      firstCircle.center.y - firstCircle.pointOnCircle.y,
+    );
+    const r2 = Math.hypot(
+      secondCircle.center.x - secondCircle.pointOnCircle.x,
+      secondCircle.center.y - secondCircle.pointOnCircle.y,
+    );
+    const intersections = circleCircleIntersections(firstCircle.center, r1, secondCircle.center, r2);
+
+    if (intersections.length === 0) {
+      return {
+        kind: "diagnostic",
+        message: `Intersection ${construction.label} has no intersection points.`,
+      };
+    }
+
+    const position = intersections[construction.intersectionIndex];
+    if (!position) {
+      return {
+        kind: "diagnostic",
+        message: `Intersection ${construction.label} index out of bounds.`,
+      };
+    }
+
+    return {
+      id: construction.id,
+      kind: "point",
+      label: construction.label,
+      position,
+    };
+  }
+
+  const _exhaustiveCheck: never = construction;
+  return _exhaustiveCheck;
 }
 
 function pointNamed(previous: ReadonlyMap<ConstructionId, EvaluatedPrimitive>, id: ConstructionId) {
@@ -187,4 +281,9 @@ function pointNamed(previous: ReadonlyMap<ConstructionId, EvaluatedPrimitive>, i
 function lineNamed(previous: ReadonlyMap<ConstructionId, EvaluatedPrimitive>, id: ConstructionId) {
   const primitive = previous.get(id);
   return primitive?.kind === "line" ? primitive : undefined;
+}
+
+function circleNamed(previous: ReadonlyMap<ConstructionId, EvaluatedPrimitive>, id: ConstructionId) {
+  const primitive = previous.get(id);
+  return primitive?.kind === "circle" ? primitive : undefined;
 }

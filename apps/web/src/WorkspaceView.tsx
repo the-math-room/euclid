@@ -372,13 +372,17 @@ export function WorkspaceView({
       const isTouch = event.pointerType === "touch" || event.pointerType === "pen";
 
       if (activeTool === "point" || activeTool === "line" || activeTool === "circle") {
-        const item = findItemAtPosition(scene, coords, threshold);
-        if (item?.kind === "point") {
-          onSelect(item.id, { ctrlKey: event.ctrlKey || isTouch, shiftKey: event.shiftKey });
+        // Check for curve intersections FIRST. A defining point of a line
+        // or circle often sits exactly at an intersection, so
+        // findItemAtPosition would return that point and prevent the user
+        // from ever reaching the intersection-creation path.
+        const intersection = findIntersectionAtPosition(scene, coords, threshold);
+        if (intersection) {
+          onAddIntersection(intersection);
         } else {
-          const intersection = findIntersectionAtPosition(scene, coords, threshold);
-          if (intersection) {
-            onAddIntersection(intersection);
+          const item = findItemAtPosition(scene, coords, threshold);
+          if (item?.kind === "point") {
+            onSelect(item.id, { ctrlKey: event.ctrlKey || isTouch, shiftKey: event.shiftKey });
           } else {
             onAddPoint(coords);
           }

@@ -17,7 +17,20 @@ export function dependencyIds(construction: Construction): readonly Construction
     return construction.points;
   }
 
-  return construction.lines;
+  if (construction.kind === "line-line-intersection") {
+    return construction.lines;
+  }
+
+  if (construction.kind === "line-circle-intersection") {
+    return [construction.line, construction.circle];
+  }
+
+  if (construction.kind === "circle-circle-intersection") {
+    return [construction.firstCircle, construction.secondCircle];
+  }
+
+  const _exhaustiveCheck: never = construction;
+  return _exhaustiveCheck;
 }
 
 export function dependencyGraphFor(constructions: readonly Construction[]): DependencyGraph {

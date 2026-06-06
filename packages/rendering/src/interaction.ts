@@ -1,10 +1,16 @@
-import { lineLineIntersection, type Point2 } from "@euclid/geometry";
+import {
+  lineLineIntersection,
+  lineCircleIntersections,
+  circleCircleIntersections,
+  type Point2,
+} from "@euclid/geometry";
 import type { RenderItem, RenderScene } from "./scene";
 
 export type IntersectionHit = Readonly<{
   kind: "intersection";
   operands: readonly [string, string];
   position: Point2;
+  intersectionIndex?: 0 | 1;
 }>;
 
 export function distance(a: Point2, b: Point2): number {
@@ -81,33 +87,76 @@ export function findItemAtPosition(
   return closestShape;
 }
 
+function getIntersections(
+  first: RenderItem,
+  second: RenderItem,
+): readonly { position: Point2; index?: 0 | 1 }[] {
+  if (first.kind === "line" && second.kind === "line") {
+    const pt = lineLineIntersection([first.from, first.to], [second.from, second.to]);
+    return pt ? [{ position: pt }] : [];
+  }
+  if (first.kind === "line" && second.kind === "circle") {
+    return lineCircleIntersections([first.from, first.to], second.center, second.radius).map((pt, idx) => ({
+      position: pt,
+      index: idx as 0 | 1,
+    }));
+  }
+  if (first.kind === "circle" && second.kind === "line") {
+    return lineCircleIntersections([second.from, second.to], first.center, first.radius).map((pt, idx) => ({
+      position: pt,
+      index: idx as 0 | 1,
+    }));
+  }
+  if (first.kind === "circle" && second.kind === "circle") {
+    const [c1, c2] = first.id < second.id ? [first, second] : [second, first];
+    return circleCircleIntersections(c1.center, c1.radius, c2.center, c2.radius).map((pt, idx) => ({
+      position: pt,
+      index: idx as 0 | 1,
+    }));
+  }
+  return [];
+}
+
 export function findIntersectionAtPosition(
   scene: RenderScene,
   position: Point2,
   threshold: number = 8,
 ): IntersectionHit | undefined {
-  const lines = scene.items.filter((item) => item.kind === "line");
+  const curves = scene.items.filter((item) => item.kind === "line" || item.kind === "circle");
   let closest: IntersectionHit | undefined;
   let closestDistance = Infinity;
 
-  for (let firstIndex = 0; firstIndex < lines.length; firstIndex++) {
-    for (let secondIndex = firstIndex + 1; secondIndex < lines.length; secondIndex++) {
-      const first = lines[firstIndex];
-      const second = lines[secondIndex];
-      const intersection = lineLineIntersection([first.from, first.to], [second.from, second.to]);
+  for (let i = 0; i < curves.length; i++) {
+    for (let j = i + 1; j < curves.length; j++) {
+      const first = curves[i];
+      const second = curves[j];
 
-      if (!intersection) {
-        continue;
-      }
+      const pts = getIntersections(first, second);
+      for (const pt of pts) {
+        const hitDistance = distance(position, pt.position);
+        if (hitDistance <= threshold && hitDistance < closestDistance) {
+          closestDistance = hitDistance;
 
-      const hitDistance = distance(position, intersection);
-      if (hitDistance <= threshold && hitDistance < closestDistance) {
-        closestDistance = hitDistance;
-        closest = {
-          kind: "intersection",
-          operands: [first.id, second.id],
-          position: intersection,
-        };
+          // Standardize operands order:
+          // - For line-circle, the line is always first, circle second.
+          // - For circle-circle, they are sorted alphabetically by ID.
+          // - For line-line, they are in the order found.
+          let operands: readonly [string, string];
+          if (first.kind === "circle" && second.kind === "line") {
+            operands = [second.id, first.id];
+          } else if (first.kind === "circle" && second.kind === "circle") {
+            operands = first.id < second.id ? [first.id, second.id] : [second.id, first.id];
+          } else {
+            operands = [first.id, second.id];
+          }
+
+          closest = {
+            kind: "intersection",
+            operands,
+            position: pt.position,
+            ...(pt.index !== undefined ? { intersectionIndex: pt.index } : {}),
+          };
+        }
       }
     }
   }

@@ -326,4 +326,96 @@ describe("evaluateConstruction", () => {
       },
     ]);
   });
+
+  it("realizes line-circle intersections", () => {
+    const program: ConstructionProgram = {
+      constructions: [
+        { id: "A", kind: "free-point", label: "A", position: { x: 0, y: 0 } },
+        { id: "B", kind: "free-point", label: "B", position: { x: 0, y: 1 } },
+        { id: "circle", kind: "circle-through", label: "circle", center: "A", pointOnCircle: "B" },
+        { id: "C", kind: "free-point", label: "C", position: { x: -2, y: 0 } },
+        { id: "D", kind: "free-point", label: "D", position: { x: 2, y: 0 } },
+        { id: "line", kind: "line-through", label: "line", points: ["C", "D"] },
+        {
+          id: "intersect-0",
+          kind: "line-circle-intersection",
+          label: "X0",
+          line: "line",
+          circle: "circle",
+          intersectionIndex: 0,
+        },
+        {
+          id: "intersect-1",
+          kind: "line-circle-intersection",
+          label: "X1",
+          line: "line",
+          circle: "circle",
+          intersectionIndex: 1,
+        },
+      ],
+    };
+
+    const evaluation = evaluateConstruction(program);
+    expect(evaluation.diagnostics).toEqual([]);
+
+    const x0 = evaluation.primitives.find((p) => p.id === "intersect-0");
+    const x1 = evaluation.primitives.find((p) => p.id === "intersect-1");
+
+    expect(x0?.kind).toBe("point");
+    if (x0 && x0.kind === "point") {
+      expect(x0.position.x).toBeCloseTo(-1);
+      expect(x0.position.y).toBeCloseTo(0);
+    }
+
+    expect(x1?.kind).toBe("point");
+    if (x1 && x1.kind === "point") {
+      expect(x1.position.x).toBeCloseTo(1);
+      expect(x1.position.y).toBeCloseTo(0);
+    }
+  });
+
+  it("realizes circle-circle intersections", () => {
+    const program: ConstructionProgram = {
+      constructions: [
+        { id: "A", kind: "free-point", label: "A", position: { x: -0.5, y: 0 } },
+        { id: "B", kind: "free-point", label: "B", position: { x: 0.5, y: 0 } },
+        { id: "circle1", kind: "circle-through", label: "c1", center: "A", pointOnCircle: "B" },
+        { id: "circle2", kind: "circle-through", label: "c2", center: "B", pointOnCircle: "A" },
+        {
+          id: "intersect-0",
+          kind: "circle-circle-intersection",
+          label: "X0",
+          firstCircle: "circle1",
+          secondCircle: "circle2",
+          intersectionIndex: 0,
+        },
+        {
+          id: "intersect-1",
+          kind: "circle-circle-intersection",
+          label: "X1",
+          firstCircle: "circle1",
+          secondCircle: "circle2",
+          intersectionIndex: 1,
+        },
+      ],
+    };
+
+    const evaluation = evaluateConstruction(program);
+    expect(evaluation.diagnostics).toEqual([]);
+
+    const x0 = evaluation.primitives.find((p) => p.id === "intersect-0");
+    const x1 = evaluation.primitives.find((p) => p.id === "intersect-1");
+
+    expect(x0?.kind).toBe("point");
+    if (x0 && x0.kind === "point") {
+      expect(x0.position.x).toBeCloseTo(0);
+      expect(x0.position.y).toBeCloseTo(-Math.sqrt(0.75));
+    }
+
+    expect(x1?.kind).toBe("point");
+    if (x1 && x1.kind === "point") {
+      expect(x1.position.x).toBeCloseTo(0);
+      expect(x1.position.y).toBeCloseTo(Math.sqrt(0.75));
+    }
+  });
 });

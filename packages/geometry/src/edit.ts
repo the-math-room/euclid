@@ -181,6 +181,84 @@ export function addCircleThreePoints(
   };
 }
 
+export function addLineCircleIntersection(
+  program: ConstructionProgram,
+  line: ConstructionId,
+  circle: ConstructionId,
+  intersectionIndex: 0 | 1,
+): ConstructionProgram {
+  const existing = program.constructions.find(
+    (construction) =>
+      construction.kind === "line-circle-intersection" &&
+      construction.line === line &&
+      construction.circle === circle &&
+      construction.intersectionIndex === intersectionIndex,
+  );
+
+  if (existing) {
+    return program;
+  }
+
+  const id = uniqueConstructionId(
+    program,
+    `intersection-${slugFor(line)}-${slugFor(circle)}-${intersectionIndex}`,
+  );
+
+  return {
+    constructions: [
+      ...program.constructions,
+      {
+        id,
+        kind: "line-circle-intersection",
+        label: generateNextPointLabel(program.constructions),
+        line,
+        circle,
+        intersectionIndex,
+      },
+    ],
+  };
+}
+
+export function addCircleCircleIntersection(
+  program: ConstructionProgram,
+  firstCircle: ConstructionId,
+  secondCircle: ConstructionId,
+  intersectionIndex: 0 | 1,
+): ConstructionProgram {
+  const [c1, c2] = [firstCircle, secondCircle].sort();
+  if (c1 === c2) {
+    return program;
+  }
+
+  const existing = program.constructions.find(
+    (construction) =>
+      construction.kind === "circle-circle-intersection" &&
+      construction.firstCircle === c1 &&
+      construction.secondCircle === c2 &&
+      construction.intersectionIndex === intersectionIndex,
+  );
+
+  if (existing) {
+    return program;
+  }
+
+  const id = uniqueConstructionId(program, `intersection-${slugFor(c1)}-${slugFor(c2)}-${intersectionIndex}`);
+
+  return {
+    constructions: [
+      ...program.constructions,
+      {
+        id,
+        kind: "circle-circle-intersection",
+        label: generateNextPointLabel(program.constructions),
+        firstCircle: c1,
+        secondCircle: c2,
+        intersectionIndex,
+      },
+    ],
+  };
+}
+
 function sameIdSet(
   a: readonly [ConstructionId, ConstructionId],
   b: readonly [ConstructionId, ConstructionId],

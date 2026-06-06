@@ -132,4 +132,68 @@ describe("interaction hit testing", () => {
 
     expect(findIntersectionAtPosition(scene, { x: 50, y: 15 })).toBeUndefined();
   });
+
+  it("finds line-circle intersection candidates close to query position", () => {
+    const scene: RenderScene = {
+      size: { width: 100, height: 100 },
+      grid: [],
+      items: [
+        {
+          id: "line-a",
+          kind: "line",
+          from: { x: 10, y: 50 },
+          to: { x: 90, y: 50 },
+        },
+        {
+          id: "circle-b",
+          kind: "circle",
+          center: { x: 50, y: 50 },
+          radius: 10,
+        },
+      ],
+    };
+
+    // Intersections at { x: 40, y: 50 } and { x: 60, y: 50 }
+    expect(findIntersectionAtPosition(scene, { x: 41, y: 51 })).toEqual({
+      kind: "intersection",
+      operands: ["line-a", "circle-b"],
+      position: { x: 40, y: 50 },
+      intersectionIndex: 0,
+    });
+
+    expect(findIntersectionAtPosition(scene, { x: 59, y: 49 })).toEqual({
+      kind: "intersection",
+      operands: ["line-a", "circle-b"],
+      position: { x: 60, y: 50 },
+      intersectionIndex: 1,
+    });
+  });
+
+  it("finds circle-circle intersection candidates close to query position with canonical operands", () => {
+    const scene: RenderScene = {
+      size: { width: 100, height: 100 },
+      grid: [],
+      items: [
+        {
+          id: "circle-y",
+          kind: "circle",
+          center: { x: 45, y: 50 },
+          radius: 10,
+        },
+        {
+          id: "circle-x",
+          kind: "circle",
+          center: { x: 55, y: 50 },
+          radius: 10,
+        },
+      ],
+    };
+
+    // Intersection points at x = 50, y = 50 +- sqrt(75) (approx 58.66 and 41.34)
+    // circle-x and circle-y should be canonicalized by alphabetical ID sorting: circle-x first, circle-y second
+    const hit = findIntersectionAtPosition(scene, { x: 51, y: 58 });
+    expect(hit?.kind).toBe("intersection");
+    expect(hit?.operands).toEqual(["circle-x", "circle-y"]);
+    expect(hit?.intersectionIndex).toBe(0); // The one with +y vector (y = 50 + sqrt(75))
+  });
 });

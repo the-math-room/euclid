@@ -40,6 +40,22 @@ export type Construction =
       kind: "line-line-intersection";
       label: string;
       lines: readonly [ConstructionId, ConstructionId];
+    }>
+  | Readonly<{
+      id: ConstructionId;
+      kind: "line-circle-intersection";
+      label: string;
+      line: ConstructionId;
+      circle: ConstructionId;
+      intersectionIndex: 0 | 1;
+    }>
+  | Readonly<{
+      id: ConstructionId;
+      kind: "circle-circle-intersection";
+      label: string;
+      firstCircle: ConstructionId;
+      secondCircle: ConstructionId;
+      intersectionIndex: 0 | 1;
     }>;
 
 export type EvaluatedPrimitive =
@@ -83,6 +99,18 @@ export type ConstructionExpression =
   | Readonly<{
       kind: "line-line-intersection";
       lines: readonly [ConstructionId, ConstructionId];
+    }>
+  | Readonly<{
+      kind: "line-circle-intersection";
+      line: ConstructionId;
+      circle: ConstructionId;
+      intersectionIndex: 0 | 1;
+    }>
+  | Readonly<{
+      kind: "circle-circle-intersection";
+      firstCircle: ConstructionId;
+      secondCircle: ConstructionId;
+      intersectionIndex: 0 | 1;
     }>;
 
 export type ConstructionMeaning = Readonly<{
