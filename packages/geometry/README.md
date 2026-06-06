@@ -9,6 +9,7 @@ Owns construction meaning.
 - Deterministic evaluation into exact construction meanings.
 - Approximate realization into geometric primitives for downstream interpreters.
 - Pure construction editing transformations.
+- Construction provenance and explanation for headless inspection.
 - Approximate floating-point geometry helpers.
 - Point label generation.
 - Geometry diagnostics.
@@ -31,6 +32,7 @@ Functions in this package should be memoizable in theory.
 - `src/model.ts`: construction and evaluated primitive types.
 - `src/dependencies.ts`: dependency extraction, graph construction, transitive dependents, cascading deletion.
 - `src/evaluate.ts`: graph planning and exact construction meaning. Delegates to `realize.ts` for approximate primitives.
+- `src/explain.ts`: construction provenance, direct parents/dependents, transitive traces, realization state, and diagnostics for headless inspection.
 - `src/realize.ts`: approximate numeric realization. Converts constructions to floating-point primitives. Produces diagnostics for degenerate or invalid geometry.
 - `src/approx.ts`: shared floating-point geometry helpers (`lineLineIntersection`, `samePoint`, `cross`). Used by both `realize.ts` and `@euclid/rendering` for interaction hit testing.
 - `src/edit.ts`: pure construction edit helpers (`moveFreePoint`, `addLineThroughPoints`, `addLineLineIntersection`). Construction-adding edits return `{ program, id, changed }` and preserve the original program reference for no-op edits.
@@ -51,6 +53,18 @@ Floating coordinates and complex-number style helpers are allowed as realization
 ## Change Pattern
 
 When adding construction meaning, update model, dependency extraction, exact meaning, realization, and geometry tests together. Follow the checklist in `docs/how-to/add-a-construction.md`.
+
+## Headless Inspection
+
+The geometry package should be useful without React, rendering, or a browser. `explainConstruction` turns a construction plus an evaluation into structured provenance:
+
+- direct parent constructions
+- direct dependent constructions
+- exact meaning, when graph-valid
+- approximate primitive, when currently realized
+- diagnostics explaining graph or realization failures
+
+This is intentionally semantic rather than visual. Learning systems can inspect what a learner constructed, not just where pixels ended up.
 
 ## Instructions for LLM Agents
 

@@ -10,6 +10,7 @@ Start here:
 - `packages/geometry/src/model.ts`
 - `packages/geometry/src/dependencies.ts`
 - `packages/geometry/src/evaluate.ts`
+- `packages/geometry/src/explain.ts`
 - `packages/geometry/src/realize.ts`
 - `packages/geometry/src/approx.ts`
 - `packages/geometry/src/edit.ts`
@@ -66,6 +67,8 @@ Start here:
 - `docs/architecture/layers.md`
 - `docs/architecture/pure-core.md`
 - `docs/architecture/denotational-design.md`
+- `docs/strategy/headless-edtech-sdk.md`
+- `docs/journal/2026-06-06-headless-sdk-and-provenance.md`
 - `tests/architecture/import-boundaries.test.ts`
 
 Run:
