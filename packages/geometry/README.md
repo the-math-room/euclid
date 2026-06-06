@@ -8,6 +8,9 @@ Owns construction meaning.
 - Dependency extraction and graph shape.
 - Deterministic evaluation into exact construction meanings.
 - Approximate realization into geometric primitives for downstream interpreters.
+- Pure construction editing transformations.
+- Approximate floating-point geometry helpers.
+- Point label generation.
 - Geometry diagnostics.
 
 Functions in this package should be memoizable in theory.
@@ -26,25 +29,28 @@ Functions in this package should be memoizable in theory.
 ## Key Files
 
 - `src/model.ts`: construction and evaluated primitive types.
-- `src/approx.ts`: shared floating-point realization helpers.
-- `src/dependencies.ts`: dependency extraction and graph construction.
-- `src/edit.ts`: pure construction edit helpers.
-- `src/evaluate.ts`: graph planning and exact construction meaning.
+- `src/dependencies.ts`: dependency extraction, graph construction, transitive dependents, cascading deletion.
+- `src/evaluate.ts`: graph planning and exact construction meaning. Delegates to `realize.ts` for approximate primitives.
+- `src/realize.ts`: approximate numeric realization. Converts constructions to floating-point primitives. Produces diagnostics for degenerate or invalid geometry.
+- `src/approx.ts`: shared floating-point geometry helpers (`lineLineIntersection`, `samePoint`, `cross`). Used by both `realize.ts` and `@euclid/rendering` for interaction hit testing.
+- `src/edit.ts`: pure construction edit helpers (`moveFreePoint`, `addLineThroughPoints`, `addLineLineIntersection`). Returns the original program reference unchanged for no-op edits.
+- `src/names.ts`: point label generation (`generateNextPointLabel`).
 - `src/index.ts`: public package entrypoint.
-- `src/realize.ts`: approximate numeric realization.
 
 ## Meaning And Realization
 
-The construction graph is the ground truth. Evaluation exposes exact construction meanings separately from approximate primitives:
+The construction graph is the ground truth. Evaluation produces two distinct things:
 
-- `meanings`: graph-valid construction expressions and provenance.
-- `primitives`: floating-point realizations used by rendering, hit testing, and interaction.
+- `meanings`: graph-valid exact construction expressions. These capture _what a construction is_ — its provenance, references, and structural role — independent of any floating-point computation.
+- `primitives`: approximate floating-point realizations used by rendering, hit testing, and interaction. These capture _what a construction currently looks like_.
 
-Floating coordinates and complex-number style helpers are allowed as realization techniques, not as the document's semantic ground truth.
+A construction can have meaning without a current realization. For example, a line through two coincident points is still a valid construction expression, but there is no realizable line primitive to render. Dependent realizations should disappear and reappear as their dependencies become constructible again.
+
+Floating coordinates and complex-number style helpers are allowed as realization techniques, not as the document's semantic ground truth. This distinction matters because future extensions may use exact arithmetic, symbolic representations, or algebraic number fields for the meaning layer while keeping approximate realization for display.
 
 ## Change Pattern
 
-When adding construction meaning, update model, dependency extraction, exact meaning, realization, and geometry tests together.
+When adding construction meaning, update model, dependency extraction, exact meaning, realization, and geometry tests together. Follow the checklist in `docs/how-to/add-a-construction.md`.
 
 ## Instructions for LLM Agents
 
@@ -57,9 +63,11 @@ When adding construction meaning, update model, dependency extraction, exact mea
 
 ### 2. Extending Geometry
 
-- **Add a New Primitive**: Follow the checklist in [add-a-construction.md](file:///home/johna/Projects/euclid/docs/how-to/add-a-construction.md).
-- **Discriminated Union**: Always extend the `Construction` union in [model.ts](file:///home/johna/Projects/euclid/packages/geometry/src/model.ts) using a unique `kind` field.
-- **Dependency Graph**: Implement transitively correct dependency calculations in [dependencies.ts](file:///home/johna/Projects/euclid/packages/geometry/src/dependencies.ts) (e.g. `transitiveDependentsOf`, `deleteConstructions`).
+- **Add a New Primitive**: Follow the checklist in `docs/how-to/add-a-construction.md`.
+- **Discriminated Union**: Always extend the `Construction` union in `src/model.ts` using a unique `kind` field.
+- **Dependency Graph**: Implement transitively correct dependency calculations in `src/dependencies.ts` (e.g. `transitiveDependentsOf`, `deleteConstructions`).
+- **Meaning vs. Realization**: Add the exact meaning case in `evaluate.ts` and the approximate realization case in `realize.ts`. These are separate responsibilities.
+- **Edit Operations**: If the new construction can be created interactively, add a pure creation function in `edit.ts` with idempotent duplicate detection.
 
 ### 3. Verification Command
 

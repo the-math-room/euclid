@@ -22,27 +22,62 @@ When changing behavior, inspect files in this order:
 
 ## Rules For Future Agents
 
+### Meaning Boundaries
+
 - Do not put construction semantics in React components.
 - Do not make rendering state the source of truth.
 - Do not encode geometry as loose strings when a discriminated union is possible.
 - Do not add a dependency for a small algebraic operation unless it changes correctness or maintainability materially.
-- When adding a construction, update the model, evaluator, seed construction, and documentation together.
-- When adding a construction, follow `docs/how-to/add-a-construction.md`.
-- Keep dependency graph semantics explicit. Do not rely on source order as the meaning of a document.
+
+### Layering
+
 - Keep layer direction explicit: `geometry` must not import `document`, `rendering`, `app`, or UI libraries.
 - Keep `rendering` React-free. Rendering returns scene data; React turns scene data into DOM/SVG.
 - Keep `document` independent from rendering and UI.
 - Keep package production code pure. See `docs/architecture/pure-core.md`.
+
+### Meaning vs. Realization
+
+- A construction has meaning (what it is) independent of its approximate realization (what its floating-point coordinates are). These are distinct evaluation phases.
+- A construction can have meaning but no current realization. Example: a line through two coincident points is still a valid construction expression, but has no realizable line primitive to render.
+- Approximate realization belongs in `realize.ts` and `approx.ts`. Exact meaning belongs in `evaluate.ts`. Do not conflate them.
+
+### Edit Operations
+
+- Construction edits are pure `ConstructionProgram → ConstructionProgram` transformations in `edit.ts`.
+- Edit functions should return the original program reference unchanged when the edit is a no-op. This enables cheap identity checks.
+- Do not create ad-hoc point or line creation logic in UI code. Use the edit module.
+
+### Extension Pattern
+
+- When adding a construction, follow `docs/how-to/add-a-construction.md`.
+- Update model, dependency extraction, exact meaning, approximate realization, and tests together.
+- Keep dependency graph semantics explicit. Do not rely on source order as the meaning of a document.
+
+### App Shell
+
+- `App.tsx` is a composition root. It should wire packages together and render JSX. It should not contain construction logic.
+- `useConstructionController.ts` owns construction history, tool state, selection, and command wiring. Construction-level state changes belong here.
+- `WorkspaceView.tsx` owns gesture interpretation. It translates pointer events into construction commands. It should not own construction state.
 - Prefer command-shaped changes and serializable data over hidden mutable UI state.
+
+### Verification
+
 - Before finishing a code change, run `npm run check` or state exactly why it was not run.
 
 ## Useful Vocabulary
 
-- **Construction**: a user-authored geometric object such as a point, line, or circle.
+- **Construction**: a user-authored geometric object such as a point, line, circle, or intersection.
+- **Construction Program**: a serializable list of constructions that forms the ground truth of a document.
 - **Document**: versioned persistent data containing a construction program.
 - **Dependency**: a reference from one construction to another.
-- **Evaluation**: resolving construction meanings into concrete geometric primitives.
-- **Render scene**: presentation-ready data derived from evaluated primitives.
+- **Evaluation**: resolving construction meanings and approximate realizations from a construction program.
+- **Meaning**: the exact construction expression — what a construction _is_ independent of coordinates.
+- **Realization**: approximate numeric primitives derived from meaning — what a construction's floating-point position _currently looks like_.
+- **Render scene**: presentation-ready data derived from realized primitives, including label placement and viewport projection.
+- **Label layout**: optimization-based placement of point labels to avoid overlapping obstacles.
+- **Intersection snapping**: when the point tool detects and constructs a line-line intersection point rather than a free point.
+- **Point drag**: direct manipulation of free point positions, batched into a single undo step.
 - **Interpretation**: a view of the same construction program, such as rendering, serialization, validation, or export.
 
 ## Lessons From The Initial Scaffold

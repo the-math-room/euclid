@@ -197,6 +197,80 @@ Implemented interactive drawing capabilities, cascading deletions, multi-rendere
 - Integrated global keyboard listener in the web app for `Ctrl+Z` / `Ctrl+Y` / `Ctrl+Shift+Z` (with macOS Command key adapters).
 - Grouped toolbar controls under **Modes** and **Edit** sub-sections with compact `36x36px` dimensions to prevent sidebar layout overflow.
 
+## Meaning/Realization Split, Intersections, Label Layout (Later on 2026-06-05)
+
+Significant architecture refinement and feature expansion.
+
+### Meaning vs. Realization
+
+Split `evaluate.ts` into two phases:
+
+- `evaluate.ts` handles topological ordering and exact meaning extraction.
+- `realize.ts` handles approximate numeric computation from constructions to floating-point primitives.
+
+This separation preserves the denotational principle: a construction's meaning (what it _is_) is independent of its approximate realization (what its coordinates _currently look like_). A construction can have meaning without a current realization — for example, a line through coincident points, or an intersection of parallel lines.
+
+### New Construction Type: Line-Line Intersection
+
+Added `line-line-intersection` as a full construction kind through the entire pipeline:
+
+- Model: new `Construction` variant with `lines` dependency pair.
+- Dependencies: extraction for the new kind.
+- Meaning: exact expression in `meaningFor`.
+- Realization: approximate intersection point via `lineLineIntersection` in `approx.ts`, with diagnostic for parallel lines.
+- Edit: `addLineLineIntersection` in `edit.ts` with idempotent duplicate detection.
+- Interaction: `findIntersectionAtPosition` in `interaction.ts` for tap-to-construct snapping.
+
+### Construction Edit Module
+
+Extracted pure `ConstructionProgram → ConstructionProgram` transformations into `edit.ts`:
+
+- `moveFreePoint`: relocates a free point, returns original program unchanged for no-ops.
+- `addLineThroughPoints`: stable dependency-based IDs, idempotent duplicate detection.
+- `addLineLineIntersection`: automatic label generation, duplicate detection.
+
+### Label Layout
+
+Added optimization-based label placement in `labelLayout.ts` (343 lines):
+
+- 8 compass positions × 3 distance rings per label.
+- Scoring against obstacles: points, lines, circles, viewport boundaries.
+- Association ambiguity penalty to keep labels visually near their home point.
+- Greedy hill-climbing for multi-label coordination.
+
+### Point Dragging
+
+Added free point dragging via three callbacks (`onBeginPointDrag`, `onMovePoint`, `onEndPointDrag`):
+
+- During drag, the program is updated in-place without pushing to history.
+- On drag end, the pre-drag snapshot is pushed to history as a single undo step.
+- Pinch-to-zoom cancels an active point drag.
+- Free vs. constructed point distinction: only free points are draggable.
+
+### Visual Distinctions
+
+Added `pointRole` (free vs. constructed) to render scene items. Free points use dark fill with gold stroke; constructed points use hollow fill with teal stroke. Both SVG and Canvas renderers handle the distinction.
+
+## App Shell Refactoring (Later on 2026-06-05)
+
+Extracted construction state management from `App.tsx` into `useConstructionController`:
+
+- `App.tsx` reduced from 450 lines to 153 lines of pure composition.
+- `useConstructionController` owns history, selection, tool modes, evaluation memoization, keyboard shortcuts, and all construction-mutating callbacks.
+- `App.tsx` is now a composition root that wires the controller and camera to JSX.
+
+This enforces the design principle that `App.tsx` should compose packages, not implement construction logic.
+
+## Documentation Pass (Later on 2026-06-05)
+
+Updated all documentation to reflect the current codebase state while preserving aspirational design principles:
+
+- `REPO_MAP.md`: added entries for `realize.ts`, `approx.ts`, `edit.ts`, `labelLayout.ts`, `interaction.ts`, `useConstructionController.ts`.
+- `AGENT_GUIDE.md`: added vocabulary for realization, edit operations, label layout, intersection snapping, point drag. Added rules for meaning/realization separation, edit module usage, and app shell architecture.
+- `denotational-design.md`: expanded with meaning/realization split, construction edits, label layout, interaction model, and aspirational design principles for exact arithmetic, composable programs, and multiple interpretations.
+- `add-a-construction.md`: expanded with explicit sections for meaning, realization, and edit operations.
+- Package READMEs: updated to describe all current modules and their responsibilities.
+
 ## Open Questions
 
 - What should the persistent construction document format look like?
@@ -204,3 +278,5 @@ Implemented interactive drawing capabilities, cascading deletions, multi-rendere
 - What interaction model best fits powerful Euclidean construction: modal tools, command palette, direct manipulation, or a command language?
 - How visible should the dependency graph be to users?
 - At what point would React stop helping and start obscuring the core application model?
+- Should `lineThroughId` and `lineLineIntersectionId` in the construction controller move to `edit.ts` as pure query functions?
+- Should the label layout engine be deterministic enough to test exact placements, or is scoring-threshold testing sufficient?

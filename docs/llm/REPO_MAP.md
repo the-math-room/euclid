@@ -10,6 +10,10 @@ Start here:
 - `packages/geometry/src/model.ts`
 - `packages/geometry/src/dependencies.ts`
 - `packages/geometry/src/evaluate.ts`
+- `packages/geometry/src/realize.ts`
+- `packages/geometry/src/approx.ts`
+- `packages/geometry/src/edit.ts`
+- `packages/geometry/src/names.ts`
 
 Run or update:
 
@@ -21,6 +25,7 @@ Start here:
 
 - `packages/document/README.md`
 - `packages/document/src/model.ts`
+- `packages/document/src/history.ts`
 - `packages/document/src/codec.ts`
 - `packages/document/src/seed.ts`
 
@@ -35,6 +40,11 @@ Start here:
 - `packages/rendering/README.md`
 - `packages/rendering/src/scene.ts`
 - `packages/rendering/src/viewport.ts`
+- `packages/rendering/src/labelLayout.ts`
+- `packages/rendering/src/interaction.ts`
+- `packages/rendering/src/canvasRenderer.ts`
+- `packages/rendering/src/svgRenderer.ts`
+- `packages/rendering/src/theme.ts`
 
 Run or update:
 
@@ -46,6 +56,7 @@ Start here:
 
 - `apps/web/README.md`
 - `apps/web/src/App.tsx`
+- `apps/web/src/construction/useConstructionController.ts`
 - `apps/web/src/WorkspaceView.tsx`
 
 ## Architecture Boundaries
@@ -54,6 +65,7 @@ Start here:
 
 - `docs/architecture/layers.md`
 - `docs/architecture/pure-core.md`
+- `docs/architecture/denotational-design.md`
 - `tests/architecture/import-boundaries.test.ts`
 
 Run:
