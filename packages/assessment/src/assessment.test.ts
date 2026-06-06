@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  assessAll,
+  assessAny,
   constructionIdsOfKind,
   dependsOn,
   directlyDependsOn,
@@ -7,6 +9,11 @@ import {
   hasConstructionMeaning,
   isPointOnCircle,
   isPointOnLine,
+  requiresConstructionKind,
+  requiresDependency,
+  requiresMeaning,
+  requiresPointOnCircle,
+  requiresPointOnLine,
 } from "./assessment";
 import { evaluateConstruction, type ConstructionProgram } from "@euclid/geometry";
 
@@ -81,5 +88,84 @@ describe("assessment primitives", () => {
 
     expect(isPointOnLine(evaluation, "A", "line-ab")).toBe(false);
     expect(isPointOnCircle(evaluation, "A", "missing")).toBe(false);
+  });
+
+  it("builds predicate-shaped assessment results for semantic checks", () => {
+    const context = {
+      program,
+      evaluation: evaluateConstruction(program),
+    };
+
+    expect(requiresConstructionKind("line-through")(context)).toMatchObject({
+      passed: true,
+      code: "construction-kind:line-through",
+    });
+    expect(requiresConstructionKind("circle-circle-intersection")(context)).toMatchObject({
+      passed: false,
+      code: "construction-kind:circle-circle-intersection",
+    });
+    expect(requiresDependency("intersection", "A")(context)).toMatchObject({
+      passed: true,
+      code: "dependency:transitive",
+    });
+    expect(requiresDependency("intersection", "A", { transitive: false })(context)).toMatchObject({
+      passed: false,
+      code: "dependency:direct",
+    });
+    expect(
+      requiresMeaning("intersection", {
+        kind: "line-line-intersection",
+        lines: ["line-ab", "line-cd"],
+      })(context),
+    ).toMatchObject({
+      passed: true,
+      code: "meaning",
+    });
+  });
+
+  it("builds predicate-shaped assessment results for realized incidence checks", () => {
+    const context = {
+      program,
+      evaluation: evaluateConstruction(program),
+    };
+
+    expect(requiresPointOnLine("intersection", "line-ab")(context)).toMatchObject({
+      passed: true,
+      code: "incidence:point-line",
+    });
+    expect(requiresPointOnLine("C", "line-ab")(context)).toMatchObject({
+      passed: false,
+      code: "incidence:point-line",
+    });
+    expect(requiresPointOnCircle("B", "circle-a-b")(context)).toMatchObject({
+      passed: true,
+      code: "incidence:point-circle",
+    });
+  });
+
+  it("composes assessment predicates with all/any helpers", () => {
+    const context = {
+      program,
+      evaluation: evaluateConstruction(program),
+    };
+    const passing = requiresConstructionKind("line-through");
+    const failing = requiresConstructionKind("circle-circle-intersection");
+
+    expect(assessAll([passing, requiresDependency("intersection", "A")], "goal")(context)).toMatchObject({
+      passed: true,
+      code: "goal",
+    });
+    expect(assessAll([passing, failing], "goal")(context)).toMatchObject({
+      passed: false,
+      code: "goal",
+    });
+    expect(assessAny([failing, passing], "alternate-goal")(context)).toMatchObject({
+      passed: true,
+      code: "alternate-goal",
+    });
+    expect(assessAny([failing], "alternate-goal")(context)).toMatchObject({
+      passed: false,
+      code: "alternate-goal",
+    });
   });
 });

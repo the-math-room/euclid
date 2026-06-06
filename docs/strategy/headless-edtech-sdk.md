@@ -53,6 +53,7 @@ The first assessment surface belongs in `@euclid/assessment` and should stay hea
 - dependency checks
 - exact meaning checks
 - realized incidence predicates that explicitly fail when primitives are unrealized
+- a predicate/result interface that hosts can compose or replace
 
 ## Defer
 

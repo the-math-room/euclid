@@ -10,6 +10,9 @@ The goal is to support edTech-style validation through construction semantics an
 
 Added `packages/assessment/src/assessment.ts` with:
 
+- `AssessmentContext`
+- `AssessmentPredicate`
+- `AssessmentResult`
 - `hasConstructionKind`
 - `constructionIdsOfKind`
 - `directlyDependsOn`
@@ -17,8 +20,17 @@ Added `packages/assessment/src/assessment.ts` with:
 - `hasConstructionMeaning`
 - `isPointOnLine`
 - `isPointOnCircle`
+- `requiresConstructionKind`
+- `requiresDependency`
+- `requiresMeaning`
+- `requiresPointOnLine`
+- `requiresPointOnCircle`
+- `assessAll`
+- `assessAny`
 
 The dependency and meaning helpers inspect construction syntax and evaluated meaning. The point-line and point-circle incidence predicates inspect approximate realized primitives and return `false` when required primitives are absent or unrealized.
+
+The `requires*` helpers are reference predicate factories. They return structured pass/fail results with codes, messages, and evidence, so hosts can compose Euclid's defaults or substitute their own assessment policy.
 
 ## Why
 

@@ -9,6 +9,20 @@ import {
   type Point2,
 } from "@euclid/geometry";
 
+export type AssessmentContext = Readonly<{
+  program: ConstructionProgram;
+  evaluation: Evaluation;
+}>;
+
+export type AssessmentResult = Readonly<{
+  passed: boolean;
+  code: string;
+  message: string;
+  evidence?: unknown;
+}>;
+
+export type AssessmentPredicate = (context: AssessmentContext) => AssessmentResult;
+
 export type AssessmentTolerance = Readonly<{
   epsilon: number;
 }>;
@@ -16,6 +30,136 @@ export type AssessmentTolerance = Readonly<{
 const defaultTolerance: AssessmentTolerance = {
   epsilon: 1e-6,
 };
+
+export function assessAll(
+  predicates: readonly AssessmentPredicate[],
+  code: string = "all",
+): AssessmentPredicate {
+  return (context) => {
+    const results = predicates.map((predicate) => predicate(context));
+    const failed = results.filter((result) => !result.passed);
+
+    if (failed.length === 0) {
+      return pass(code, "All assessment predicates passed.", { results });
+    }
+
+    return fail(code, `${failed.length} assessment predicate(s) failed.`, { results });
+  };
+}
+
+export function assessAny(
+  predicates: readonly AssessmentPredicate[],
+  code: string = "any",
+): AssessmentPredicate {
+  return (context) => {
+    const results = predicates.map((predicate) => predicate(context));
+
+    if (results.some((result) => result.passed)) {
+      return pass(code, "At least one assessment predicate passed.", { results });
+    }
+
+    return fail(code, "No assessment predicates passed.", { results });
+  };
+}
+
+export function requiresConstructionKind(kind: Construction["kind"]): AssessmentPredicate {
+  return (context) => {
+    const ids = constructionIdsOfKind(context.program, kind);
+
+    if (ids.length > 0) {
+      return pass(`construction-kind:${kind}`, `Program contains ${kind}.`, { kind, ids });
+    }
+
+    return fail(`construction-kind:${kind}`, `Program does not contain ${kind}.`, { kind, ids });
+  };
+}
+
+export function requiresDependency(
+  targetId: ConstructionId,
+  sourceId: ConstructionId,
+  options: Readonly<{ transitive?: boolean }> = {},
+): AssessmentPredicate {
+  return (context) => {
+    const transitive = options.transitive ?? true;
+    const predicate = transitive ? dependsOn : directlyDependsOn;
+    const passed = predicate(context.program, targetId, sourceId);
+    const relationship = transitive ? "depends on" : "directly depends on";
+    const code = transitive ? "dependency:transitive" : "dependency:direct";
+
+    if (passed) {
+      return pass(code, `${targetId} ${relationship} ${sourceId}.`, { targetId, sourceId, transitive });
+    }
+
+    return fail(code, `${targetId} does not ${relationship} ${sourceId}.`, {
+      targetId,
+      sourceId,
+      transitive,
+    });
+  };
+}
+
+export function requiresMeaning(id: ConstructionId, expression: ConstructionExpression): AssessmentPredicate {
+  return (context) => {
+    const passed = hasConstructionMeaning(context.evaluation, id, expression);
+
+    if (passed) {
+      return pass("meaning", `${id} has the expected construction meaning.`, { id, expression });
+    }
+
+    return fail("meaning", `${id} does not have the expected construction meaning.`, {
+      id,
+      expression,
+    });
+  };
+}
+
+export function requiresPointOnLine(
+  pointId: ConstructionId,
+  lineId: ConstructionId,
+  tolerance: AssessmentTolerance = defaultTolerance,
+): AssessmentPredicate {
+  return (context) => {
+    const passed = isPointOnLine(context.evaluation, pointId, lineId, tolerance);
+
+    if (passed) {
+      return pass("incidence:point-line", `${pointId} lies on ${lineId}.`, {
+        pointId,
+        lineId,
+        tolerance,
+      });
+    }
+
+    return fail("incidence:point-line", `${pointId} does not lie on ${lineId}.`, {
+      pointId,
+      lineId,
+      tolerance,
+    });
+  };
+}
+
+export function requiresPointOnCircle(
+  pointId: ConstructionId,
+  circleId: ConstructionId,
+  tolerance: AssessmentTolerance = defaultTolerance,
+): AssessmentPredicate {
+  return (context) => {
+    const passed = isPointOnCircle(context.evaluation, pointId, circleId, tolerance);
+
+    if (passed) {
+      return pass("incidence:point-circle", `${pointId} lies on ${circleId}.`, {
+        pointId,
+        circleId,
+        tolerance,
+      });
+    }
+
+    return fail("incidence:point-circle", `${pointId} does not lie on ${circleId}.`, {
+      pointId,
+      circleId,
+      tolerance,
+    });
+  };
+}
 
 export function constructionIdsOfKind(
   program: ConstructionProgram,
@@ -170,4 +314,22 @@ function sameExpression(a: ConstructionExpression, b: ConstructionExpression): b
 
 function sameIds(a: readonly ConstructionId[], b: readonly ConstructionId[]): boolean {
   return a.length === b.length && a.every((id, index) => id === b[index]);
+}
+
+function pass(code: string, message: string, evidence?: unknown): AssessmentResult {
+  return {
+    passed: true,
+    code,
+    message,
+    evidence,
+  };
+}
+
+function fail(code: string, message: string, evidence?: unknown): AssessmentResult {
+  return {
+    passed: false,
+    code,
+    message,
+    evidence,
+  };
 }
