@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { evaluateConstruction, type ConstructionProgram } from "@euclid/geometry";
-import type { AssessmentGoal } from "@euclid/assessment";
+import { evaluateGoal, type AssessmentGoal } from "@euclid/assessment";
 import { resolveGoalMapping, mapGoalIds } from "./assessmentResolver";
+import { lessons } from "./lessons";
 
 describe("assessmentResolver", () => {
   it("resolves user-drawn dynamic IDs to static curriculum IDs", () => {
@@ -119,5 +120,125 @@ describe("assessmentResolver", () => {
     const mapping = resolveGoalMapping(evaluation, goals, starterProgram);
 
     expect(mapping.get("line-ab")).toBe("line-a-b");
+  });
+
+  it("evaluates Lesson 2 (Perpendicular Bisector) with solutions and non-solutions", () => {
+    const lesson = lessons[1];
+    expect(lesson.title).toContain("Perpendicular Bisector");
+
+    // 1. Starter / non-solution (empty/incomplete)
+    {
+      const evaluation = evaluateConstruction(lesson.document.program);
+      const mapping = resolveGoalMapping(evaluation, lesson.goals, lesson.document.program);
+      const results = lesson.goals.map((g) => {
+        const context = { program: lesson.document.program, evaluation };
+        return evaluateGoal(context, mapGoalIds(g, mapping));
+      });
+      // All goals should be false
+      expect(results.every((r) => !r.passed)).toBe(true);
+    }
+
+    // 2. Successful solution (with dynamically generated/custom IDs)
+    {
+      const solutionProgram: ConstructionProgram = {
+        constructions: [
+          ...lesson.document.program.constructions,
+          // circle centered at A through B
+          {
+            id: "user-circle-a",
+            kind: "circle-through",
+            label: "Circle A",
+            center: "A",
+            pointOnCircle: "B",
+          },
+          // circle centered at B through A
+          {
+            id: "user-circle-b",
+            kind: "circle-through",
+            label: "Circle B",
+            center: "B",
+            pointOnCircle: "A",
+          },
+          // intersection 0
+          {
+            id: "user-int-0",
+            kind: "circle-circle-intersection",
+            label: "C",
+            firstCircle: "user-circle-a",
+            secondCircle: "user-circle-b",
+            intersectionIndex: 0,
+          },
+          // intersection 1
+          {
+            id: "user-int-1",
+            kind: "circle-circle-intersection",
+            label: "D",
+            firstCircle: "user-circle-a",
+            secondCircle: "user-circle-b",
+            intersectionIndex: 1,
+          },
+          // perpendicular bisector line
+          {
+            id: "user-bisector-line",
+            kind: "line-through",
+            label: "CD",
+            points: ["user-int-0", "user-int-1"],
+          },
+        ],
+      };
+
+      const evaluation = evaluateConstruction(solutionProgram);
+      const mapping = resolveGoalMapping(evaluation, lesson.goals, lesson.document.program);
+
+      // Verify mapping maps all the static goal IDs to user IDs
+      expect(mapping.get("circle-ab")).toBe("user-circle-a");
+      expect(mapping.get("circle-ba")).toBe("user-circle-b");
+      expect(mapping.get("c")).toBe("user-int-0");
+      expect(mapping.get("d")).toBe("user-int-1");
+      expect(mapping.get("bisector")).toBe("user-bisector-line");
+
+      const results = lesson.goals.map((g) => {
+        const context = { program: solutionProgram, evaluation };
+        return evaluateGoal(context, mapGoalIds(g, mapping));
+      });
+
+      // All goals should now pass successfully!
+      expect(results.every((r) => r.passed)).toBe(true);
+    }
+
+    // 3. Non-solution / partially complete (only drawn circles, but centers/points are wrong)
+    {
+      const wrongProgram: ConstructionProgram = {
+        constructions: [
+          ...lesson.document.program.constructions,
+          // circle centered at A through A (invalid radius/degenerate, but let's say center A through some random coords)
+          // Let's create a new point first
+          {
+            id: "C",
+            kind: "free-point",
+            label: "C",
+            position: { x: 5, y: 5 },
+          },
+          {
+            id: "user-circle-wrong",
+            kind: "circle-through",
+            label: "Circle A",
+            center: "A",
+            pointOnCircle: "C",
+          },
+        ],
+      };
+
+      const evaluation = evaluateConstruction(wrongProgram);
+      const mapping = resolveGoalMapping(evaluation, lesson.goals, lesson.document.program);
+
+      const results = lesson.goals.map((g) => {
+        const context = { program: wrongProgram, evaluation };
+        return evaluateGoal(context, mapGoalIds(g, mapping));
+      });
+
+      // No goals should pass
+      expect(results.every((r) => !r.passed)).toBe(true);
+    }
   });
 });
