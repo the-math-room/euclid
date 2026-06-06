@@ -2,165 +2,281 @@
 
 ## Summary
 
-Started Euclid as a TypeScript geometry app for Euclidean constructions, with an explicit bias toward denotational design, LLM-assisted development, and small composable parts.
+Day 1 took Euclid from an empty project idea to a working TypeScript geometry app with a pure construction core, a React browser shell, SVG and Canvas rendering, interactive construction tools, dependency-aware evaluation, architecture guardrails, deployment, and LLM-oriented documentation.
 
-The first milestone established a working Vite/React app, a pure geometry core, agent-facing documentation, development tooling, tests, architecture guardrails, and GitHub Pages deployment.
+The central decision was made early and held through the day: a construction document has meaning independent of its presentation. Geometry owns construction meaning. Rendering interprets evaluated geometry into scene data. React composes the app and translates browser gestures into explicit commands.
 
-## Project Direction
+## Design Commitments
 
-The central design commitment is that a construction document has meaning independent of its presentation.
+The project started from a denotational design stance inspired by Conal Elliott: define what constructions mean first, then choose representations and algorithms that preserve that meaning.
 
-- Construction records are plain typed data.
+The practical commitments established today:
+
+- Construction records are plain, typed, serializable TypeScript data.
 - Geometry evaluation is deterministic and side-effect free.
+- Source order is not semantic order; dependency graph evaluation is explicit.
+- A construction can have meaning even when it has no current floating-point realization.
 - React interprets evaluated geometry; it does not define geometry semantics.
-- Dependency graph evaluation is first-class.
-- Import direction matters: the geometry core must not depend on the UI.
+- Package-layer functions should be memoizable in theory.
+- Browser, DOM, storage, network, time, randomness, and React effects belong in the app shell.
+- Import direction matters: `geometry` must not depend on document, rendering, or app code.
 - Generated outputs such as `dist/` and `node_modules/` stay outside version control.
 
-The user philosophy recorded so far: Unix-style tools, do one thing well, make the user powerful.
+The user philosophy recorded for the project: Unix-style tools, do one thing well, and make the user powerful.
 
-## Implementation Notes
+## Project Shape
 
-Created the initial Vite + React + TypeScript application.
+Created the initial Vite + React + TypeScript app, then quickly reshaped it into package-like layers without adding workspace tooling yet:
 
-Added the first geometry domain:
+- `packages/geometry/src`: construction syntax, dependency graph, exact meaning, approximate realization, pure edit commands, and geometry helpers.
+- `packages/document/src`: versioned document data, seed/example documents, codec boundary, and pure history wrappers.
+- `packages/rendering/src`: viewport projection, camera math, label layout, render scene construction, hit testing, and SVG/Canvas renderers.
+- `apps/web/src`: React composition, app state wiring, browser gesture interpretation, SVG/Canvas workspace surfaces, and controls.
+- `tests/architecture`: import and purity guardrails.
+
+Added package-style aliases and entrypoints:
+
+- `@euclid/geometry`
+- `@euclid/document`
+- `@euclid/rendering`
+
+Recorded the package-shaped layout in `docs/decisions/0002-package-shaped-layout.md`.
+
+## Geometry Core
+
+The first construction domain supports:
 
 - Free points.
 - Lines through two points.
 - Circles through a center point and point on the circumference.
+- Line-line intersections.
+- Line-circle intersections.
+- Circle-circle intersections.
 
-Added a seed construction rendered as SVG in the app workspace.
+Evaluation was refined from simple source-order traversal into explicit dependency graph evaluation. Forward references can work, while missing dependencies, duplicate IDs, cycles, and invalid dependencies produce diagnostics.
 
-Refined evaluation from source-order traversal into explicit dependency graph evaluation. This means forward references can work, while missing dependencies, duplicate IDs, cycles, and invalid point dependencies are reported as diagnostics.
+The geometry pipeline now has a clear meaning/realization split:
 
-Added architecture guardrail tests:
+- `evaluate.ts` handles graph planning and exact construction meaning extraction.
+- `realize.ts` handles approximate numeric realization into floating-point primitives.
+- `approx.ts` holds shared floating-point helpers such as line-line, line-circle, and circle-circle intersection routines.
 
-- Geometry code must not import React, React DOM, Lucide, or app modules.
-- App code must not import generated output such as `dist/` or `node_modules/`.
-- Construction programs must stay JSON-serializable.
-- Evaluation must be deterministic.
-- Evaluation must not mutate its input program.
+This separation matters because a line through coincident points still has authored meaning even if there is no realizable line to draw. Likewise, an intersection of parallel lines is still a valid construction expression even when no point can currently be realized.
 
-Split the scaffold into clearer layers:
+## Construction Edits
 
-- `packages/document/src` now owns versioned document data and the seed document.
-- `packages/rendering/src` now owns viewport projection and renderable scene descriptions.
-- `apps/web/src` now renders scene data through React/SVG rather than computing primitive projection directly.
-- `packages/geometry/src` no longer contains seed document data or viewport projection code.
+Extracted construction edits into `packages/geometry/src/edit.ts`.
 
-Strengthened import-boundary tests so geometry, document, and rendering code keep their dependency directions explicit.
+The edit module now owns:
 
-Reshaped the source tree toward a future monorepo/package split without adding workspace tooling yet:
+- `moveFreePoint`
+- `addLineThroughPoints`
+- `addCircleThroughPoints`
+- `addCircleThreePoints`
+- `addLineLineIntersection`
+- `addLineCircleIntersection`
+- `addCircleCircleIntersection`
 
-- `apps/web/src`.
-- `packages/geometry/src`.
-- `packages/document/src`.
-- `packages/rendering/src`.
-- `tests/architecture`.
+Point movement returns a `ConstructionProgram`. Construction-adding edits return command results shaped as `{ program, id, changed }`.
 
-Added package entrypoints at each `packages/*/src/index.ts` so cross-layer imports can begin behaving like package imports.
+That result contract was added after the app shell started accumulating local helpers to rediscover IDs after edits. Now the geometry edit layer returns the construction it created or found through duplicate detection, so `useConstructionController` does not duplicate canonicalization rules.
 
-Added package-style aliases:
+Edit results preserve the original `program` reference when nothing changes, which keeps history and React identity checks cheap.
 
-- `@euclid/geometry`.
-- `@euclid/document`.
-- `@euclid/rendering`.
+## Rendering And Interaction
 
-Recorded the package-shaped layout in `docs/decisions/0002-package-shaped-layout.md`.
+Rendering was split out of geometry early. The rendering package owns the viewport, camera, render scene construction, label placement, hit testing, and backend-neutral drawing.
+
+Added an algebraic 2D camera model:
+
+- `Viewport`
+- `ViewCamera`
+- `ScreenView`
+- pure camera operations for pan, zoom, and rotation
+
+Camera operations describe camera motion. Direct manipulation in the app shell adapts pointer deltas so dragging the scene makes the scene follow the pointer.
+
+The first view interactions included:
+
+- Selection.
+- Screen rotation as a rendering view transform.
+- Rotated grid and primitives.
+- Point labels that remain screen-facing instead of rotating with the construction plane.
+
+Added a Canvas renderer parallel to the SVG renderer. Both consume the same `RenderScene`, and tests keep the two rendering paths aligned.
+
+Line render items distinguish drawing geometry from intersection geometry:
+
+- `from` / `to`: the extended draw segment.
+- `supportLine`: the screen-space line used for infinite-line intersection math.
+
+This prevents test fixtures and production scenes from silently using different line semantics.
+
+## Label Layout
+
+Added optimization-based label placement in `packages/rendering/src/labelLayout.ts`.
+
+The layout engine evaluates 8 compass positions across 3 distance rings per label. It scores candidates against:
+
+- other point labels
+- point marks
+- line obstacles
+- circle obstacles
+- viewport bounds
+- visual association ambiguity
+
+The final placement uses greedy hill-climbing for multi-label coordination. Label layout is deliberately a rendering concern, not construction meaning.
+
+## Intersection Snapping
+
+Added screen-space construction snapping through `findIntersectionAtPosition`.
+
+The interaction layer now detects:
+
+- line-line intersections
+- line-circle intersections
+- circle-circle intersections
+
+It returns command-shaped discriminated hits:
+
+- `line-line-intersection`
+- `line-circle-intersection`
+- `circle-circle-intersection`
+
+This keeps the app shell from re-inferring operand kinds from render items or evaluated primitives.
+
+Circle-circle hit testing accounts for the flipped screen-space Y axis relative to world space when reporting `intersectionIndex`, so the constructed point matches the point the user tapped.
+
+## App Shell
+
+The web app started as a single broad component and was progressively split into focused shell modules.
+
+By the end of the day:
+
+- `App.tsx` is a composition root.
+- `useConstructionController.ts` owns construction history, tool state, selection, evaluation memoization, keyboard shortcuts, and construction-mutating callbacks.
+- `useCameraController.ts` owns camera interaction state and shell adapters.
+- `useWorkspaceGestures.ts` owns tap, pan, pinch, point drag, pointer capture cleanup, and command dispatch.
+- `workspaceCoordinates.ts` owns client-to-scene coordinate projection for workspace surfaces.
+- `WorkspaceView.tsx` composes SVG/Canvas workspace surfaces, renderer toggle, Canvas drawing, and the mobile HUD.
+- `construction/tools.ts` centralizes the `ActiveTool` union.
+- `ViewControls`, `ObjectList`, and `SelectionDetails` render focused UI panels.
+
+This moved construction semantics out of React components while still letting the app shell own browser-specific effects.
+
+## Interactive Editing
+
+Implemented the first interactive construction workflows:
+
+- Add point.
+- Build line through two points.
+- Build circle through a center and boundary point.
+- Build a circle from three points.
+- Construct curve intersections by tapping near crossings.
+- Use constructed intersection points as inputs for line and circle tools.
+- Select objects.
+- Toggle selection with `Ctrl+Click`.
+- Select object ranges with `Shift+Click`.
+- Delete selected objects.
+
+Deletion is dependency-aware. `deleteConstructions` uses `transitiveDependentsOf` to remove downstream dependent geometry along with the selected constructions.
+
+Free point dragging uses three command callbacks:
+
+- `onBeginPointDrag`
+- `onMovePoint`
+- `onEndPointDrag`
+
+During drag, the current program is updated without pushing a history entry for each move. At drag end, the pre-drag snapshot is pushed as one undo step. Constructed points are visually distinct and are not draggable.
+
+## Undo And Redo
+
+Added a pure-functional document history container in `packages/document/src/history.ts`.
+
+The app shell wires it to:
+
+- `Ctrl+Z`
+- `Ctrl+Y`
+- `Ctrl+Shift+Z`
+- macOS Command-key adapters
+
+History push skips identical program references, which works with the edit module's no-op identity rule.
+
+## SVG Gesture Hardening
+
+Fixed a stale SVG pointer-state bug found after constructing a line from both intersections of a pair of circles. Point dragging could stop working in SVG mode until switching to Canvas and back.
+
+The fix:
+
+- Explicitly releases pointer capture on `pointerup` and `pointercancel`.
+- Handles `lostpointercapture`.
+- Clears stale pointer state.
+- Ends any active point drag when pointer state is abandoned.
+- Adds a regression test for stale SVG pointer cleanup.
+
+This was the immediate motivation for extracting gesture interpretation into `useWorkspaceGestures`.
+
+## Persistence And Deployment
 
 Added a minimal document persistence boundary:
 
-- `serializeEuclidDocument`.
-- `parseEuclidDocument`.
+- `serializeEuclidDocument`
+- `parseEuclidDocument`
 
-The parser currently validates the document envelope and schema version without introducing a schema dependency.
+The parser validates the document envelope and schema version without introducing a schema dependency.
 
-Added LLM-oriented navigation docs:
+Configured GitHub Pages deployment through GitHub Actions. The app uses Vite `base: "/euclid/"`, builds on pushes to `main`, uploads `dist/`, and deploys through the official Pages artifact flow.
 
-- Package READMEs for geometry, document, rendering, and the web app.
-- `docs/llm/REPO_MAP.md` for attention routing.
-- `docs/how-to/add-a-construction.md` as the construction extension checklist.
+## Tooling And Guardrails
 
-Refactored architecture boundary tests around a declarative layer policy table so future layer changes are easier to review and extend.
+Added the development baseline:
 
-Made the pure-core, imperative-shell boundary explicit:
-
-- Package production code should be memoizable in theory.
-- Browser, DOM, storage, network, time, randomness, and React effects belong in `apps/web/src`.
-- Architecture tests now reject common ambient effects and module-level mutable state in package production code.
-
-Added the first view-level interactions:
-
-- Selection in the web shell.
-- Screen rotation as an explicit rendering view transform.
-- Rotated grid and primitives.
-- Point labels that remain oriented to the user instead of rotating with the construction plane.
-
-Rotation lives in `packages/rendering/src` as view interpretation, not in geometry construction meaning.
-
-Promoted pan, zoom, and rotation into an algebraic 2D camera model:
-
-- `Viewport`.
-- `ViewCamera`.
-- `ScreenView`.
-- pure camera operations for pan, zoom, and rotation.
-
-The app shell stores a camera and applies camera operations; rendering interprets evaluated geometry through the camera.
-
-Clarified camera pan semantics:
-
-- `moveCameraInScreen` describes camera motion.
-- Moving the camera left makes the scene appear to move right.
-- Dragging the scene in the app is direct manipulation, so the app shell negates drag deltas before applying camera motion.
-
-Split the web app shell into focused modules:
-
-- `useCameraController` owns camera interaction state and shell adapters.
-- `ViewControls` renders camera controls.
-- `ObjectList` renders selectable constructions.
-- `SelectionDetails` renders the selected construction inspector.
-- `App` is back to composition instead of owning every handler and panel.
-
-## Tooling
-
-Added the project development baseline:
-
-- ESLint.
-- Prettier.
-- Vitest.
-- `npm run check` as the main local verification command.
+- ESLint
+- Prettier
+- Vitest
+- `npm run check`
 
 `npm run check` runs linting, format checking, app typechecking, test typechecking, tests, and production build.
 
-Split TypeScript configuration after the first guardrail tests exposed a convenience shortcut:
+Split TypeScript configuration:
 
-- `tsconfig.base.json` holds shared strict compiler options.
-- `tsconfig.app.json` typechecks browser app code without Node or Vitest globals.
-- `tsconfig.test.json` typechecks tests with Node and Vitest types.
-- `tsconfig.json` is now a solution-style file referencing both app and test configs.
+- `tsconfig.base.json`: shared strict compiler options.
+- `tsconfig.app.json`: browser app code without Node or Vitest globals.
+- `tsconfig.test.json`: tests with Node and Vitest types.
+- `tsconfig.json`: solution-style references to app and test configs.
 
 Replaced an early regex-based import scanner with the TypeScript compiler parser so architecture tests inspect actual import/export syntax.
 
-## Documentation
+Architecture guardrails now enforce:
 
-Added documentation intended for both humans and LLM coding agents:
+- Geometry code must not import React, React DOM, Lucide, rendering, document, or app modules.
+- Document code must not import rendering or app modules.
+- Rendering code must not import document, app, React, DOM, or UI libraries.
+- App code must not import generated output such as `dist` or `node_modules`.
+- Package production code must avoid common ambient effects.
+- Package production code must avoid module-level mutable state.
+- Cross-package imports should use package entrypoints.
 
-- `AGENTS.md`.
-- `docs/llm/AGENT_GUIDE.md`.
-- `docs/architecture/denotational-design.md`.
-- `docs/decisions/0001-project-shape.md`.
+## Documentation For LLM-Assisted Development
 
-The first ADR records the current UI choice: React and SVG for the initial app, with the geometry core kept independent so Elm, hand-rolled UI, or another interpreter remains possible later.
+Added and refined documentation intended for both humans and LLM coding agents:
 
-## Deployment
+- `AGENTS.md`
+- `docs/llm/AGENT_GUIDE.md`
+- `docs/llm/REPO_MAP.md`
+- `docs/how-to/add-a-construction.md`
+- `docs/architecture/denotational-design.md`
+- `docs/architecture/layers.md`
+- `docs/architecture/pure-core.md`
+- package READMEs for geometry, document, rendering, and the web app
 
-Configured GitHub Pages deployment through GitHub Actions.
+The docs now route future changes by layer, state ownership boundaries, describe the construction extension path, and record the current app-shell split.
 
-The app uses Vite `base: "/euclid/"`, builds on pushes to `main`, uploads `dist/`, and deploys through the official Pages artifact flow.
+The first ADR records the initial UI choice: React and SVG for the first app, while keeping geometry independent enough that another UI interpreter remains possible later.
 
-## Validation
+## End-Of-Day Validation
 
-The latest verification passed:
+The final Day 1 verification passed:
 
 ```bash
 npm run check
@@ -172,104 +288,8 @@ Results:
 - Prettier format check passed.
 - App typecheck passed.
 - Test typecheck passed.
-- Vitest passed across evaluator, document, rendering, and architecture guardrails.
+- Vitest passed: 17 test files, 101 tests.
 - Production build passed.
-
-## Interactive Operations & Undo/Redo (Later on 2026-06-05)
-
-Implemented interactive drawing capabilities, cascading deletions, multi-renderer alignment, and a pure-functional Undo/Redo history container.
-
-### Dual-View Rendering & Event Handling:
-
-- Added a high-performance **HTML5 Canvas Renderer** parallel to the existing **SVG Renderer**, using common drawing abstractions (`packages/rendering/src/canvasRenderer.ts`).
-- Resolved click interaction edge-cases in SVG mode by lifting event handlers to the outer SVG viewport element and adding `overflow: visible` to prevent edge clipping.
-- Added mouse selection modifiers: `Ctrl+Click` toggles single objects in the selection set, and `Shift+Click` selects ranges of items.
-
-### Add/Delete Interactive Operations:
-
-- Implemented **Add Point** tool.
-- Implemented cascading **Delete Object(s)**. Traverses the dependency graph recursively via a pure `transitiveDependentsOf` helper (`packages/geometry/src/dependencies.ts`) to compute and remove downstream dependent geometry.
-- Added keyboard listener for the `Delete`/`Backspace` keys to trigger selection deletion.
-
-### Undo/Redo Architecture:
-
-- Designed a pure-functional document history snapshot engine in `packages/document/src/history.ts`.
-- Integrated global keyboard listener in the web app for `Ctrl+Z` / `Ctrl+Y` / `Ctrl+Shift+Z` (with macOS Command key adapters).
-- Grouped toolbar controls under **Modes** and **Edit** sub-sections with compact `36x36px` dimensions to prevent sidebar layout overflow.
-
-## Meaning/Realization Split, Intersections, Label Layout (Later on 2026-06-05)
-
-Significant architecture refinement and feature expansion.
-
-### Meaning vs. Realization
-
-Split `evaluate.ts` into two phases:
-
-- `evaluate.ts` handles topological ordering and exact meaning extraction.
-- `realize.ts` handles approximate numeric computation from constructions to floating-point primitives.
-
-This separation preserves the denotational principle: a construction's meaning (what it _is_) is independent of its approximate realization (what its coordinates _currently look like_). A construction can have meaning without a current realization — for example, a line through coincident points, or an intersection of parallel lines.
-
-### New Construction Type: Line-Line Intersection
-
-Added `line-line-intersection` as a full construction kind through the entire pipeline:
-
-- Model: new `Construction` variant with `lines` dependency pair.
-- Dependencies: extraction for the new kind.
-- Meaning: exact expression in `meaningFor`.
-- Realization: approximate intersection point via `lineLineIntersection` in `approx.ts`, with diagnostic for parallel lines.
-- Edit: `addLineLineIntersection` in `edit.ts` with idempotent duplicate detection.
-- Interaction: `findIntersectionAtPosition` in `interaction.ts` for tap-to-construct snapping.
-
-### Construction Edit Module
-
-Extracted pure `ConstructionProgram → ConstructionProgram` transformations into `edit.ts`:
-
-- `moveFreePoint`: relocates a free point, returns original program unchanged for no-ops.
-- `addLineThroughPoints`: stable dependency-based IDs, idempotent duplicate detection.
-- `addLineLineIntersection`: automatic label generation, duplicate detection.
-
-### Label Layout
-
-Added optimization-based label placement in `labelLayout.ts` (343 lines):
-
-- 8 compass positions × 3 distance rings per label.
-- Scoring against obstacles: points, lines, circles, viewport boundaries.
-- Association ambiguity penalty to keep labels visually near their home point.
-- Greedy hill-climbing for multi-label coordination.
-
-### Point Dragging
-
-Added free point dragging via three callbacks (`onBeginPointDrag`, `onMovePoint`, `onEndPointDrag`):
-
-- During drag, the program is updated in-place without pushing to history.
-- On drag end, the pre-drag snapshot is pushed to history as a single undo step.
-- Pinch-to-zoom cancels an active point drag.
-- Free vs. constructed point distinction: only free points are draggable.
-
-### Visual Distinctions
-
-Added `pointRole` (free vs. constructed) to render scene items. Free points use dark fill with gold stroke; constructed points use hollow fill with teal stroke. Both SVG and Canvas renderers handle the distinction.
-
-## App Shell Refactoring (Later on 2026-06-05)
-
-Extracted construction state management from `App.tsx` into `useConstructionController`:
-
-- `App.tsx` reduced from 450 lines to 153 lines of pure composition.
-- `useConstructionController` owns history, selection, tool modes, evaluation memoization, keyboard shortcuts, and all construction-mutating callbacks.
-- `App.tsx` is now a composition root that wires the controller and camera to JSX.
-
-This enforces the design principle that `App.tsx` should compose packages, not implement construction logic.
-
-## Documentation Pass (Later on 2026-06-05)
-
-Updated all documentation to reflect the current codebase state while preserving aspirational design principles:
-
-- `REPO_MAP.md`: added entries for `realize.ts`, `approx.ts`, `edit.ts`, `labelLayout.ts`, `interaction.ts`, `useConstructionController.ts`.
-- `AGENT_GUIDE.md`: added vocabulary for realization, edit operations, label layout, intersection snapping, point drag. Added rules for meaning/realization separation, edit module usage, and app shell architecture.
-- `denotational-design.md`: expanded with meaning/realization split, construction edits, label layout, interaction model, and aspirational design principles for exact arithmetic, composable programs, and multiple interpretations.
-- `add-a-construction.md`: expanded with explicit sections for meaning, realization, and edit operations.
-- Package READMEs: updated to describe all current modules and their responsibilities.
 
 ## Open Questions
 
@@ -278,5 +298,4 @@ Updated all documentation to reflect the current codebase state while preserving
 - What interaction model best fits powerful Euclidean construction: modal tools, command palette, direct manipulation, or a command language?
 - How visible should the dependency graph be to users?
 - At what point would React stop helping and start obscuring the core application model?
-- Should `lineThroughId` and `lineLineIntersectionId` in the construction controller move to `edit.ts` as pure query functions?
 - Should the label layout engine be deterministic enough to test exact placements, or is scoring-threshold testing sufficient?
