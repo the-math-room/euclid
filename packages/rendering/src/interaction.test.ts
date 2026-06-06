@@ -194,6 +194,6 @@ describe("interaction hit testing", () => {
     const hit = findIntersectionAtPosition(scene, { x: 51, y: 58 });
     expect(hit?.kind).toBe("intersection");
     expect(hit?.operands).toEqual(["circle-x", "circle-y"]);
-    expect(hit?.intersectionIndex).toBe(0); // The one with +y vector (y = 50 + sqrt(75))
+    expect(hit?.intersectionIndex).toBe(1); // The one with +y vector in screen space, inverted relative to world space
   });
 });

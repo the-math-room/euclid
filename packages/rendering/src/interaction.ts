@@ -96,13 +96,21 @@ function getIntersections(
     return pt ? [{ position: pt }] : [];
   }
   if (first.kind === "line" && second.kind === "circle") {
-    return lineCircleIntersections([first.from, first.to], second.center, second.radius).map((pt, idx) => ({
+    return lineCircleIntersections(
+      first.hitTestLine ?? [first.from, first.to],
+      second.center,
+      second.radius,
+    ).map((pt, idx) => ({
       position: pt,
       index: idx as 0 | 1,
     }));
   }
   if (first.kind === "circle" && second.kind === "line") {
-    return lineCircleIntersections([second.from, second.to], first.center, first.radius).map((pt, idx) => ({
+    return lineCircleIntersections(
+      second.hitTestLine ?? [second.from, second.to],
+      first.center,
+      first.radius,
+    ).map((pt, idx) => ({
       position: pt,
       index: idx as 0 | 1,
     }));
@@ -111,7 +119,8 @@ function getIntersections(
     const [c1, c2] = first.id < second.id ? [first, second] : [second, first];
     return circleCircleIntersections(c1.center, c1.radius, c2.center, c2.radius).map((pt, idx) => ({
       position: pt,
-      index: idx as 0 | 1,
+      // Invert the index because screen space coordinates have a flipped Y-axis relative to world space
+      index: (idx === 0 ? 1 : 0) as 0 | 1,
     }));
   }
   return [];
