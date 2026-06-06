@@ -1,34 +1,59 @@
 import { Circle, MousePointer2, Ruler, Waypoints, Undo2, Redo2, Trash2, Sliders } from "lucide-react";
-import { seedDocument } from "@euclid/document";
 import { evaluateConstruction } from "@euclid/geometry";
+import type { ConstructionProgram } from "@euclid/geometry";
+import { evaluateGoal } from "@euclid/assessment";
 import { defaultScreenViewFor, sceneForEvaluation } from "@euclid/rendering";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useConstructionController } from "./construction/useConstructionController";
 import { ObjectList } from "./objects/ObjectList";
 import { SelectionDetails } from "./objects/SelectionDetails";
 import { useCameraController } from "./view/useCameraController";
 import { ViewControls } from "./view/ViewControls";
 import { WorkspaceView } from "./WorkspaceView";
+import { lessons } from "./lessons/lessons";
+import { resolveGoalMapping, mapGoalIds } from "./lessons/assessmentResolver";
 
-const document = seedDocument;
-const evaluated = evaluateConstruction(document.program);
 const sceneSize = { width: 920, height: 620 };
-const defaultView = defaultScreenViewFor(evaluated, sceneSize);
 
-export function App() {
+type WorkspaceContainerProps = Readonly<{
+  activeLesson: (typeof lessons)[number];
+  activeLessonIndex: number;
+  setActiveLessonIndex: (index: number) => void;
+  activeProgram: ConstructionProgram;
+  onProgramChange: (program: ConstructionProgram) => void;
+  onResetLesson: () => void;
+  sizeScale: number;
+  setSizeScale: (s: number | ((prev: number) => number)) => void;
+  isDrawerExpanded: boolean;
+  setIsDrawerExpanded: (b: boolean) => void;
+}>;
+
+function WorkspaceContainer({
+  activeLesson,
+  activeLessonIndex,
+  setActiveLessonIndex,
+  activeProgram,
+  onProgramChange,
+  onResetLesson,
+  sizeScale,
+  setSizeScale,
+  isDrawerExpanded,
+  setIsDrawerExpanded,
+}: WorkspaceContainerProps) {
+  const defaultView = useMemo(() => {
+    const evaluatedStarter = evaluateConstruction(activeLesson.document.program);
+    return defaultScreenViewFor(evaluatedStarter, sceneSize);
+  }, [activeLesson]);
+
   const camera = useCameraController(defaultView);
+
   const construction = useConstructionController({
-    initialProgram: document.program,
+    initialProgram: activeProgram,
     camera: camera.camera,
     sceneSize,
+    policy: activeLesson.policy,
+    onProgramChange,
   });
-
-  const [sizeScale, setSizeScale] = useState(() => {
-    const isMobile = typeof window !== "undefined" && window.matchMedia("(max-width: 720px)").matches;
-    return isMobile ? 1.4 : 1.0;
-  });
-
-  const [isDrawerExpanded, setIsDrawerExpanded] = useState(false);
 
   const scene = useMemo(
     () =>
@@ -43,11 +68,36 @@ export function App() {
           isTransitioning: camera.isTransitioning,
         },
       ),
-    [construction.evaluated, camera.camera, sizeScale, camera.isTransitioning],
+    [construction.evaluated, defaultView.viewport, camera.camera, sizeScale, camera.isTransitioning],
   );
 
+  const goalResults = useMemo(() => {
+    const context = {
+      program: construction.program,
+      evaluation: construction.evaluated,
+    };
+    const mapping = resolveGoalMapping(
+      construction.evaluated,
+      activeLesson.goals,
+      activeLesson.document.program,
+    );
+    return activeLesson.goals.map((goal) => {
+      const mappedGoal = mapGoalIds(goal, mapping);
+      const result = evaluateGoal(context, mappedGoal);
+      return {
+        goal,
+        passed: result.passed,
+        message: result.message,
+      };
+    });
+  }, [construction.program, construction.evaluated, activeLesson.goals, activeLesson.document.program]);
+
+  const allGoalsPassed = useMemo(() => {
+    return goalResults.length > 0 && goalResults.every((r) => r.passed);
+  }, [goalResults]);
+
   return (
-    <main className={`app-shell ${isDrawerExpanded ? "drawer-expanded" : ""}`}>
+    <>
       <aside className="tool-panel" aria-label="Construction tools">
         <div className="brand">
           <Waypoints size={24} aria-hidden />
@@ -55,6 +105,35 @@ export function App() {
             <h1>Euclid</h1>
             <p>Denotational construction studio</p>
           </div>
+        </div>
+
+        <div className="lesson-selector-container">
+          <label htmlFor="lesson-select" className="toolbar-label">
+            Curriculum Activity
+          </label>
+          <div className="lesson-select-row">
+            <select
+              id="lesson-select"
+              className="lesson-select"
+              value={activeLessonIndex}
+              onChange={(e) => setActiveLessonIndex(Number(e.target.value))}
+            >
+              {lessons.map((lesson, idx) => (
+                <option key={idx} value={idx}>
+                  {lesson.title}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              className="reset-lesson-button"
+              onClick={onResetLesson}
+              title="Reset current activity to its original starter state"
+            >
+              Reset
+            </button>
+          </div>
+          {activeLesson.description && <p className="lesson-description">{activeLesson.description}</p>}
         </div>
 
         <div className="toolbar">
@@ -66,6 +145,7 @@ export function App() {
                 className={`tool-button ${construction.activeTool === "select" ? "active" : ""}`}
                 title="Select"
                 onClick={() => construction.setTool("select")}
+                disabled={!activeLesson.policy.allowedTools.includes("select")}
               >
                 <MousePointer2 size={16} aria-hidden />
               </button>
@@ -74,6 +154,7 @@ export function App() {
                 className={`tool-button ${construction.activeTool === "point" ? "active" : ""}`}
                 title="Point"
                 onClick={() => construction.setTool("point")}
+                disabled={!activeLesson.policy.allowedTools.includes("point")}
               >
                 <Waypoints size={16} aria-hidden />
               </button>
@@ -82,6 +163,7 @@ export function App() {
                 className={`tool-button ${construction.activeTool === "line" ? "active" : ""}`}
                 title="Line"
                 onClick={() => construction.setTool("line")}
+                disabled={!activeLesson.policy.allowedTools.includes("line")}
               >
                 <Ruler size={16} aria-hidden />
               </button>
@@ -90,6 +172,7 @@ export function App() {
                 className={`tool-button ${construction.activeTool === "circle" ? "active" : ""}`}
                 title="Circle"
                 onClick={() => construction.setTool("circle")}
+                disabled={!activeLesson.policy.allowedTools.includes("circle")}
               >
                 <Circle size={16} aria-hidden />
               </button>
@@ -133,7 +216,9 @@ export function App() {
                 type="button"
                 className="tool-button build-circle-button"
                 onClick={construction.handleBuildCircle}
-                disabled={!construction.canBuildCircle}
+                disabled={
+                  !construction.canBuildCircle || !activeLesson.policy.allowedTools.includes("circle")
+                }
                 title="Build Circle (Select 2 or 3 points)"
                 aria-label="Build Circle"
               >
@@ -150,6 +235,21 @@ export function App() {
               </button>
             </div>
           </div>
+
+          {goalResults.length > 0 && (
+            <div className="toolbar-section lesson-goals-section">
+              <h2 className="toolbar-label">Objectives</h2>
+              <div className="goals-list">
+                {goalResults.map(({ goal, passed, message }, index) => (
+                  <div key={index} className={`goal-item ${passed ? "passed" : ""}`}>
+                    <span className="goal-status">{passed ? "✓" : "○"}</span>
+                    <span className="goal-text">{goal.description ?? message}</span>
+                  </div>
+                ))}
+              </div>
+              {allGoalsPassed && <div className="lesson-success-banner">🎉 Activity Completed!</div>}
+            </div>
+          )}
         </div>
 
         <ViewControls camera={camera} sizeScale={sizeScale} onChangeSizeScale={setSizeScale} />
@@ -185,6 +285,65 @@ export function App() {
         constructions={construction.program.constructions}
         onDeleteSelected={construction.handleDeleteSelected}
         draftPreview={construction.draftPreview}
+      />
+    </>
+  );
+}
+
+export function App() {
+  const [activeLessonIndex, setActiveLessonIndex] = useState(0);
+  const activeLesson = lessons[activeLessonIndex];
+
+  const [lessonPrograms, setLessonPrograms] = useState<Record<number, ConstructionProgram>>({});
+  const [lessonVersions, setLessonVersions] = useState<Record<number, number>>({});
+
+  const activeProgram = useMemo(() => {
+    return lessonPrograms[activeLessonIndex] ?? activeLesson.document.program;
+  }, [activeLessonIndex, lessonPrograms, activeLesson]);
+
+  const handleProgramChange = useCallback(
+    (newProgram: ConstructionProgram) => {
+      setLessonPrograms((prev) => ({
+        ...prev,
+        [activeLessonIndex]: newProgram,
+      }));
+    },
+    [activeLessonIndex],
+  );
+
+  const handleResetLesson = useCallback(() => {
+    setLessonPrograms((prev) =>
+      Object.fromEntries(Object.entries(prev).filter(([key]) => Number(key) !== activeLessonIndex)),
+    );
+    setLessonVersions((prev) => ({
+      ...prev,
+      [activeLessonIndex]: (prev[activeLessonIndex] ?? 0) + 1,
+    }));
+  }, [activeLessonIndex]);
+
+  const lessonVersion = lessonVersions[activeLessonIndex] ?? 0;
+
+  const [sizeScale, setSizeScale] = useState(() => {
+    const isMobile = typeof window !== "undefined" && window.matchMedia("(max-width: 720px)").matches;
+    return isMobile ? 1.4 : 1.0;
+  });
+
+  const [isDrawerExpanded, setIsDrawerExpanded] = useState(false);
+
+  return (
+    <main className={`app-shell ${isDrawerExpanded ? "drawer-expanded" : ""}`}>
+      <WorkspaceContainer
+        key={`${activeLessonIndex}-${lessonVersion}`}
+        activeLesson={activeLesson}
+        activeLessonIndex={activeLessonIndex}
+        setActiveLessonIndex={setActiveLessonIndex}
+        activeProgram={activeProgram}
+        onProgramChange={handleProgramChange}
+        onResetLesson={handleResetLesson}
+        sizeScale={sizeScale}
+        setSizeScale={setSizeScale}
+        isDrawerExpanded={isDrawerExpanded}
+        setIsDrawerExpanded={setIsDrawerExpanded}
       />
     </main>
   );

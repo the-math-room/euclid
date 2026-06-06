@@ -44,6 +44,14 @@ function decodeEuclidLesson(value: unknown): LessonParseResult {
     return invalid("Lesson title must be a string.");
   }
 
+  let description: string | undefined = undefined;
+  if (value.description !== undefined) {
+    if (typeof value.description !== "string") {
+      return invalid("Lesson description must be a string.");
+    }
+    description = value.description;
+  }
+
   const starter = decodeStarterDocument(value.document);
   if (!starter.ok) {
     return invalid(...starter.diagnostics);
@@ -64,6 +72,7 @@ function decodeEuclidLesson(value: unknown): LessonParseResult {
     lesson: {
       schemaVersion: 1,
       title: value.title,
+      description,
       document: starter.starterDocument,
       policy: policy.policy,
       goals: goals.goals,

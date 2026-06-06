@@ -30,6 +30,8 @@ import type {
 import { unprojectPoint, worldFrameFor, type IntersectionHit, type ViewCamera } from "@euclid/rendering";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ActiveTool } from "./tools";
+import type { ActivityPolicy } from "@euclid/activity";
+import { canUseTool, canDeleteConstruction, canDragConstruction } from "@euclid/activity";
 
 export type ConstructionController = Readonly<{
   program: ConstructionProgram;
@@ -66,20 +68,33 @@ export function useConstructionController({
   initialProgram,
   camera,
   sceneSize,
+  policy,
+  onProgramChange,
 }: {
   initialProgram: ConstructionProgram;
   camera: ViewCamera;
   sceneSize: { width: number; height: number };
+  policy: ActivityPolicy;
+  onProgramChange?: (program: ConstructionProgram) => void;
 }): ConstructionController {
   const [history, setHistory] = useState(() => createHistory(initialProgram));
   const [selectedIds, setSelectedIds] = useState<ReadonlySet<ConstructionId>>(new Set());
   const [lastSelectedId, setLastSelectedId] = useState<ConstructionId | undefined>();
-  const [activeTool, setActiveTool] = useState<ActiveTool>("select");
+  const [activeTool, setActiveTool] = useState<ActiveTool>(() => {
+    const firstAllowed = policy.allowedTools.includes("select")
+      ? ("select" as ActiveTool)
+      : ((policy.allowedTools[0] as ActiveTool) ?? "select");
+    return firstAllowed;
+  });
   const [lineDraftPointId, setLineDraftPointId] = useState<ConstructionId | undefined>();
   const [circleDraftPointId, setCircleDraftPointId] = useState<ConstructionId | undefined>();
   const dragStartProgram = useRef<ConstructionProgram | undefined>(undefined);
 
   const program = history.present;
+
+  useEffect(() => {
+    onProgramChange?.(program);
+  }, [program, onProgramChange]);
 
   const evaluated = useMemo(() => evaluateConstruction(program), [program]);
 
@@ -93,29 +108,25 @@ export function useConstructionController({
     [evaluated.primitives],
   );
 
-  const freePointIds = useMemo(
-    () =>
-      new Set(
-        program.constructions
-          .filter((construction) => construction.kind === "free-point")
-          .map((construction) => construction.id),
-      ),
-    [program.constructions],
-  );
-
   const updateProgram = useCallback((nextProgram: { constructions: readonly Construction[] }) => {
     setHistory((prev) => pushState(prev, nextProgram));
   }, []);
 
-  const setTool = useCallback((tool: ActiveTool) => {
-    setActiveTool(tool);
-    if (tool !== "line") {
-      setLineDraftPointId(undefined);
-    }
-    if (tool !== "circle") {
-      setCircleDraftPointId(undefined);
-    }
-  }, []);
+  const setTool = useCallback(
+    (tool: ActiveTool) => {
+      if (!canUseTool(policy, tool)) {
+        return;
+      }
+      setActiveTool(tool);
+      if (tool !== "line") {
+        setLineDraftPointId(undefined);
+      }
+      if (tool !== "circle") {
+        setCircleDraftPointId(undefined);
+      }
+    },
+    [policy],
+  );
 
   const handleUndo = useCallback(() => {
     if (!canUndoHistory(history)) return;
@@ -371,9 +382,18 @@ export function useConstructionController({
     [activeTool, lineDraftPointId, circleDraftPointId, program, updateProgram],
   );
 
+  const canDragPoint = useCallback(
+    (id: ConstructionId) => {
+      const construction = program.constructions.find((c) => c.id === id);
+      if (!construction) return false;
+      return canDragConstruction(policy, construction);
+    },
+    [program.constructions, policy],
+  );
+
   const handleBeginPointDrag = useCallback(
     (id: ConstructionId) => {
-      if (!freePointIds.has(id)) {
+      if (!canDragPoint(id)) {
         return;
       }
 
@@ -381,10 +401,8 @@ export function useConstructionController({
       setSelectedIds(new Set([id]));
       setLastSelectedId(id);
     },
-    [freePointIds, history.present],
+    [canDragPoint, history.present],
   );
-
-  const canDragPoint = useCallback((id: ConstructionId) => freePointIds.has(id), [freePointIds]);
 
   const handleMovePoint = useCallback(
     (id: ConstructionId, sceneCoords: ScenePoint) => {
@@ -426,11 +444,15 @@ export function useConstructionController({
 
   const handleBeginShapeDrag = useCallback(
     (id: ConstructionId) => {
+      const construction = program.constructions.find((c) => c.id === id);
+      if (!construction || !canDragConstruction(policy, construction)) {
+        return;
+      }
       dragStartProgram.current = history.present;
       setSelectedIds(new Set([id]));
       setLastSelectedId(id);
     },
-    [history.present],
+    [program.constructions, policy, history.present],
   );
 
   const handleMoveShape = useCallback(
@@ -455,11 +477,13 @@ export function useConstructionController({
 
   const handleDeleteSelected = useCallback(() => {
     if (selectedIds.size === 0) return;
+    const deletableIds = new Set(Array.from(selectedIds).filter((id) => canDeleteConstruction(policy, id)));
+    if (deletableIds.size === 0) return;
     updateProgram({
-      constructions: deleteConstructions(program.constructions, selectedIds),
+      constructions: deleteConstructions(program.constructions, deletableIds),
     });
     clearSelection(setSelectedIds, setLastSelectedId);
-  }, [selectedIds, program.constructions, updateProgram]);
+  }, [selectedIds, program.constructions, updateProgram, policy]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {

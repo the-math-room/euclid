@@ -36,6 +36,12 @@ function decodeAssessmentGoal(value: unknown, path: string): AssessmentGoalParse
     return invalid(`${path}.kind must be a string.`);
   }
 
+  if (value.description !== undefined && typeof value.description !== "string") {
+    return invalid(`${path}.description must be a string when present.`);
+  }
+
+  const descriptionObj = value.description === undefined ? {} : { description: value.description };
+
   if (value.kind === "all" || value.kind === "any") {
     if (value.id !== undefined && typeof value.id !== "string") {
       return invalid(`${path}.id must be a string when present.`);
@@ -59,6 +65,7 @@ function decodeAssessmentGoal(value: unknown, path: string): AssessmentGoalParse
       goal: {
         kind: value.kind,
         ...(value.id === undefined ? {} : { id: value.id }),
+        ...descriptionObj,
         goals,
       },
     };
@@ -74,6 +81,7 @@ function decodeAssessmentGoal(value: unknown, path: string): AssessmentGoalParse
       goal: {
         kind: "construction-kind",
         constructionKind: value.constructionKind,
+        ...descriptionObj,
       },
     };
   }
@@ -96,6 +104,7 @@ function decodeAssessmentGoal(value: unknown, path: string): AssessmentGoalParse
         targetId: value.targetId,
         sourceId: value.sourceId,
         ...(value.transitive === undefined ? {} : { transitive: value.transitive }),
+        ...descriptionObj,
       },
     };
   }
@@ -116,6 +125,7 @@ function decodeAssessmentGoal(value: unknown, path: string): AssessmentGoalParse
         kind: "meaning",
         id: value.id,
         expression: expression.expression,
+        ...descriptionObj,
       },
     };
   }
@@ -139,6 +149,7 @@ function decodeAssessmentGoal(value: unknown, path: string): AssessmentGoalParse
         pointId: value.pointId,
         lineId: value.lineId,
         ...(tolerance.tolerance === undefined ? {} : { tolerance: tolerance.tolerance }),
+        ...descriptionObj,
       },
     };
   }
@@ -162,6 +173,7 @@ function decodeAssessmentGoal(value: unknown, path: string): AssessmentGoalParse
         pointId: value.pointId,
         circleId: value.circleId,
         ...(tolerance.tolerance === undefined ? {} : { tolerance: tolerance.tolerance }),
+        ...descriptionObj,
       },
     };
   }

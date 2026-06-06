@@ -662,3 +662,133 @@ button {
 .workspace-svg.tool-point .pan-surface {
   cursor: crosshair;
 }
+
+/* Lesson Curriculum Select and Goals List Styles */
+.lesson-selector-container {
+  padding-bottom: 8px;
+}
+
+.lesson-description {
+  margin: 8px 0 0;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: #aebdba;
+  opacity: 0.95;
+}
+
+.lesson-select-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 6px;
+}
+
+.lesson-select-row .lesson-select {
+  margin-top: 0;
+  flex: 1;
+}
+
+.reset-lesson-button {
+  background: #3a2727;
+  color: #fca5a5;
+  border: 1px solid #7f1d1d;
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
+}
+
+.reset-lesson-button:hover {
+  background: #451a1a;
+  border-color: #991b1b;
+}
+
+.reset-lesson-button:active {
+  background: #5c1d1d;
+}
+
+.lesson-select {
+  width: 100%;
+  padding: 8px 12px;
+  background: #1a2729;
+  color: #fbfaf6;
+  border: 1px solid #246a73;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.15s ease;
+  margin-top: 6px;
+}
+
+.lesson-select:focus,
+.lesson-select:hover {
+  border-color: #e3c057;
+}
+
+.lesson-goals-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.goals-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.goal-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: #8fa0a3;
+  padding: 6px 10px;
+  background: #1d2b2d;
+  border: 1px solid rgb(255 255 255 / 0.04);
+  border-radius: 6px;
+  line-height: 1.35;
+}
+
+.goal-item.passed {
+  color: #a3e635;
+  background: #1f3722;
+  border-color: #3f6212;
+}
+
+.goal-status {
+  font-weight: bold;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.lesson-success-banner {
+  margin-top: 4px;
+  padding: 12px;
+  background: #1f3d24;
+  color: #bef264;
+  border: 1px solid #3f6212;
+  border-radius: 6px;
+  font-weight: bold;
+  text-align: center;
+  animation: pulse 2s infinite ease-in-out;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.02);
+  }
+  100% {
+    transform: scale(1);
+  }
+}

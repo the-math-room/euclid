@@ -17,36 +17,43 @@ export type AssessmentGoal =
   | Readonly<{
       kind: "all";
       id?: string;
+      description?: string;
       goals: readonly AssessmentGoal[];
     }>
   | Readonly<{
       kind: "any";
       id?: string;
+      description?: string;
       goals: readonly AssessmentGoal[];
     }>
   | Readonly<{
       kind: "construction-kind";
+      description?: string;
       constructionKind: Construction["kind"];
     }>
   | Readonly<{
       kind: "dependency";
+      description?: string;
       targetId: ConstructionId;
       sourceId: ConstructionId;
       transitive?: boolean;
     }>
   | Readonly<{
       kind: "meaning";
+      description?: string;
       id: ConstructionId;
       expression: ConstructionExpression;
     }>
   | Readonly<{
       kind: "point-on-line";
+      description?: string;
       pointId: ConstructionId;
       lineId: ConstructionId;
       tolerance?: AssessmentTolerance;
     }>
   | Readonly<{
       kind: "point-on-circle";
+      description?: string;
       pointId: ConstructionId;
       circleId: ConstructionId;
       tolerance?: AssessmentTolerance;
