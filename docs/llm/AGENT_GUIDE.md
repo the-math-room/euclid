@@ -64,7 +64,9 @@ When changing behavior, inspect files in this order:
 
 ### Verification
 
-- **Mandatory Check Proposing**: Before declaring any task complete or asking for feedback, you MUST propose running `npm run check` using the `run_command` tool (set `SafeToAutoRun` to `false`) and wait for the user to approve and run it. Do not hand back code to the user until this check has run and passed.
+- **Automatic Prettier Formatting**: Immediately run `npx prettier --write <file>` after writing or modifying any file that is subject to the project's Prettier policy.
+- **Lightweight Intermediate Verification**: When modifying multiple files as part of an implementation plan, run a lightweight check (e.g., target typechecking with `npx tsc --noEmit` or running the specific test file affected via `npx vitest run <path_to_test>`) after each file modification before proceeding to the next file, to catch issues early without the overhead of a full workspace-wide check.
+- **Mandatory Final Verification**: Before declaring any task complete or asking for feedback, you MUST propose running `npm run check` using the `run_command` tool (set `SafeToAutoRun` to `false`) and wait for the user to approve and run it. Do not hand back code to the user until this check has run and passed.
 - **Static Code Audit**: If terminal execution tools are unavailable or fail, you MUST perform a manual static audit of all modified/new files:
   - **No Empty Arrow Functions**: Avoid `() => {}` in callbacks, mock handlers, or tests (use `vi.fn()` or include a comment inside like `// no-op` to satisfy `@typescript-eslint/no-empty-function`).
   - **Prettier Conformity**: Verify trailing commas, single quotes, and semicolons are consistent with formatting rules.
