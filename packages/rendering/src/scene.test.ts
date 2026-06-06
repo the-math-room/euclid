@@ -197,6 +197,44 @@ describe("sceneForEvaluation", () => {
       distance(pointIn(base, "A").mark, screenCenter) * 2,
     );
   });
+
+  it("clips infinite lines to the viewport when defining points are offscreen", () => {
+    const evaluation = evaluateConstruction({
+      constructions: [
+        {
+          id: "A",
+          kind: "free-point",
+          label: "A",
+          position: { x: -100, y: 0 },
+        },
+        {
+          id: "B",
+          kind: "free-point",
+          label: "B",
+          position: { x: -99, y: 0 },
+        },
+        {
+          id: "line-ab",
+          kind: "line-through",
+          label: "AB",
+          points: ["A", "B"],
+        },
+      ],
+    });
+    const scene = sceneForEvaluation(evaluation, {
+      viewport: { size: { width: 100, height: 100 } },
+      camera: {
+        center: { x: 0, y: 0 },
+        rotation: { turns: 0 },
+        scale: 10,
+        screenOffset: { x: 0, y: 0 },
+      },
+    });
+    const line = lineIn(scene, "line-ab");
+
+    expect(line.from).toEqual({ x: 0, y: 50 });
+    expect(line.to).toEqual({ x: 100, y: 50 });
+  });
 });
 
 type PointRenderItem = Extract<ReturnType<typeof sceneForEvaluation>["items"][number], { kind: "point" }>;
@@ -209,6 +247,18 @@ function pointIn(scene: ReturnType<typeof sceneForEvaluation>, id: string): Poin
   }
 
   return point;
+}
+
+type LineRenderItem = Extract<ReturnType<typeof sceneForEvaluation>["items"][number], { kind: "line" }>;
+
+function lineIn(scene: ReturnType<typeof sceneForEvaluation>, id: string): LineRenderItem {
+  const line = scene.items.find((item) => item.kind === "line" && item.id === id);
+
+  if (!line || line.kind !== "line") {
+    throw new Error("Expected line render item.");
+  }
+
+  return line;
 }
 
 function distance(a: { x: number; y: number }, b: { x: number; y: number }): number {

@@ -393,7 +393,6 @@ function RenderItemView({
     "aria-label": label,
     onClick: (e: React.MouseEvent) => {
       e.stopPropagation();
-      onSelect({ ctrlKey: e.ctrlKey, shiftKey: e.shiftKey });
     },
     onKeyDown: (e: React.KeyboardEvent) => {
       if (e.key === "Enter" || e.key === " ") {

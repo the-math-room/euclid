@@ -34,23 +34,34 @@ export function renderSceneToSvgString(scene: RenderScene, options: SvgRendererO
     const isSelected = selectedIds ? selectedIds.has(item.id) : item.id === selectedId;
     const baseClass = `primitive ${item.kind}`;
     const className = isSelected ? `${baseClass} selected` : baseClass;
+    const id = escapeXmlAttribute(item.id);
 
     if (item.kind === "point") {
-      parts.push(`  <g class="${className}" data-id="${item.id}">`);
+      parts.push(`  <g class="${className}" data-id="${id}">`);
       parts.push(`    <circle cx="${item.mark.x}" cy="${item.mark.y}" r="5" />`);
-      parts.push(`    <text x="${item.label.anchor.x}" y="${item.label.anchor.y}">${item.label.text}</text>`);
+      parts.push(
+        `    <text x="${item.label.anchor.x}" y="${item.label.anchor.y}">${escapeXmlText(item.label.text)}</text>`,
+      );
       parts.push("  </g>");
     } else if (item.kind === "line") {
       parts.push(
-        `  <line class="${className}" x1="${item.from.x}" y1="${item.from.y}" x2="${item.to.x}" y2="${item.to.y}" data-id="${item.id}" />`,
+        `  <line class="${className}" x1="${item.from.x}" y1="${item.from.y}" x2="${item.to.x}" y2="${item.to.y}" data-id="${id}" />`,
       );
     } else if (item.kind === "circle") {
       parts.push(
-        `  <circle class="${className}" cx="${item.center.x}" cy="${item.center.y}" r="${item.radius}" data-id="${item.id}" />`,
+        `  <circle class="${className}" cx="${item.center.x}" cy="${item.center.y}" r="${item.radius}" data-id="${id}" />`,
       );
     }
   }
 
   parts.push("</svg>");
   return parts.join("\n");
+}
+
+function escapeXmlText(value: string): string {
+  return value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+}
+
+function escapeXmlAttribute(value: string): string {
+  return escapeXmlText(value).replaceAll('"', "&quot;").replaceAll("'", "&apos;");
 }

@@ -127,15 +127,50 @@ function rangeInclusive(min: number, max: number, step: number): readonly number
 function extendLineToViewport(a: Point2, b: Point2, size: ViewportSize): readonly [Point2, Point2] {
   const dx = b.x - a.x;
   const dy = b.y - a.y;
-  const length = Math.hypot(dx, dy) || 1;
-  const ux = dx / length;
-  const uy = dy / length;
-  const span = Math.hypot(size.width, size.height);
+  const intersections: Point2[] = [];
 
-  return [
-    { x: a.x - ux * span, y: a.y - uy * span },
-    { x: a.x + ux * span, y: a.y + uy * span },
-  ];
+  if (dx !== 0) {
+    addIntersection(intersections, { x: 0, y: a.y + ((0 - a.x) / dx) * dy }, size);
+    addIntersection(intersections, { x: size.width, y: a.y + ((size.width - a.x) / dx) * dy }, size);
+  }
+
+  if (dy !== 0) {
+    addIntersection(intersections, { x: a.x + ((0 - a.y) / dy) * dx, y: 0 }, size);
+    addIntersection(intersections, { x: a.x + ((size.height - a.y) / dy) * dx, y: size.height }, size);
+  }
+
+  if (intersections.length >= 2) {
+    return [intersections[0], intersections[1]];
+  }
+
+  return [a, b];
+}
+
+function addIntersection(points: Point2[], point: Point2, size: ViewportSize): void {
+  const epsilon = 1e-9;
+  if (
+    point.x < -epsilon ||
+    point.x > size.width + epsilon ||
+    point.y < -epsilon ||
+    point.y > size.height + epsilon
+  ) {
+    return;
+  }
+
+  const clamped = {
+    x: clamp(point.x, 0, size.width),
+    y: clamp(point.y, 0, size.height),
+  };
+
+  if (points.some((existing) => distance(existing, clamped) < epsilon)) {
+    return;
+  }
+
+  points.push(clamped);
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(Math.max(value, min), max);
 }
 
 function distance(a: Point2, b: Point2): number {

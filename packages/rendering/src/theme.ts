@@ -22,7 +22,7 @@ export const THEME = {
 } as const;
 
 export const SVG_THEME_STYLES = `
-  svg.workspace-svg { background-color: ${THEME.colors.background}; }
+  svg.workspace-svg { background-color: ${THEME.colors.background}; user-select: none; -webkit-user-select: none; }
   svg.workspace-svg .grid line { stroke: ${THEME.colors.grid}; stroke-width: 1; pointer-events: none; }
   svg.workspace-svg .primitive { cursor: pointer; outline: none; }
   svg.workspace-svg .primitive.line { stroke: ${THEME.colors.line}; stroke-width: 2.5; fill: none; pointer-events: stroke; }

@@ -79,4 +79,23 @@ describe("svg renderer", () => {
       '<circle class="primitive circle selected" cx="200" cy="200" r="50" data-id="cr-C" />',
     );
   });
+
+  it("escapes XML-special characters in ids and labels", () => {
+    const scene: RenderScene = {
+      size: { width: 100, height: 100 },
+      grid: [],
+      items: [
+        {
+          id: `pt-"A"&'B'<C>`,
+          kind: "point",
+          mark: { x: 20, y: 30 },
+          label: { text: `A & B < C > D "quote" 'apostrophe'`, anchor: { x: 30, y: 20 } },
+        },
+      ],
+    };
+    const svgStr = renderSceneToSvgString(scene);
+
+    expect(svgStr).toContain(`data-id="pt-&quot;A&quot;&amp;&apos;B&apos;&lt;C&gt;"`);
+    expect(svgStr).toContain(`<text x="30" y="20">A &amp; B &lt; C &gt; D "quote" 'apostrophe'</text>`);
+  });
 });
