@@ -98,6 +98,8 @@ Start here:
 - `apps/web/src/WorkspaceView.tsx`
 - `apps/web/src/workspacePreview.ts`
 - `apps/web/src/WorkspaceContainer.tsx`
+- `apps/web/src/GestureController.ts`
+- `apps/web/src/useWorkspaceGestures.ts`
 
 ## Examples
 
@@ -131,6 +133,7 @@ npm run check
 
 ## Journal (Most Recent First)
 
+- `docs/journal/2026-06-06-lesson-authoring-and-gesture-decoupling.md` — visual lesson authoring panel, magic auto-detect algorithm, and GestureController decoupling.
 - `docs/journal/2026-06-06-parallel-perpendicular-midpoint.md` — parallel line, perpendicular line, and midpoint tools (full kernel-to-UI vertical slice).
 - `docs/journal/2026-06-06-day-2-summary.md` — Day 2 narrative summary.
 - `docs/journal/2026-06-06-generic-resolver-and-camera-pivot.md` — generic assessment resolver and camera pivot fix.
