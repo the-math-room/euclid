@@ -39,14 +39,15 @@ We integrated the extracted packages into the React application as a dynamic les
 
 ---
 
-## New Construction Tools & Tech Debt Resolution
+## New Construction Tools, Authoring System & Tech Debt Refactoring
 
-We added three new construction primitives to the core stack:
+We introduced new construction tools, a comprehensive lesson authoring system, and completed a major decoupling of our user interaction logic:
 
-- **Parallel Lines**: Renders a line through a witness point parallel to a reference line.
-- **Perpendicular Lines**: Renders a line through a witness point perpendicular `(-dy, dx)` to a reference line.
-- **Midpoints**: Computes the arithmetic mean of two parent point coordinates. Midpoint comparisons in assessment are order-independent.
-- **Declarative Gesture Policies**: Resolved pointer targeting bugs (e.g. duplicate point aliases when clicking near intersections) by introducing `ConstructionToolGesturePolicy` configuration tables in `apps/web/src/construction/tools.ts`. The gesture controller looks up priority lists (e.g., preferring existing points, lines, intersections, or empty space) per-tool rather than using nested conditional branches.
+- **Parallel Lines, Perpendicular Lines & Midpoints**: Added parallel lines (witness point + ref line), perpendicular lines, and midpoints. Midpoint comparisons in assessment are order-independent.
+- **Declarative Gesture Policies**: Solved pointer targeting bugs (e.g. duplicate point aliases when clicking near intersections) by introducing `ConstructionToolGesturePolicy` configurations.
+- **Dynamic Lesson Payloads**: Implemented base64url lesson data compression (`?lessonData=`) and remote URL lesson loader (`?lessonUrl=`). Serializer uses environment-agnostic `atob`/`btoa` helpers in `packages/lesson/src/codec.ts` instead of Node globals.
+- **Visual Authoring & Magic Auto-Detect**: Added a visual `AuthoringPanel` for setting lesson details, permitted tools, and policies. It leverages dependency graph analysis to auto-classify free-points as locked starters and terminal leaves as goals. Enables canvas-driven assignments directly on active shape selection.
+- **Pure Gesture Controller**: Refactored the monolithic, 447-line `useWorkspaceGestures.ts` hook. Extracted a framework-agnostic `GestureController` class to manage multi-pointer interactions, coordinate panning, scaling, and tool selection. `useWorkspaceGestures` was reduced to a shallow React event adapter that updates and calls the controller lazily inside event listeners, fully satisfying strict React hooks rules.
 
 ---
 
@@ -56,6 +57,7 @@ By the end of Day 2, the package dependency stack is organized as follows:
 
 ```
 apps/web
+  ├── GestureController & useWorkspaceGestures (separated interactions)
   └── @euclid/lesson
         ├── @euclid/activity
         ├── @euclid/assessment
@@ -68,4 +70,4 @@ apps/web
 
 The core is side-effect-free, serializable, and fully testable in Node.js environments.
 
-**Status**: 185 tests passing. Production build succeeding.
+**Status**: 194 tests passing. Production build succeeding. All linting and formatting rules clean.
