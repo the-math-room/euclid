@@ -792,3 +792,223 @@ button {
     transform: scale(1);
   }
 }
+
+/* Authoring Panel Styles */
+.authoring-panel {
+  background: #182224;
+  border: 1px dashed #246a73;
+  border-radius: 8px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.authoring-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgb(255 255 255 / 0.08);
+  padding-bottom: 8px;
+}
+
+.authoring-header h3 {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: bold;
+  color: #34d399;
+}
+
+.close-authoring-btn {
+  background: transparent;
+  border: none;
+  color: #aebdba;
+  cursor: pointer;
+  font-size: 0.9rem;
+  padding: 4px;
+}
+
+.close-authoring-btn:hover {
+  color: #fca5a5;
+}
+
+.authoring-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.authoring-field label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #e3c057;
+}
+
+.authoring-field input[type="text"],
+.authoring-field textarea,
+.authoring-field select {
+  background: #0f1618;
+  color: #fbfaf6;
+  border: 1px solid rgb(255 255 255 / 0.15);
+  border-radius: 4px;
+  padding: 6px 10px;
+  font-size: 0.8rem;
+  font-family: inherit;
+}
+
+.authoring-field input[type="text"]:focus,
+.authoring-field textarea:focus,
+.authoring-field select:focus {
+  border-color: #246a73;
+  outline: none;
+}
+
+.authoring-row {
+  display: flex;
+  gap: 12px;
+}
+
+.authoring-row > .authoring-field {
+  flex: 1;
+}
+
+.auth-tools-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+  padding: 4px 0;
+}
+
+.auth-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem !important;
+  color: #fbfaf6 !important;
+  cursor: pointer;
+}
+
+.auth-helper {
+  font-size: 0.7rem;
+  color: #8fa0a3;
+  margin: 0 0 4px;
+}
+
+.auth-constructions-list {
+  background: #0f1618;
+  border: 1px solid rgb(255 255 255 / 0.08);
+  border-radius: 4px;
+  max-height: 140px;
+  overflow-y: auto;
+}
+
+.auth-empty {
+  padding: 12px;
+  text-align: center;
+  font-size: 0.75rem;
+  color: #8fa0a3;
+}
+
+.auth-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.75rem;
+}
+
+.auth-table th,
+.auth-table td {
+  padding: 6px 8px;
+  text-align: left;
+}
+
+.auth-table th {
+  background: #141d1f;
+  color: #8fa0a3;
+  font-weight: 600;
+  border-bottom: 1px solid rgb(255 255 255 / 0.08);
+}
+
+.auth-table tr:not(:last-child) td {
+  border-bottom: 1px solid rgb(255 255 255 / 0.04);
+}
+
+.auth-badge {
+  display: inline-block;
+  padding: 2px 4px;
+  border-radius: 3px;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  font-weight: bold;
+}
+
+.auth-badge.kind-free-point {
+  background: #1e3a8a;
+  color: #93c5fd;
+}
+.auth-badge.kind-line-through {
+  background: #065f46;
+  color: #6ee7b7;
+}
+.auth-badge.kind-circle-through {
+  background: #7c2d12;
+  color: #fdba74;
+}
+.auth-badge.kind-line-line-intersection,
+.auth-badge.kind-line-circle-intersection,
+.auth-badge.kind-circle-circle-intersection {
+  background: #5b21b6;
+  color: #ddd6fe;
+}
+.auth-badge.kind-parallel-line {
+  background: #854d0e;
+  color: #fef08a;
+}
+.auth-badge.kind-perpendicular-line {
+  background: #991b1b;
+  color: #fecaca;
+}
+.auth-badge.kind-midpoint {
+  background: #3730a3;
+  color: #c7d2fe;
+}
+
+.auth-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.auth-btn {
+  flex: 1;
+  padding: 8px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.15s;
+}
+
+.auth-btn.primary {
+  background: #059669;
+  color: #ffffff;
+}
+
+.auth-btn.primary:hover:not(:disabled) {
+  background: #047857;
+}
+
+.auth-btn.secondary {
+  background: #1f2937;
+  color: #e5e7eb;
+  border-color: #374151;
+}
+
+.auth-btn.secondary:hover:not(:disabled) {
+  background: #374151;
+}
+
+.auth-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}

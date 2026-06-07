@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { readOnlyActivityPolicy } from "@euclid/activity";
 import { seedDocument } from "@euclid/document";
-import { parseEuclidLesson, serializeEuclidLesson } from "./codec";
+import {
+  parseEuclidLesson,
+  serializeEuclidLesson,
+  compressLessonToUrlPayload,
+  decompressLessonFromUrlPayload,
+} from "./codec";
 import type { EuclidLesson } from "./model";
 
 const lesson: EuclidLesson = {
@@ -126,5 +131,14 @@ describe("lesson codec", () => {
       ok: false,
       diagnostics: ["Lesson document: Document program must contain a constructions array."],
     });
+  });
+
+  it("compresses and decompresses a lesson from/to URL payload successfully", () => {
+    const payload = compressLessonToUrlPayload(lesson);
+    expect(typeof payload).toBe("string");
+    expect(payload.length).toBeGreaterThan(0);
+
+    const decompressed = decompressLessonFromUrlPayload(payload);
+    expect(decompressed).toEqual(lesson);
   });
 });

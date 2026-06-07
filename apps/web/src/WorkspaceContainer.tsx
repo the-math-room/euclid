@@ -15,24 +15,27 @@ import { evaluateConstruction } from "@euclid/geometry";
 import type { ConstructionProgram } from "@euclid/geometry";
 import { evaluateGoal, mapGoalIds, resolveGoalMapping } from "@euclid/assessment";
 import { defaultScreenViewFor, sceneForEvaluation } from "@euclid/rendering";
-import { useMemo } from "react";
+import { useMemo, useState, useCallback } from "react";
 import { useConstructionController } from "./construction/useConstructionController";
 import { ObjectList } from "./objects/ObjectList";
 import { SelectionDetails } from "./objects/SelectionDetails";
 import { useCameraController } from "./view/useCameraController";
 import { ViewControls } from "./view/ViewControls";
 import { WorkspaceView } from "./WorkspaceView";
-import { lessons } from "./lessons/lessons";
+import { parseEuclidLesson, type EuclidLesson } from "@euclid/lesson";
+import { AuthoringPanel } from "./lessons/AuthoringPanel";
 
 const sceneSize = { width: 920, height: 620 };
 
 export type WorkspaceContainerProps = Readonly<{
-  activeLesson: (typeof lessons)[number];
+  lessons: readonly EuclidLesson[];
+  activeLesson: EuclidLesson;
   activeLessonIndex: number;
   setActiveLessonIndex: (index: number) => void;
   activeProgram: ConstructionProgram;
   onProgramChange: (program: ConstructionProgram) => void;
   onResetLesson: () => void;
+  onLoadCustomLesson: (lesson: EuclidLesson) => void;
   sizeScale: number;
   setSizeScale: (s: number | ((prev: number) => number)) => void;
   isDrawerExpanded: boolean;
@@ -40,17 +43,43 @@ export type WorkspaceContainerProps = Readonly<{
 }>;
 
 export function WorkspaceContainer({
+  lessons,
   activeLesson,
   activeLessonIndex,
   setActiveLessonIndex,
   activeProgram,
   onProgramChange,
   onResetLesson,
+  onLoadCustomLesson,
   sizeScale,
   setSizeScale,
   isDrawerExpanded,
   setIsDrawerExpanded,
 }: WorkspaceContainerProps) {
+  const [isAuthoringOpen, setIsAuthoringOpen] = useState(false);
+
+  const handleFileUpload = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const text = event.target?.result;
+        if (typeof text !== "string") return;
+
+        const parsed = parseEuclidLesson(text);
+        if (parsed.ok) {
+          onLoadCustomLesson(parsed.lesson);
+        } else {
+          alert("Invalid lesson JSON:\n" + parsed.diagnostics.join("\n"));
+        }
+      };
+      reader.readAsText(file);
+    },
+    [onLoadCustomLesson],
+  );
+
   const defaultView = useMemo(() => {
     const evaluatedStarter = evaluateConstruction(activeLesson.document.program);
     return defaultScreenViewFor(evaluatedStarter, sceneSize);
@@ -148,8 +177,49 @@ export function WorkspaceContainer({
               Reset
             </button>
           </div>
+          <div className="lesson-action-row" style={{ display: "flex", gap: "8px", marginTop: "8px" }}>
+            <input
+              type="file"
+              id="custom-lesson-file"
+              style={{ display: "none" }}
+              accept=".json"
+              onChange={handleFileUpload}
+            />
+            <button
+              type="button"
+              className="reset-lesson-button"
+              style={{ flex: 1, textAlign: "center" }}
+              onClick={() => document.getElementById("custom-lesson-file")?.click()}
+              title="Load a custom lesson JSON file"
+            >
+              Load Lesson
+            </button>
+            <button
+              type="button"
+              className="reset-lesson-button author-button"
+              style={{
+                flex: 1,
+                textAlign: "center",
+                background: "#1b2c28",
+                color: "#34d399",
+                borderColor: "#065f46",
+              }}
+              onClick={() => setIsAuthoringOpen(!isAuthoringOpen)}
+              title="Toggle Lesson Authoring tool"
+            >
+              {isAuthoringOpen ? "Close Author" : "Author Lesson"}
+            </button>
+          </div>
           {activeLesson.description && <p className="lesson-description">{activeLesson.description}</p>}
         </div>
+
+        {isAuthoringOpen && (
+          <AuthoringPanel
+            program={construction.program}
+            selectedIds={construction.selectedIds}
+            onClose={() => setIsAuthoringOpen(false)}
+          />
+        )}
 
         <div className="toolbar">
           <div className="toolbar-section">

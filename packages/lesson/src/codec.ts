@@ -292,3 +292,24 @@ function goalsInvalid(...diagnostics: readonly string[]): GoalsDecodeResult {
     diagnostics,
   };
 }
+
+export function compressLessonToUrlPayload(lesson: EuclidLesson): string {
+  const jsonStr = JSON.stringify(lesson);
+  // Using standard base64 url-safe encoding
+  const base64 = btoa(unescape(encodeURIComponent(jsonStr)));
+  return base64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+export function decompressLessonFromUrlPayload(payload: string): EuclidLesson {
+  // Pad with '=' to make valid base64
+  let base64 = payload.replace(/-/g, "+").replace(/_/g, "/");
+  while (base64.length % 4) {
+    base64 += "=";
+  }
+  const jsonStr = decodeURIComponent(escape(atob(base64)));
+  const result = decodeEuclidLesson(JSON.parse(jsonStr));
+  if (!result.ok) {
+    throw new Error(`Invalid decompressed lesson: ${result.diagnostics.join(", ")}`);
+  }
+  return result.lesson;
+}
