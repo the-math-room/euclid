@@ -133,6 +133,7 @@ npm run check
 
 ## Journal (Most Recent First)
 
+- `docs/journal/2026-06-07-architectural-precepts.md` — architectural precepts codifying design philosophy (denotational design, UI interpretation, branded types, and extensibility).
 - `docs/journal/2026-06-06-lesson-authoring-and-gesture-decoupling.md` — visual lesson authoring panel, magic auto-detect algorithm, and GestureController decoupling.
 - `docs/journal/2026-06-06-parallel-perpendicular-midpoint.md` — parallel line, perpendicular line, and midpoint tools (full kernel-to-UI vertical slice).
 - `docs/journal/2026-06-06-day-2-summary.md` — Day 2 narrative summary.
