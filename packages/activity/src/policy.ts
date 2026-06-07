@@ -10,7 +10,8 @@ export const activityTools = [
   "midpoint",
 ] as const;
 
-export type ActivityTool = (typeof activityTools)[number];
+export type BuiltInActivityTool = (typeof activityTools)[number];
+export type ActivityTool = string;
 
 export type DragPolicy = "none" | "free-points" | "all";
 
@@ -38,19 +39,23 @@ export const readOnlyActivityPolicy: ActivityPolicy = {
   shapeDrag: "none",
 };
 
-export function canUseTool(policy: ActivityPolicy, tool: ActivityTool): boolean {
+export function canUseTool(policy: ActivityPolicy, tool: string): boolean {
   return policy.allowedTools.includes(tool);
 }
 
 export function allowedToolsInOrder(
   policy: ActivityPolicy,
-  tools: readonly ActivityTool[] = activityTools,
+  tools: readonly string[] = activityTools,
 ): readonly ActivityTool[] {
   return tools.filter((tool) => canUseTool(policy, tool));
 }
 
+export function isBuiltInActivityTool(value: unknown): value is BuiltInActivityTool {
+  return typeof value === "string" && activityTools.includes(value as BuiltInActivityTool);
+}
+
 export function isActivityTool(value: unknown): value is ActivityTool {
-  return typeof value === "string" && activityTools.includes(value as ActivityTool);
+  return typeof value === "string" && value.trim().length > 0;
 }
 
 export function isConstructionLocked(policy: ActivityPolicy, id: ConstructionId): boolean {

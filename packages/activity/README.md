@@ -34,14 +34,14 @@ Functions in this package should be memoizable in theory.
 
 The package entrypoint uses explicit named exports. Treat these groups as the intentional activity surface:
 
-- Policy model: `ActivityPolicy`, `ActivityTool`, `DragPolicy`.
-- Tool source of truth: `activityTools`, `isActivityTool`.
+- Policy model: `ActivityPolicy`, `ActivityTool`, `BuiltInActivityTool`, `DragPolicy`.
+- Built-in tool source of truth: `activityTools`, `isBuiltInActivityTool`.
 - Reference policies: `openActivityPolicy`, `readOnlyActivityPolicy`.
 - Policy helpers: `canUseTool`, `allowedToolsInOrder`, `isConstructionLocked`, `canDeleteConstruction`, `canDragConstruction`.
 
-`ActivityTool` is derived from the exported `activityTools` tuple. The `openActivityPolicy` enables all tools from that tuple. Curriculum-specific policies restrict the set by listing only the tools relevant to the activity.
+`ActivityTool` is any non-empty string tool id so host products and future user-defined tools can flow through lesson policy without changing this package. `BuiltInActivityTool` is derived from the exported `activityTools` tuple. The `openActivityPolicy` enables all built-in tools from that tuple. Curriculum-specific policies restrict the set by listing only the tools relevant to the activity.
 
-Use `isActivityTool` at JSON or plugin boundaries instead of duplicating string checks in another package.
+Use `isActivityTool` at JSON or plugin boundaries when validating generic tool ids. Use `isBuiltInActivityTool` only when code specifically needs to know whether the current reference implementation can interpret the tool.
 
 Do not add wildcard exports to `src/index.ts`. New public exports should be named intentionally.
 

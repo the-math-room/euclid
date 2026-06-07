@@ -10,6 +10,7 @@ import {
   Equal,
   BetweenHorizonalEnd,
   Milestone,
+  type LucideIcon,
 } from "lucide-react";
 import { evaluateConstruction } from "@euclid/geometry";
 import type { ConstructionProgram } from "@euclid/geometry";
@@ -24,8 +25,19 @@ import { ViewControls } from "./view/ViewControls";
 import { WorkspaceView } from "./WorkspaceView";
 import { parseEuclidLesson, type EuclidLesson } from "@euclid/lesson";
 import { AuthoringPanel } from "./lessons/AuthoringPanel";
+import { constructionToolDescriptors, type ToolIconName } from "./construction/tools";
 
 const sceneSize = { width: 920, height: 620 };
+
+const toolbarIcons = {
+  select: MousePointer2,
+  point: Waypoints,
+  line: Ruler,
+  circle: Circle,
+  parallel: Equal,
+  perpendicular: BetweenHorizonalEnd,
+  midpoint: Milestone,
+} satisfies Record<ToolIconName, LucideIcon>;
 
 export type WorkspaceContainerProps = Readonly<{
   lessons: readonly EuclidLesson[];
@@ -225,69 +237,22 @@ export function WorkspaceContainer({
           <div className="toolbar-section">
             <h2 className="toolbar-label">Modes</h2>
             <nav className="toolbar-buttons" aria-label="Drawing Modes">
-              <button
-                type="button"
-                className={`tool-button ${construction.activeTool === "select" ? "active" : ""}`}
-                title="Select"
-                onClick={() => construction.setTool("select")}
-                disabled={!activeLesson.policy.allowedTools.includes("select")}
-              >
-                <MousePointer2 size={16} aria-hidden />
-              </button>
-              <button
-                type="button"
-                className={`tool-button ${construction.activeTool === "point" ? "active" : ""}`}
-                title="Point"
-                onClick={() => construction.setTool("point")}
-                disabled={!activeLesson.policy.allowedTools.includes("point")}
-              >
-                <Waypoints size={16} aria-hidden />
-              </button>
-              <button
-                type="button"
-                className={`tool-button ${construction.activeTool === "line" ? "active" : ""}`}
-                title="Line"
-                onClick={() => construction.setTool("line")}
-                disabled={!activeLesson.policy.allowedTools.includes("line")}
-              >
-                <Ruler size={16} aria-hidden />
-              </button>
-              <button
-                type="button"
-                className={`tool-button ${construction.activeTool === "circle" ? "active" : ""}`}
-                title="Circle"
-                onClick={() => construction.setTool("circle")}
-                disabled={!activeLesson.policy.allowedTools.includes("circle")}
-              >
-                <Circle size={16} aria-hidden />
-              </button>
-              <button
-                type="button"
-                className={`tool-button ${construction.activeTool === "parallel" ? "active" : ""}`}
-                title="Parallel Line"
-                onClick={() => construction.setTool("parallel")}
-                disabled={!activeLesson.policy.allowedTools.includes("parallel")}
-              >
-                <Equal size={16} aria-hidden style={{ transform: "rotate(45deg)" }} />
-              </button>
-              <button
-                type="button"
-                className={`tool-button ${construction.activeTool === "perpendicular" ? "active" : ""}`}
-                title="Perpendicular Line"
-                onClick={() => construction.setTool("perpendicular")}
-                disabled={!activeLesson.policy.allowedTools.includes("perpendicular")}
-              >
-                <BetweenHorizonalEnd size={16} aria-hidden />
-              </button>
-              <button
-                type="button"
-                className={`tool-button ${construction.activeTool === "midpoint" ? "active" : ""}`}
-                title="Midpoint"
-                onClick={() => construction.setTool("midpoint")}
-                disabled={!activeLesson.policy.allowedTools.includes("midpoint")}
-              >
-                <Milestone size={16} aria-hidden />
-              </button>
+              {constructionToolDescriptors.map((tool) => {
+                const Icon = toolbarIcons[tool.icon];
+                const iconStyle = tool.icon === "parallel" ? { transform: "rotate(45deg)" } : undefined;
+                return (
+                  <button
+                    key={tool.id}
+                    type="button"
+                    className={`tool-button ${construction.activeTool === tool.id ? "active" : ""}`}
+                    title={tool.label}
+                    onClick={() => construction.setTool(tool.id)}
+                    disabled={!activeLesson.policy.allowedTools.includes(tool.id)}
+                  >
+                    <Icon size={16} aria-hidden style={iconStyle} />
+                  </button>
+                );
+              })}
             </nav>
           </div>
 

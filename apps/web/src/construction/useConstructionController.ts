@@ -24,6 +24,7 @@ import type {
 } from "@euclid/geometry";
 import { unprojectPoint, worldFrameFor, type IntersectionHit, type ViewCamera } from "@euclid/rendering";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { firstRegisteredTool } from "./tools";
 import type { ActiveTool } from "./tools";
 import { resolvePointInput, type PointInput, type ResolvedPointInput } from "./pointInput";
 import { deletableSelectionClosure } from "./deleteSelection";
@@ -84,10 +85,7 @@ export function useConstructionController({
   const [selectedIds, setSelectedIds] = useState<ReadonlySet<ConstructionId>>(new Set());
   const [lastSelectedId, setLastSelectedId] = useState<ConstructionId | undefined>();
   const [activeTool, setActiveTool] = useState<ActiveTool>(() => {
-    const firstAllowed = policy.allowedTools.includes("select")
-      ? ("select" as ActiveTool)
-      : ((policy.allowedTools[0] as ActiveTool) ?? "select");
-    return firstAllowed;
+    return firstRegisteredTool(policy.allowedTools);
   });
   const [toolDraft, setToolDraft] = useState<ToolDraft>(emptyToolDraft);
   const dragStartProgram = useRef<ConstructionProgram | undefined>(undefined);

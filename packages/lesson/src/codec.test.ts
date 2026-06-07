@@ -80,7 +80,7 @@ describe("lesson codec", () => {
     });
   });
 
-  it("rejects invalid activity policy tools", () => {
+  it("accepts extension activity policy tools", () => {
     expect(
       parseEuclidLesson(
         JSON.stringify({
@@ -91,9 +91,25 @@ describe("lesson codec", () => {
           },
         }),
       ),
+    ).toMatchObject({
+      ok: true,
+    });
+  });
+
+  it("rejects invalid activity policy tool ids", () => {
+    expect(
+      parseEuclidLesson(
+        JSON.stringify({
+          ...lesson,
+          policy: {
+            ...lesson.policy,
+            allowedTools: ["select", ""],
+          },
+        }),
+      ),
     ).toEqual({
       ok: false,
-      diagnostics: ["Lesson policy.allowedTools[1] must be an activity tool."],
+      diagnostics: ["Lesson policy.allowedTools[1] must be a non-empty tool id."],
     });
   });
 

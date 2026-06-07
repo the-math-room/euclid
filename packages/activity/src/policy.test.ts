@@ -5,6 +5,7 @@ import {
   canDeleteConstruction,
   canDragConstruction,
   canUseTool,
+  isBuiltInActivityTool,
   isActivityTool,
   isConstructionLocked,
   openActivityPolicy,
@@ -90,7 +91,10 @@ describe("activity policy", () => {
   });
 
   it("validates activity tools from the shared source of truth", () => {
+    expect(activityTools.every((tool) => isBuiltInActivityTool(tool))).toBe(true);
     expect(activityTools.every((tool) => isActivityTool(tool))).toBe(true);
-    expect(isActivityTool("measure")).toBe(false);
+    expect(isBuiltInActivityTool("measure")).toBe(false);
+    expect(isActivityTool("measure")).toBe(true);
+    expect(isActivityTool("")).toBe(false);
   });
 });

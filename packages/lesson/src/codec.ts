@@ -180,7 +180,7 @@ function decodeActivityTools(value: unknown, path: string): ActivityToolsDecodeR
   const tools: ActivityTool[] = [];
   for (const [index, tool] of value.entries()) {
     if (!isActivityTool(tool)) {
-      return activityToolsInvalid(`${path}[${index}] must be an activity tool.`);
+      return activityToolsInvalid(`${path}[${index}] must be a non-empty tool id.`);
     }
     tools.push(tool);
   }

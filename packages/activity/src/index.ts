@@ -1,10 +1,11 @@
-export type { ActivityPolicy, ActivityTool, DragPolicy } from "./policy";
+export type { ActivityPolicy, ActivityTool, BuiltInActivityTool, DragPolicy } from "./policy";
 export {
   activityTools,
   allowedToolsInOrder,
   canDeleteConstruction,
   canDragConstruction,
   canUseTool,
+  isBuiltInActivityTool,
   isActivityTool,
   isConstructionLocked,
   openActivityPolicy,

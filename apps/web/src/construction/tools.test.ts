@@ -3,6 +3,7 @@ import {
   activeTools,
   constructionToolGesturePolicies,
   defaultConstructionToolGesturePolicy,
+  firstRegisteredTool,
   gesturePolicyForTool,
 } from "./tools";
 
@@ -31,5 +32,10 @@ describe("construction tool gesture policies", () => {
 
   it("does not treat select as a construction tool", () => {
     expect(gesturePolicyForTool("select")).toBeUndefined();
+  });
+
+  it("chooses the first registered tool from a host policy", () => {
+    expect(firstRegisteredTool(["custom-angle-bisector", "line"])).toBe("line");
+    expect(firstRegisteredTool(["custom-angle-bisector"])).toBe("select");
   });
 });

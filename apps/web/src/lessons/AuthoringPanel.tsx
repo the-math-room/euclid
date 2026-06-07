@@ -3,6 +3,7 @@ import type { ActivityTool, DragPolicy } from "@euclid/activity";
 import type { ConstructionId, ConstructionProgram } from "@euclid/geometry";
 import { compressLessonToUrlPayload } from "@euclid/lesson";
 import { compileEuclidLesson, autoDetectStartersAndGoals } from "./authoring";
+import { constructionToolDescriptors } from "../construction/tools";
 
 export type AuthoringPanelProps = Readonly<{
   program: ConstructionProgram;
@@ -35,9 +36,12 @@ export function AuthoringPanel({ program, selectedIds, onClose }: AuthoringPanel
         next.delete(id);
       } else {
         next.add(id);
-        // An element cannot be both starter and goal
-        goalIds.delete(id);
       }
+      return next;
+    });
+    setGoalIds((prev) => {
+      const next = new Set(prev);
+      next.delete(id);
       return next;
     });
   };
@@ -49,9 +53,12 @@ export function AuthoringPanel({ program, selectedIds, onClose }: AuthoringPanel
         next.delete(id);
       } else {
         next.add(id);
-        // An element cannot be both starter and goal
-        lockedIds.delete(id);
       }
+      return next;
+    });
+    setLockedIds((prev) => {
+      const next = new Set(prev);
+      next.delete(id);
       return next;
     });
   };
@@ -184,16 +191,14 @@ export function AuthoringPanel({ program, selectedIds, onClose }: AuthoringPanel
       <div className="authoring-field">
         <label>Allowed Tools</label>
         <div className="auth-tools-grid">
-          {(
-            ["select", "point", "line", "circle", "parallel", "perpendicular", "midpoint"] as ActivityTool[]
-          ).map((tool) => (
-            <label key={tool} className="auth-checkbox-label">
+          {constructionToolDescriptors.map((tool) => (
+            <label key={tool.id} className="auth-checkbox-label">
               <input
                 type="checkbox"
-                checked={allowedTools.includes(tool)}
-                onChange={() => handleToggleTool(tool)}
+                checked={allowedTools.includes(tool.id)}
+                onChange={() => handleToggleTool(tool.id)}
               />
-              {tool}
+              {tool.label}
             </label>
           ))}
         </div>
