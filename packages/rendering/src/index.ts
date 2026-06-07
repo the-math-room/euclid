@@ -8,6 +8,8 @@ export type { RenderGridLine, RenderItem, RenderLabel, RenderScene } from "./sce
 export { defaultScreenViewFor, sceneForEvaluation } from "./scene";
 export type { SvgRendererOptions } from "./svgRenderer";
 export { renderSceneToSvgString } from "./svgRenderer";
+export type { ResolvedItemStyle, StyleOptions } from "./style";
+export { resolveItemStyle } from "./style";
 export { SVG_THEME_STYLES, THEME } from "./theme";
 export type { ScreenView, ViewCamera, Viewport, ViewportSize, ViewRotation, WorldFrame } from "./viewport";
 export {

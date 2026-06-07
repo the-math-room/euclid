@@ -82,6 +82,7 @@ Start here:
 - `packages/rendering/src/interaction.ts`
 - `packages/rendering/src/canvasRenderer.ts`
 - `packages/rendering/src/svgRenderer.ts`
+- `packages/rendering/src/style.ts`
 - `packages/rendering/src/theme.ts`
 
 Run or update:
@@ -133,6 +134,7 @@ npm run check
 
 ## Journal (Most Recent First)
 
+- `docs/journal/2026-06-07-rendering-style-consolidation-and-gesture-tests.md` — unified style resolution across Canvas/SVG and pure headless testing of GestureController.
 - `docs/journal/2026-06-07-architectural-precepts.md` — architectural precepts codifying design philosophy (denotational design, UI interpretation, branded types, and extensibility).
 - `docs/journal/2026-06-06-lesson-authoring-and-gesture-decoupling.md` — visual lesson authoring panel, magic auto-detect algorithm, and GestureController decoupling.
 - `docs/journal/2026-06-06-parallel-perpendicular-midpoint.md` — parallel line, perpendicular line, and midpoint tools (full kernel-to-UI vertical slice).

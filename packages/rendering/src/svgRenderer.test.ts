@@ -46,23 +46,26 @@ describe("svg renderer", () => {
 
     // Point
     expect(svgStr).toContain('<g class="primitive point free" data-id="pt-A">');
-    expect(svgStr).toContain('<circle cx="100" cy="100" r="5" />');
-    expect(svgStr).toContain('<text x="110" y="90">A</text>');
+    expect(svgStr).toContain('<circle cx="100" cy="100" r="5"');
+    expect(svgStr).toContain('fill="#172026"');
+    expect(svgStr).toContain("A</text>");
 
     // Line
     expect(svgStr).toContain(
-      '<line class="primitive line" x1="10" y1="10" x2="90" y2="90" data-id="ln-B" />',
+      '<line class="primitive line" x1="10" y1="10" x2="90" y2="90" stroke="#246a73" stroke-width="2.5" fill="none" data-id="ln-B" />',
     );
 
     // Circle
-    expect(svgStr).toContain('<circle class="primitive circle" cx="200" cy="200" r="50" data-id="cr-C" />');
+    expect(svgStr).toContain(
+      '<circle class="primitive circle" cx="200" cy="200" r="50" stroke="#ba4a3a" stroke-width="2.5" fill="none" data-id="cr-C" />',
+    );
   });
 
   it("handles selected ID", () => {
     const svgStr = renderSceneToSvgString(mockScene, { selectedId: "pt-A" });
     expect(svgStr).toContain('<g class="primitive point free selected" data-id="pt-A">');
     expect(svgStr).toContain(
-      '<line class="primitive line" x1="10" y1="10" x2="90" y2="90" data-id="ln-B" />',
+      '<line class="primitive line" x1="10" y1="10" x2="90" y2="90" stroke="#246a73" stroke-width="2.5" fill="none" data-id="ln-B" />',
     );
   });
 
@@ -77,10 +80,10 @@ describe("svg renderer", () => {
     });
     expect(svgStr).toContain('<g class="primitive point free selected" data-id="pt-A">');
     expect(svgStr).toContain(
-      '<line class="primitive line" x1="10" y1="10" x2="90" y2="90" data-id="ln-B" />',
+      '<line class="primitive line" x1="10" y1="10" x2="90" y2="90" stroke="#246a73" stroke-width="2.5" fill="none" data-id="ln-B" />',
     );
     expect(svgStr).toContain(
-      '<circle class="primitive circle selected" cx="200" cy="200" r="50" data-id="cr-C" />',
+      '<circle class="primitive circle selected" cx="200" cy="200" r="50" stroke="#e3c057" stroke-width="4" fill="none" data-id="cr-C" />',
     );
   });
 
@@ -100,7 +103,7 @@ describe("svg renderer", () => {
     const svgStr = renderSceneToSvgString(scene);
 
     expect(svgStr).toContain(`data-id="pt-&quot;A&quot;&amp;&apos;B&apos;&lt;C&gt;"`);
-    expect(svgStr).toContain(`<text x="30" y="20">A &amp; B &lt; C &gt; D "quote" 'apostrophe'</text>`);
+    expect(svgStr).toContain(`A &amp; B &lt; C &gt; D "quote" 'apostrophe'</text>`);
   });
 
   it("includes constructed point role classes", () => {

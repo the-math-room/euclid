@@ -1,5 +1,6 @@
 import type { RenderScene } from "./scene";
 import { THEME } from "./theme";
+import { resolveItemStyle } from "./style";
 
 export type CanvasRenderingContext2DLike = {
   clearRect(x: number, y: number, w: number, h: number): void;
@@ -71,57 +72,43 @@ export function drawSceneToCanvas(
 
   // 3. Draw items in pre-sorted order (circles -> lines -> points)
   for (const item of scene.items) {
-    const isSelected = selectedIds ? selectedIds.has(item.id) : item.id === selectedId;
-    const isHovered = item.id === hoveredId;
+    const style = resolveItemStyle(item, { selectedId, selectedIds, hoveredId, sizeScale });
 
-    if (item.kind === "line") {
-      ctx.strokeStyle = isSelected || isHovered ? THEME.colors.lineActive : THEME.colors.line;
-      ctx.lineWidth = isSelected || isHovered ? 4 : 2.5;
+    if (style.kind === "shape") {
+      ctx.strokeStyle = style.stroke;
+      ctx.lineWidth = style.lineWidth;
+
       ctx.beginPath();
-      ctx.moveTo(item.from.x, item.from.y);
-      ctx.lineTo(item.to.x, item.to.y);
-      ctx.stroke();
-    } else if (item.kind === "circle") {
-      ctx.strokeStyle = isSelected || isHovered ? THEME.colors.circleActive : THEME.colors.circle;
-      ctx.lineWidth = isSelected || isHovered ? 4 : 2.5;
-      ctx.beginPath();
-      ctx.arc(item.center.x, item.center.y, item.radius, 0, 2 * Math.PI);
-      ctx.stroke();
-    } else if (item.kind === "point") {
-      // Point circle
-      const radius = 5 * sizeScale;
-      ctx.beginPath();
-      ctx.arc(item.mark.x, item.mark.y, radius, 0, 2 * Math.PI);
-      if (isSelected || isHovered) {
-        ctx.fillStyle = THEME.colors.pointActiveFill;
-        ctx.strokeStyle = THEME.colors.pointActiveStroke;
-        ctx.lineWidth = 3 * sizeScale;
-      } else if (item.pointRole === "constructed") {
-        ctx.fillStyle = THEME.colors.constructedPointFill;
-        ctx.strokeStyle = THEME.colors.constructedPointStroke;
-        ctx.lineWidth = 3 * sizeScale;
-      } else {
-        ctx.fillStyle = THEME.colors.pointFill;
-        ctx.strokeStyle = THEME.colors.pointStroke;
-        ctx.lineWidth = 2.5 * sizeScale;
+      if (item.kind === "line") {
+        ctx.moveTo(item.from.x, item.from.y);
+        ctx.lineTo(item.to.x, item.to.y);
+      } else if (item.kind === "circle") {
+        ctx.arc(item.center.x, item.center.y, item.radius, 0, 2 * Math.PI);
       }
+      ctx.stroke();
+    } else if (style.kind === "point" && item.kind === "point") {
+      // Point circle
+      ctx.beginPath();
+      ctx.arc(item.mark.x, item.mark.y, style.radius, 0, 2 * Math.PI);
+      ctx.fillStyle = style.fill;
+      ctx.strokeStyle = style.stroke;
+      ctx.lineWidth = style.lineWidth;
       ctx.fill();
       ctx.stroke();
 
       // Point label text with white background halo
-      const fontSize = THEME.typography.fontSize * sizeScale;
-      ctx.font = `${THEME.typography.fontWeight} ${fontSize}px ${THEME.typography.fontFamily}`;
+      ctx.font = style.font;
       ctx.textAlign = "left";
       ctx.textBaseline = "alphabetic"; // match standard SVG baseline for identical alignment
       ctx.lineJoin = "round";
 
       // Text stroke (halo)
-      ctx.strokeStyle = THEME.colors.textStroke;
-      ctx.lineWidth = THEME.typography.textStrokeWidth * sizeScale;
+      ctx.strokeStyle = style.textStroke;
+      ctx.lineWidth = style.textStrokeWidth;
       ctx.strokeText(item.label.text, item.label.anchor.x, item.label.anchor.y);
 
       // Text fill
-      ctx.fillStyle = THEME.colors.textFill;
+      ctx.fillStyle = style.textFill;
       ctx.fillText(item.label.text, item.label.anchor.x, item.label.anchor.y);
     }
   }
