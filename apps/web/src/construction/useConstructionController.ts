@@ -33,6 +33,14 @@ import type {
 import { unprojectPoint, worldFrameFor, type IntersectionHit, type ViewCamera } from "@euclid/rendering";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ActiveTool } from "./tools";
+import { resolvePointInput, type PointInput, type ResolvedPointInput } from "./pointInput";
+import {
+  clearDraftUnlessTool,
+  draftPreviewFor,
+  emptyToolDraft,
+  type DraftPreview,
+  type ToolDraft,
+} from "./toolSession";
 import type { ActivityPolicy } from "@euclid/activity";
 import { canUseTool, canDeleteConstruction, canDragConstruction } from "@euclid/activity";
 
@@ -61,19 +69,7 @@ export type ConstructionController = Readonly<{
   canDragPoint: (id: ConstructionId) => boolean;
   handleBuildCircle: () => void;
   canBuildCircle: boolean;
-  draftPreview?:
-    | Readonly<{
-        kind: "line" | "circle";
-        anchorId: ConstructionId;
-      }>
-    | Readonly<{
-        kind: "parallel" | "perpendicular";
-        lineId: ConstructionId;
-      }>
-    | Readonly<{
-        kind: "midpoint";
-        anchorId: ConstructionId;
-      }>;
+  draftPreview?: DraftPreview;
 }>;
 
 export function useConstructionController({
@@ -98,11 +94,7 @@ export function useConstructionController({
       : ((policy.allowedTools[0] as ActiveTool) ?? "select");
     return firstAllowed;
   });
-  const [lineDraftPointId, setLineDraftPointId] = useState<ConstructionId | undefined>();
-  const [circleDraftPointId, setCircleDraftPointId] = useState<ConstructionId | undefined>();
-  const [parallelDraftLineId, setParallelDraftLineId] = useState<ConstructionId | undefined>();
-  const [perpendicularDraftLineId, setPerpendicularDraftLineId] = useState<ConstructionId | undefined>();
-  const [midpointDraftPointId, setMidpointDraftPointId] = useState<ConstructionId | undefined>();
+  const [toolDraft, setToolDraft] = useState<ToolDraft>(emptyToolDraft);
   const dragStartProgram = useRef<ConstructionProgram | undefined>(undefined);
 
   const program = history.present;
@@ -143,21 +135,7 @@ export function useConstructionController({
         return;
       }
       setActiveTool(tool);
-      if (tool !== "line") {
-        setLineDraftPointId(undefined);
-      }
-      if (tool !== "circle") {
-        setCircleDraftPointId(undefined);
-      }
-      if (tool !== "parallel") {
-        setParallelDraftLineId(undefined);
-      }
-      if (tool !== "perpendicular") {
-        setPerpendicularDraftLineId(undefined);
-      }
-      if (tool !== "midpoint") {
-        setMidpointDraftPointId(undefined);
-      }
+      setToolDraft((draft) => clearDraftUnlessTool(draft, tool));
     },
     [policy],
   );
@@ -174,24 +152,78 @@ export function useConstructionController({
     clearSelection(setSelectedIds, setLastSelectedId);
   }, [history]);
 
+  const handleLinePointInput = useCallback(
+    (input: PointInput, options?: { restartOnSameAnchor?: boolean }) => {
+      const resolved = resolvePointInput(program, input);
+      if (!resolved.id) {
+        return;
+      }
+
+      if (
+        toolDraft.kind !== "line" ||
+        (options?.restartOnSameAnchor === true && toolDraft.anchorId === resolved.id)
+      ) {
+        updateProgramIfChanged(resolved, updateProgram);
+        setToolDraft({ kind: "line", anchorId: resolved.id });
+        setSelectedIds(new Set([resolved.id]));
+        setLastSelectedId(resolved.id);
+        return;
+      }
+
+      const points: readonly [ConstructionId, ConstructionId] = [toolDraft.anchorId, resolved.id];
+      const result = addLineThroughPoints(resolved.program, points);
+
+      updateProgram(result.program);
+      setToolDraft(emptyToolDraft);
+      setSelectedIds(result.id ? new Set([result.id]) : new Set(points));
+      setLastSelectedId(result.id ?? resolved.id);
+    },
+    [program, toolDraft, updateProgram],
+  );
+
+  const handleCirclePointInput = useCallback(
+    (input: PointInput, options?: { restartOnSameAnchor?: boolean }) => {
+      const resolved = resolvePointInput(program, input);
+      if (!resolved.id) {
+        return;
+      }
+
+      if (
+        toolDraft.kind !== "circle" ||
+        (options?.restartOnSameAnchor === true && toolDraft.anchorId === resolved.id)
+      ) {
+        updateProgramIfChanged(resolved, updateProgram);
+        setToolDraft({ kind: "circle", anchorId: resolved.id });
+        setSelectedIds(new Set([resolved.id]));
+        setLastSelectedId(resolved.id);
+        return;
+      }
+
+      const center = toolDraft.anchorId;
+      const result = addCircleThroughPoints(resolved.program, center, resolved.id);
+
+      updateProgram(result.program);
+      setToolDraft(emptyToolDraft);
+      setSelectedIds(result.id ? new Set([result.id]) : new Set([center, resolved.id]));
+      setLastSelectedId(result.id ?? resolved.id);
+    },
+    [program, toolDraft, updateProgram],
+  );
+
   const handleSelect = useCallback(
     (id: ConstructionId | undefined, modifiers?: { ctrlKey?: boolean; shiftKey?: boolean }) => {
       if (id === undefined) {
         clearSelection(setSelectedIds, setLastSelectedId);
-        setLineDraftPointId(undefined);
-        setCircleDraftPointId(undefined);
-        setParallelDraftLineId(undefined);
-        setPerpendicularDraftLineId(undefined);
-        setMidpointDraftPointId(undefined);
+        setToolDraft(emptyToolDraft);
         return;
       }
 
       if (activeTool === "parallel") {
-        if (!parallelDraftLineId) {
+        if (toolDraft.kind !== "parallel") {
           if (!realizedLineIds.has(id)) {
             return;
           }
-          setParallelDraftLineId(id);
+          setToolDraft({ kind: "parallel", lineId: id });
           setSelectedIds(new Set([id]));
           setLastSelectedId(id);
           return;
@@ -201,20 +233,20 @@ export function useConstructionController({
           return;
         }
 
-        const result = addParallelLine(program, parallelDraftLineId, id);
+        const result = addParallelLine(program, toolDraft.lineId, id);
         updateProgram(result.program);
-        setParallelDraftLineId(undefined);
+        setToolDraft(emptyToolDraft);
         setSelectedIds(result.id ? new Set([result.id]) : new Set([id]));
         setLastSelectedId(result.id ?? id);
         return;
       }
 
       if (activeTool === "perpendicular") {
-        if (!perpendicularDraftLineId) {
+        if (toolDraft.kind !== "perpendicular") {
           if (!realizedLineIds.has(id)) {
             return;
           }
-          setPerpendicularDraftLineId(id);
+          setToolDraft({ kind: "perpendicular", lineId: id });
           setSelectedIds(new Set([id]));
           setLastSelectedId(id);
           return;
@@ -224,20 +256,20 @@ export function useConstructionController({
           return;
         }
 
-        const result = addPerpendicularLine(program, perpendicularDraftLineId, id);
+        const result = addPerpendicularLine(program, toolDraft.lineId, id);
         updateProgram(result.program);
-        setPerpendicularDraftLineId(undefined);
+        setToolDraft(emptyToolDraft);
         setSelectedIds(result.id ? new Set([result.id]) : new Set([id]));
         setLastSelectedId(result.id ?? id);
         return;
       }
 
       if (activeTool === "midpoint") {
-        if (!midpointDraftPointId || midpointDraftPointId === id) {
+        if (toolDraft.kind !== "midpoint" || toolDraft.anchorId === id) {
           if (!realizedPointIds.has(id)) {
             return;
           }
-          setMidpointDraftPointId(id);
+          setToolDraft({ kind: "midpoint", anchorId: id });
           setSelectedIds(new Set([id]));
           setLastSelectedId(id);
           return;
@@ -247,10 +279,10 @@ export function useConstructionController({
           return;
         }
 
-        const result = addMidpoint(program, [midpointDraftPointId, id]);
+        const result = addMidpoint(program, [toolDraft.anchorId, id]);
         updateProgram(result.program);
-        setMidpointDraftPointId(undefined);
-        setSelectedIds(result.id ? new Set([result.id]) : new Set([midpointDraftPointId, id]));
+        setToolDraft(emptyToolDraft);
+        setSelectedIds(result.id ? new Set([result.id]) : new Set([toolDraft.anchorId, id]));
         setLastSelectedId(result.id ?? id);
         return;
       }
@@ -260,20 +292,7 @@ export function useConstructionController({
           return;
         }
 
-        if (!lineDraftPointId || lineDraftPointId === id) {
-          setLineDraftPointId(id);
-          setSelectedIds(new Set([id]));
-          setLastSelectedId(id);
-          return;
-        }
-
-        const points: readonly [ConstructionId, ConstructionId] = [lineDraftPointId, id];
-        const result = addLineThroughPoints(program, points);
-
-        updateProgram(result.program);
-        setLineDraftPointId(undefined);
-        setSelectedIds(result.id ? new Set([result.id]) : new Set(points));
-        setLastSelectedId(result.id ?? id);
+        handleLinePointInput({ kind: "existing-point", id }, { restartOnSameAnchor: true });
         return;
       }
 
@@ -282,20 +301,7 @@ export function useConstructionController({
           return;
         }
 
-        if (!circleDraftPointId || circleDraftPointId === id) {
-          setCircleDraftPointId(id);
-          setSelectedIds(new Set([id]));
-          setLastSelectedId(id);
-          return;
-        }
-
-        const center = circleDraftPointId;
-        const result = addCircleThroughPoints(program, center, id);
-
-        updateProgram(result.program);
-        setCircleDraftPointId(undefined);
-        setSelectedIds(result.id ? new Set([result.id]) : new Set([center, id]));
-        setLastSelectedId(result.id ?? id);
+        handleCirclePointInput({ kind: "existing-point", id }, { restartOnSameAnchor: true });
         return;
       }
 
@@ -335,15 +341,13 @@ export function useConstructionController({
     [
       activeTool,
       lastSelectedId,
-      lineDraftPointId,
-      circleDraftPointId,
-      parallelDraftLineId,
-      perpendicularDraftLineId,
-      midpointDraftPointId,
+      toolDraft,
       program,
       realizedPointIds,
       realizedLineIds,
       updateProgram,
+      handleLinePointInput,
+      handleCirclePointInput,
     ],
   );
 
@@ -360,6 +364,16 @@ export function useConstructionController({
 
   const handleAddPoint = useCallback(
     (sceneCoords: ScenePoint) => {
+      if (activeTool === "line") {
+        handleLinePointInput({ kind: "free-point", position: screenToWorld(sceneCoords) });
+        return;
+      }
+
+      if (activeTool === "circle") {
+        handleCirclePointInput({ kind: "free-point", position: screenToWorld(sceneCoords) });
+        return;
+      }
+
       const label = generateNextPointLabel(program.constructions);
 
       const newPoint: Construction = {
@@ -369,103 +383,57 @@ export function useConstructionController({
         position: screenToWorld(sceneCoords),
       };
 
-      if (activeTool === "line") {
-        if (!lineDraftPointId) {
-          updateProgram({
-            constructions: [...program.constructions, newPoint],
-          });
-          setLineDraftPointId(newPoint.id);
-          setSelectedIds(new Set([newPoint.id]));
-          setLastSelectedId(newPoint.id);
-        } else {
-          const points: readonly [ConstructionId, ConstructionId] = [lineDraftPointId, newPoint.id];
-          const programWithPoint = {
-            constructions: [...program.constructions, newPoint],
-          };
-          const result = addLineThroughPoints(programWithPoint, points);
-
-          updateProgram(result.program);
-          setLineDraftPointId(undefined);
-          setSelectedIds(result.id ? new Set([result.id]) : new Set(points));
-          setLastSelectedId(result.id ?? newPoint.id);
-        }
-        return;
-      }
-
-      if (activeTool === "circle") {
-        if (!circleDraftPointId) {
-          updateProgram({
-            constructions: [...program.constructions, newPoint],
-          });
-          setCircleDraftPointId(newPoint.id);
-          setSelectedIds(new Set([newPoint.id]));
-          setLastSelectedId(newPoint.id);
-        } else {
-          const center = circleDraftPointId;
-          const programWithPoint = {
-            constructions: [...program.constructions, newPoint],
-          };
-          const result = addCircleThroughPoints(programWithPoint, center, newPoint.id);
-
-          updateProgram(result.program);
-          setCircleDraftPointId(undefined);
-          setSelectedIds(result.id ? new Set([result.id]) : new Set([center, newPoint.id]));
-          setLastSelectedId(result.id ?? newPoint.id);
-        }
-        return;
-      }
-
       if (activeTool === "parallel") {
-        if (!parallelDraftLineId) {
+        if (toolDraft.kind !== "parallel") {
           return;
         }
 
         const programWithPoint = {
           constructions: [...program.constructions, newPoint],
         };
-        const result = addParallelLine(programWithPoint, parallelDraftLineId, newPoint.id);
+        const result = addParallelLine(programWithPoint, toolDraft.lineId, newPoint.id);
 
         updateProgram(result.program);
-        setParallelDraftLineId(undefined);
+        setToolDraft(emptyToolDraft);
         setSelectedIds(result.id ? new Set([result.id]) : new Set([newPoint.id]));
         setLastSelectedId(result.id ?? newPoint.id);
         return;
       }
 
       if (activeTool === "perpendicular") {
-        if (!perpendicularDraftLineId) {
+        if (toolDraft.kind !== "perpendicular") {
           return;
         }
 
         const programWithPoint = {
           constructions: [...program.constructions, newPoint],
         };
-        const result = addPerpendicularLine(programWithPoint, perpendicularDraftLineId, newPoint.id);
+        const result = addPerpendicularLine(programWithPoint, toolDraft.lineId, newPoint.id);
 
         updateProgram(result.program);
-        setPerpendicularDraftLineId(undefined);
+        setToolDraft(emptyToolDraft);
         setSelectedIds(result.id ? new Set([result.id]) : new Set([newPoint.id]));
         setLastSelectedId(result.id ?? newPoint.id);
         return;
       }
 
       if (activeTool === "midpoint") {
-        if (!midpointDraftPointId) {
+        if (toolDraft.kind !== "midpoint") {
           updateProgram({
             constructions: [...program.constructions, newPoint],
           });
-          setMidpointDraftPointId(newPoint.id);
+          setToolDraft({ kind: "midpoint", anchorId: newPoint.id });
           setSelectedIds(new Set([newPoint.id]));
           setLastSelectedId(newPoint.id);
         } else {
-          const firstPoint = midpointDraftPointId;
+          const firstPoint = toolDraft.anchorId;
           const programWithPoint = {
             constructions: [...program.constructions, newPoint],
           };
           const result = addMidpoint(programWithPoint, [firstPoint, newPoint.id]);
 
           updateProgram(result.program);
-          setMidpointDraftPointId(undefined);
+          setToolDraft(emptyToolDraft);
           setSelectedIds(result.id ? new Set([result.id]) : new Set([firstPoint, newPoint.id]));
           setLastSelectedId(result.id ?? newPoint.id);
         }
@@ -481,19 +449,27 @@ export function useConstructionController({
     },
     [
       activeTool,
-      lineDraftPointId,
-      circleDraftPointId,
-      parallelDraftLineId,
-      perpendicularDraftLineId,
-      midpointDraftPointId,
+      toolDraft,
       program,
       screenToWorld,
       updateProgram,
+      handleLinePointInput,
+      handleCirclePointInput,
     ],
   );
 
   const handleAddIntersection = useCallback(
     (hit: IntersectionHit) => {
+      if (activeTool === "line") {
+        handleLinePointInput({ kind: "intersection", hit });
+        return;
+      }
+
+      if (activeTool === "circle") {
+        handleCirclePointInput({ kind: "intersection", hit });
+        return;
+      }
+
       let result: AddConstructionResult;
 
       if (hit.kind === "line-line-intersection") {
@@ -516,79 +492,43 @@ export function useConstructionController({
         return;
       }
 
-      if (activeTool === "line") {
-        if (!lineDraftPointId) {
-          updateProgram(result.program);
-          setLineDraftPointId(result.id);
-          setSelectedIds(new Set([result.id]));
-          setLastSelectedId(result.id);
-        } else {
-          const points: readonly [ConstructionId, ConstructionId] = [lineDraftPointId, result.id];
-          const lineResult = addLineThroughPoints(result.program, points);
-
-          updateProgram(lineResult.program);
-          setLineDraftPointId(undefined);
-          setSelectedIds(lineResult.id ? new Set([lineResult.id]) : new Set(points));
-          setLastSelectedId(lineResult.id ?? result.id);
-        }
-        return;
-      }
-
-      if (activeTool === "circle") {
-        if (!circleDraftPointId) {
-          updateProgram(result.program);
-          setCircleDraftPointId(result.id);
-          setSelectedIds(new Set([result.id]));
-          setLastSelectedId(result.id);
-        } else {
-          const center = circleDraftPointId;
-          const circleResult = addCircleThroughPoints(result.program, center, result.id);
-
-          updateProgram(circleResult.program);
-          setCircleDraftPointId(undefined);
-          setSelectedIds(circleResult.id ? new Set([circleResult.id]) : new Set([center, result.id]));
-          setLastSelectedId(circleResult.id ?? result.id);
-        }
-        return;
-      }
-
       if (activeTool === "parallel") {
-        if (!parallelDraftLineId) {
+        if (toolDraft.kind !== "parallel") {
           return;
         }
 
-        const parallelResult = addParallelLine(result.program, parallelDraftLineId, result.id);
+        const parallelResult = addParallelLine(result.program, toolDraft.lineId, result.id);
         updateProgram(parallelResult.program);
-        setParallelDraftLineId(undefined);
+        setToolDraft(emptyToolDraft);
         setSelectedIds(parallelResult.id ? new Set([parallelResult.id]) : new Set([result.id]));
         setLastSelectedId(parallelResult.id ?? result.id);
         return;
       }
 
       if (activeTool === "perpendicular") {
-        if (!perpendicularDraftLineId) {
+        if (toolDraft.kind !== "perpendicular") {
           return;
         }
 
-        const perpResult = addPerpendicularLine(result.program, perpendicularDraftLineId, result.id);
+        const perpResult = addPerpendicularLine(result.program, toolDraft.lineId, result.id);
         updateProgram(perpResult.program);
-        setPerpendicularDraftLineId(undefined);
+        setToolDraft(emptyToolDraft);
         setSelectedIds(perpResult.id ? new Set([perpResult.id]) : new Set([result.id]));
         setLastSelectedId(perpResult.id ?? result.id);
         return;
       }
 
       if (activeTool === "midpoint") {
-        if (!midpointDraftPointId) {
+        if (toolDraft.kind !== "midpoint") {
           updateProgram(result.program);
-          setMidpointDraftPointId(result.id);
+          setToolDraft({ kind: "midpoint", anchorId: result.id });
           setSelectedIds(new Set([result.id]));
           setLastSelectedId(result.id);
         } else {
-          const firstPoint = midpointDraftPointId;
+          const firstPoint = toolDraft.anchorId;
           const midResult = addMidpoint(result.program, [firstPoint, result.id]);
           updateProgram(midResult.program);
-          setMidpointDraftPointId(undefined);
+          setToolDraft(emptyToolDraft);
           setSelectedIds(midResult.id ? new Set([midResult.id]) : new Set([firstPoint, result.id]));
           setLastSelectedId(midResult.id ?? result.id);
         }
@@ -599,16 +539,7 @@ export function useConstructionController({
       setSelectedIds(new Set([result.id]));
       setLastSelectedId(result.id);
     },
-    [
-      activeTool,
-      lineDraftPointId,
-      circleDraftPointId,
-      parallelDraftLineId,
-      perpendicularDraftLineId,
-      midpointDraftPointId,
-      program,
-      updateProgram,
-    ],
+    [activeTool, toolDraft, program, updateProgram, handleLinePointInput, handleCirclePointInput],
   );
 
   const canDragPoint = useCallback(
@@ -768,31 +699,7 @@ export function useConstructionController({
     }
   }, [selectedIds, realizedPointIds, program, updateProgram]);
 
-  const draftPreview = useMemo(() => {
-    if (activeTool === "line" && lineDraftPointId !== undefined) {
-      return { kind: "line" as const, anchorId: lineDraftPointId };
-    }
-    if (activeTool === "circle" && circleDraftPointId !== undefined) {
-      return { kind: "circle" as const, anchorId: circleDraftPointId };
-    }
-    if (activeTool === "parallel" && parallelDraftLineId !== undefined) {
-      return { kind: "parallel" as const, lineId: parallelDraftLineId };
-    }
-    if (activeTool === "perpendicular" && perpendicularDraftLineId !== undefined) {
-      return { kind: "perpendicular" as const, lineId: perpendicularDraftLineId };
-    }
-    if (activeTool === "midpoint" && midpointDraftPointId !== undefined) {
-      return { kind: "midpoint" as const, anchorId: midpointDraftPointId };
-    }
-    return undefined;
-  }, [
-    activeTool,
-    lineDraftPointId,
-    circleDraftPointId,
-    parallelDraftLineId,
-    perpendicularDraftLineId,
-    midpointDraftPointId,
-  ]);
+  const draftPreview = useMemo(() => draftPreviewFor(toolDraft), [toolDraft]);
 
   return {
     program,
@@ -826,4 +733,13 @@ function clearSelection(
 ): void {
   setSelectedIds(new Set());
   setLastSelectedId(undefined);
+}
+
+function updateProgramIfChanged(
+  resolved: ResolvedPointInput,
+  updateProgram: (nextProgram: ConstructionProgram) => void,
+): void {
+  if (resolved.changed) {
+    updateProgram(resolved.program);
+  }
 }
