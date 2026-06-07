@@ -10,7 +10,7 @@ This journal entry captures and codifies the core engineering philosophy of Eucl
 
 ### 1. Meaning is Independent of Realization (Denotational Design)
 
-Mathematical expressions and visual/coordinate realities exist in separate evaluation phases. A construction's _meaning_ (what it is and how it depends on parent elements) is defined purely in [packages/geometry/src/model.ts](file:///home/johna/Projects/euclid/packages/geometry/src/model.ts) and evaluated in [packages/geometry/src/evaluate.ts](file:///home/johna/Projects/euclid/packages/geometry/src/evaluate.ts).
+Mathematical expressions and visual/coordinate realities exist in separate evaluation phases. A construction's _meaning_ (what it is and how it depends on parent elements) is defined purely in [packages/geometry/src/model.ts](../../packages/geometry/src/model.ts) and evaluated in [packages/geometry/src/evaluate.ts](../../packages/geometry/src/evaluate.ts).
 
 - **Meaning Integrity**: A derived geometry, such as a line passing through two points, remains a valid mathematical statement even if the parent points are dragged to the same coordinates (coincident) and the line's _realization_ fails (cannot compute a direction vector).
 - **Evaluation Pipeline**: The engine evaluates the exact dependency graph first, producing mathematical coordinates. Approximate geometry representations (like lines, circles, and bounding rects) are resolved subsequently for rendering.
@@ -20,14 +20,14 @@ Mathematical expressions and visual/coordinate realities exist in separate evalu
 The user interface layer is a thin, imperative presentation shell. React, SVG surfaces, and Canvas drawing APIs do not declare or manipulate geometric state directly; they only interpret the output of the headless package kernels.
 
 - **Zero UI Bleed**: The core engine packages (`@euclid/geometry`, `@euclid/assessment`, `@euclid/lesson`) have zero dependencies on the DOM, browser window contexts, or React hooks. The assessment suite can be executed headlessly on a backend server for automatic grading or analysis.
-- **Gesture Decoupling**: Raw pointer interactions are captured by a shallow React adapter ([useWorkspaceGestures.ts](file:///home/johna/Projects/euclid/apps/web/src/useWorkspaceGestures.ts)) and forwarded to the pure TypeScript state machine ([GestureController.ts](file:///home/johna/Projects/euclid/apps/web/src/GestureController.ts)) to preserve framework-independence.
+- **Gesture Decoupling**: Raw pointer interactions are captured by a shallow React adapter ([useWorkspaceGestures.ts](../../apps/web/src/useWorkspaceGestures.ts)) and forwarded to the pure TypeScript state machine ([GestureController.ts](../../apps/web/src/GestureController.ts)) to preserve framework-independence.
 
 ### 3. Type-Enforced Coordinate Boundaries
 
 To prevent viewport transformations (zooming, panning, rotating, canvas resizing) from corrupting the core geometry model, screen-space pixel coordinates and world-space mathematical coordinates are treated as separate, incompatible domains.
 
 - **Branded Intersection Types**: The engine enforces coordinate safety using branded types `WorldPoint` and `ScenePoint` on top of standard vectors.
-- **Boundary Projection**: The compiler actively blocks coordinate cross-contamination. Projection and unprojection math must occur explicitly using client rects and scale factors (e.g. [workspaceCoordinates.ts](file:///home/johna/Projects/euclid/apps/web/src/workspaceCoordinates.ts)) at the application boundary.
+- **Boundary Projection**: The compiler actively blocks coordinate cross-contamination. Projection and unprojection math must occur explicitly using client rects and scale factors (e.g. [workspaceCoordinates.ts](../../apps/web/src/workspaceCoordinates.ts)) at the application boundary.
 
 ### 4. Front-Loaded Predictability over Ad-Hoc Speed
 
