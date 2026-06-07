@@ -19,6 +19,7 @@ All three constructions follow the established `add-a-construction.md` checklist
 **`midpoint`** — a point at the arithmetic mean of two parent point positions.
 
 For each:
+
 - `model.ts`: new `Construction` union case and `ConstructionExpression` variant.
 - `dependencies.ts`: dependency extraction added to `dependencyIds`.
 - `evaluate.ts`: `meaningFor` case preserving the exact structural references.
@@ -38,19 +39,23 @@ Added `"perpendicular"` and `"midpoint"` to `ActivityTool`, `openActivityPolicy`
 ### Web Studio (`apps/web`)
 
 **Parallel line tool** (implemented earlier; assessment fixed in this session):
+
 - Two-step interaction: select a reference line, then click or place a witness point.
 - Objective detection was broken because `sameExpression` lacked the `"parallel-line"` case. Fixed.
 - Lesson 4 ("Parallel Line") corrects point C's locked state so it is free to drag; dragging it translates the parallel line dynamically.
 
 **Perpendicular line tool**:
+
 - Identical interaction pattern to parallel: select reference line, then select or place witness point.
 - Draft preview renders a ghost line through the cursor using the rotated direction, giving immediate visual feedback on the perpendicular orientation before the second click.
 
 **Midpoint tool**:
+
 - Two-step point selection, mirroring the line tool: click the first parent point, then click the second.
 - Draft preview draws a segment from the first selected point to the cursor and a ghost midpoint at the average scene position, letting the learner preview the result before placing it.
 
 Toolbar buttons added:
+
 - Parallel: rotated `Equal` icon.
 - Perpendicular: `BetweenHorizonalEnd` icon.
 - Midpoint: `Milestone` icon.

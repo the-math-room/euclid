@@ -2,7 +2,7 @@
 
 ## The Story
 
-Day 1 left us with a geometry kernel that could evaluate a construction graph and a React app that could render it. Day 2's question was: what does Euclid actually *want to be*?
+Day 1 left us with a geometry kernel that could evaluate a construction graph and a React app that could render it. Day 2's question was: what does Euclid actually _want to be_?
 
 The answer that emerged was not "a geometry applet." It was something more constrained and more useful: a **headless geometry infrastructure layer** for edTech products. The kernel should be inspectable, assessable, and embeddable without coupling to any particular UI. The web app is one possible interpreter of the geometry — not the thing itself.
 
@@ -24,9 +24,9 @@ Finally, we added **smooth keyboard viewport control** (pan, zoom, rotate via ar
 
 With the kernel behavior settled, we extracted the next three layers.
 
-**`@euclid/activity`** is the simplest: it holds what a learner is *allowed to do* in a given activity. Which tools are available? Which constructions are locked? Can items be deleted? Can shapes be dragged? These are curriculum decisions, not geometry decisions, and they belong in their own headless package that doesn't know about React or SVG.
+**`@euclid/activity`** is the simplest: it holds what a learner is _allowed to do_ in a given activity. Which tools are available? Which constructions are locked? Can items be deleted? Can shapes be dragged? These are curriculum decisions, not geometry decisions, and they belong in their own headless package that doesn't know about React or SVG.
 
-**`@euclid/assessment`** is the most consequential. Rather than assess learners by checking pixel positions or hardcoded IDs, the assessment layer operates on construction *meaning* — the structural relationships in the dependency graph. A predicate like `requiresMeaning` doesn't ask "is there a construction named `line-ab`?" It asks "is there a construction whose expression is exactly `line-through` with points `A` and `B`?" This distinction makes assessment robust to renaming, reordering, and idiomatic variation in how learners construct things.
+**`@euclid/assessment`** is the most consequential. Rather than assess learners by checking pixel positions or hardcoded IDs, the assessment layer operates on construction _meaning_ — the structural relationships in the dependency graph. A predicate like `requiresMeaning` doesn't ask "is there a construction named `line-ab`?" It asks "is there a construction whose expression is exactly `line-through` with points `A` and `B`?" This distinction makes assessment robust to renaming, reordering, and idiomatic variation in how learners construct things.
 
 The assessment API was designed as small, composable predicates: `requiresConstructionKind`, `requiresDependency`, `requiresMeaning`, `requiresPointOnLine`. Hosts can use these as-is, compose them with `assessAll` / `assessAny`, or replace them entirely with their own engine over the same `@euclid/geometry` data.
 
@@ -40,7 +40,7 @@ With the layers defined, we wired them into the web app as a **lesson player**.
 
 The objectives panel gave learners real-time step-by-step feedback: each goal in the lesson's goal list evaluates live against the current construction graph and shows a pass/fail checkmark. Completing all objectives surfaces a visual "solved" state.
 
-This required solving a subtle problem: **ID mismatch**. A lesson's goal might reference `"line-ab"` (a curriculum-authored label), but a learner might have constructed an equivalent line that the kernel named `"line-a-b"`. We wrote an `assessmentResolver` that walks the current evaluation to find constructions whose *meaning* matches the lesson's goal references, regardless of what string ID was assigned. This resolver uses structural property reflection rather than hardcoded switches, so future construction primitives are handled automatically without touching the resolver.
+This required solving a subtle problem: **ID mismatch**. A lesson's goal might reference `"line-ab"` (a curriculum-authored label), but a learner might have constructed an equivalent line that the kernel named `"line-a-b"`. We wrote an `assessmentResolver` that walks the current evaluation to find constructions whose _meaning_ matches the lesson's goal references, regardless of what string ID was assigned. This resolver uses structural property reflection rather than hardcoded switches, so future construction primitives are handled automatically without touching the resolver.
 
 We also wired **multi-lesson persistence**: each lesson stores its construction state separately, so learners can switch activities without losing work. A reset button restores any lesson to its starter state.
 
