@@ -169,7 +169,11 @@ describe("assessmentResolver", () => {
       const evaluation = evaluateConstruction(lesson.document.program);
       const mapping = resolveGoalMapping(evaluation, lesson.goals, lesson.document.program);
       const results = lesson.goals.map((g) => {
-        const context = { program: lesson.document.program, evaluation };
+        const context = {
+          program: lesson.document.program,
+          evaluation,
+          starterProgram: lesson.document.program,
+        };
         return evaluateGoal(context, mapGoalIds(g, mapping));
       });
       // All goals should be false
@@ -228,15 +232,12 @@ describe("assessmentResolver", () => {
       const evaluation = evaluateConstruction(solutionProgram);
       const mapping = resolveGoalMapping(evaluation, lesson.goals, lesson.document.program);
 
-      // Verify mapping maps all the static goal IDs to user IDs
-      expect(mapping.get("circle-ab")).toBe("user-circle-a");
-      expect(mapping.get("circle-ba")).toBe("user-circle-b");
-      expect(mapping.get("c")).toBe("user-int-0");
-      expect(mapping.get("d")).toBe("user-int-1");
-      expect(mapping.get("bisector")).toBe("user-bisector-line");
-
       const results = lesson.goals.map((g) => {
-        const context = { program: solutionProgram, evaluation };
+        const context = {
+          program: solutionProgram,
+          evaluation,
+          starterProgram: lesson.document.program,
+        };
         return evaluateGoal(context, mapGoalIds(g, mapping));
       });
 
@@ -271,7 +272,11 @@ describe("assessmentResolver", () => {
       const mapping = resolveGoalMapping(evaluation, lesson.goals, lesson.document.program);
 
       const results = lesson.goals.map((g) => {
-        const context = { program: wrongProgram, evaluation };
+        const context = {
+          program: wrongProgram,
+          evaluation,
+          starterProgram: lesson.document.program,
+        };
         return evaluateGoal(context, mapGoalIds(g, mapping));
       });
 
@@ -309,7 +314,14 @@ describe("assessmentResolver", () => {
     const evaluation = evaluateConstruction(bisector.program);
     const mapping = resolveGoalMapping(evaluation, lesson.goals, lesson.document.program);
     const results = lesson.goals.map((goal) =>
-      evaluateGoal({ program: bisector.program, evaluation }, mapGoalIds(goal, mapping)),
+      evaluateGoal(
+        {
+          program: bisector.program,
+          evaluation,
+          starterProgram: lesson.document.program,
+        },
+        mapGoalIds(goal, mapping),
+      ),
     );
 
     expect(bisector.id).toBeDefined();

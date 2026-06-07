@@ -3,6 +3,7 @@ import {
   assessAny,
   requiresConstructionKind,
   requiresDependency,
+  requiresGeometricEquivalent,
   requiresMeaning,
   requiresPointOnCircle,
   requiresPointOnLine,
@@ -57,6 +58,13 @@ export type AssessmentGoal =
       pointId: ConstructionId;
       circleId: ConstructionId;
       tolerance?: AssessmentTolerance;
+    }>
+  | Readonly<{
+      kind: "geometric-equivalent";
+      description?: string;
+      targetConstructions: readonly Construction[];
+      targetId: ConstructionId;
+      tolerance?: AssessmentTolerance;
     }>;
 
 export function predicateForGoal(goal: AssessmentGoal): AssessmentPredicate {
@@ -92,6 +100,10 @@ export function predicateForGoal(goal: AssessmentGoal): AssessmentPredicate {
 
   if (goal.kind === "point-on-circle") {
     return requiresPointOnCircle(goal.pointId, goal.circleId, goal.tolerance);
+  }
+
+  if (goal.kind === "geometric-equivalent") {
+    return requiresGeometricEquivalent(goal.targetConstructions, goal.targetId, goal.tolerance);
   }
 
   const _exhaustiveCheck: never = goal;

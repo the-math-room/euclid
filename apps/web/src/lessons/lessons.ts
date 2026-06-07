@@ -62,7 +62,7 @@ export const lessons: readonly EuclidLesson[] = [
     id: "perpendicular-bisector",
     title: "2. Perpendicular Bisector",
     description:
-      "Construct the perpendicular bisector of segment AB by first drawing two circles (center A through B, and center B through A), intersecting them, and drawing a line through those intersection points.",
+      "Construct the perpendicular bisector of segment AB. You can construct it using circles, or use the Midpoint and Perpendicular line tools directly.",
     document: {
       schemaVersion: 1,
       title: "Perpendicular bisector starter",
@@ -76,62 +76,26 @@ export const lessons: readonly EuclidLesson[] = [
     },
     policy: {
       allowedTools: ["select", "point", "line", "circle"],
-      lockedConstructions: ["A", "B", "line-ab"],
+      lockedConstructions: [],
       allowDelete: true,
       pointDrag: "free-points",
       shapeDrag: "none",
     },
     goals: [
       {
-        kind: "meaning",
-        id: "circle-ab",
-        description: "Construct circle centered at A through B",
-        expression: {
-          kind: "circle-through",
-          center: "A",
-          pointOnCircle: "B",
-        },
-      },
-      {
-        kind: "meaning",
-        id: "circle-ba",
-        description: "Construct circle centered at B through A",
-        expression: {
-          kind: "circle-through",
-          center: "B",
-          pointOnCircle: "A",
-        },
-      },
-      {
-        kind: "meaning",
-        id: "c",
-        description: "Construct first intersection point C",
-        expression: {
-          kind: "circle-circle-intersection",
-          firstCircle: "circle-ab",
-          secondCircle: "circle-ba",
-          intersectionIndex: 0,
-        },
-      },
-      {
-        kind: "meaning",
-        id: "d",
-        description: "Construct second intersection point D",
-        expression: {
-          kind: "circle-circle-intersection",
-          firstCircle: "circle-ab",
-          secondCircle: "circle-ba",
-          intersectionIndex: 1,
-        },
-      },
-      {
-        kind: "meaning",
-        id: "bisector",
-        description: "Construct line through C and D",
-        expression: {
-          kind: "line-through",
-          points: ["c", "d"],
-        },
+        kind: "geometric-equivalent",
+        description: "Construct the perpendicular bisector of segment AB",
+        targetConstructions: [
+          { id: "target-mid", kind: "midpoint", label: "M", points: ["A", "B"] },
+          {
+            id: "target-bisector",
+            kind: "perpendicular-line",
+            label: "Perp",
+            line: "line-ab",
+            point: "target-mid",
+          },
+        ],
+        targetId: "target-bisector",
       },
     ],
   },

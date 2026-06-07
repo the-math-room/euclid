@@ -131,6 +131,7 @@ export function WorkspaceContainer({
     const context = {
       program: construction.program,
       evaluation: construction.evaluated,
+      starterProgram: activeLesson.document.program,
     };
     const mapping = resolveGoalMapping(
       construction.evaluated,

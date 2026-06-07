@@ -108,4 +108,17 @@ describe("assessment goal codec", () => {
       diagnostics: ["goal.tolerance.epsilon must be a non-negative finite number."],
     });
   });
+
+  it("round-trips geometric-equivalent goals", () => {
+    const goal: AssessmentGoal = {
+      kind: "geometric-equivalent",
+      targetConstructions: [{ id: "M", kind: "midpoint", label: "M", points: ["A", "B"] }],
+      targetId: "M",
+    };
+
+    expect(parseAssessmentGoal(serializeAssessmentGoal(goal))).toEqual({
+      ok: true,
+      goal,
+    });
+  });
 });

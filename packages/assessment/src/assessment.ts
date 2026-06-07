@@ -1,4 +1,5 @@
 import {
+  evaluateConstruction,
   dependencyIds,
   type Construction,
   type ConstructionExpression,
@@ -12,6 +13,7 @@ import {
 export type AssessmentContext = Readonly<{
   program: ConstructionProgram;
   evaluation: Evaluation;
+  starterProgram?: ConstructionProgram;
 }>;
 
 export type AssessmentResult = Readonly<{
@@ -158,6 +160,140 @@ export function requiresPointOnCircle(
       circleId,
       tolerance,
     });
+  };
+}
+
+export function arePrimitivesEquivalent(
+  a: EvaluatedPrimitive,
+  b: EvaluatedPrimitive,
+  epsilon: number,
+): boolean {
+  if (a.kind !== b.kind) {
+    return false;
+  }
+  if (a.kind === "point" && b.kind === "point") {
+    return distance(a.position, b.position) <= epsilon;
+  }
+  if (a.kind === "line" && b.kind === "line") {
+    return (
+      distanceFromPointToLine(a.through[0], b.through) <= epsilon &&
+      distanceFromPointToLine(a.through[1], b.through) <= epsilon
+    );
+  }
+  if (a.kind === "circle" && b.kind === "circle") {
+    if (distance(a.center, b.center) > epsilon) {
+      return false;
+    }
+    const radiusA = distance(a.center, a.pointOnCircle);
+    const radiusB = distance(b.center, b.pointOnCircle);
+    return Math.abs(radiusA - radiusB) <= epsilon;
+  }
+  return false;
+}
+
+export function requiresGeometricEquivalent(
+  targetConstructions: readonly Construction[],
+  targetId: ConstructionId,
+  tolerance: AssessmentTolerance = defaultTolerance,
+): AssessmentPredicate {
+  return (context) => {
+    const starterProgram = context.starterProgram ?? context.program;
+    const userConstructions = context.program.constructions;
+
+    // Build the full target program by starting with user's starter configurations,
+    // but using the active user positions for free points.
+    const activeStarterConstructions = starterProgram.constructions.map((c) => {
+      if (c.kind === "free-point") {
+        const userC = userConstructions.find((uc) => uc.id === c.id);
+        if (userC && userC.kind === "free-point") {
+          return userC;
+        }
+      }
+      return c;
+    });
+
+    const targetProgram: ConstructionProgram = {
+      constructions: [...activeStarterConstructions, ...targetConstructions],
+    };
+
+    const targetEvaluation = evaluateConstruction(targetProgram);
+    const targetPrimitive = primitiveById(targetEvaluation, targetId);
+
+    if (!targetPrimitive) {
+      return fail(
+        `geometric-equivalent:${targetId}`,
+        `Target primitive ${targetId} could not be realized at current positions.`,
+      );
+    }
+
+    const userPrimitives = context.evaluation.primitives;
+    const candidatePrimitive = userPrimitives.find((up) =>
+      arePrimitivesEquivalent(up, targetPrimitive, tolerance.epsilon),
+    );
+
+    if (!candidatePrimitive) {
+      return fail(`geometric-equivalent:${targetId}`, `No equivalent constructed object found.`);
+    }
+
+    // Perturbation verification (3 iterations)
+    const numPerturbations = 3;
+    for (let i = 0; i < numPerturbations; i++) {
+      const perturbedStarterConstructions = activeStarterConstructions.map((c, idx) => {
+        if (c.kind === "free-point") {
+          const seedX = (idx + 1) * (i + 1) * 17.3;
+          const seedY = (idx + 1) * (i + 1) * 31.7;
+          const dx = (Math.sin(seedX) >= 0 ? 1 : -1) * (1.5 + Math.abs(Math.sin(seedX)) * 1.5);
+          const dy = (Math.sin(seedY) >= 0 ? 1 : -1) * (1.5 + Math.abs(Math.sin(seedY)) * 1.5);
+          return {
+            ...c,
+            position: {
+              x: c.position.x + dx,
+              y: c.position.y + dy,
+            },
+          };
+        }
+        return c;
+      });
+
+      const perturbedUserConstructions = userConstructions.map((uc) => {
+        const perturbed = perturbedStarterConstructions.find((pc) => pc.id === uc.id);
+        return perturbed ?? uc;
+      });
+
+      const perturbedUserProgram: ConstructionProgram = {
+        constructions: perturbedUserConstructions,
+      };
+
+      const perturbedTargetProgram: ConstructionProgram = {
+        constructions: [...perturbedStarterConstructions, ...targetConstructions],
+      };
+
+      const perturbedUserEval = evaluateConstruction(perturbedUserProgram);
+      const perturbedTargetEval = evaluateConstruction(perturbedTargetProgram);
+
+      const pUserPrim = primitiveById(perturbedUserEval, candidatePrimitive.id);
+      const pTargetPrim = primitiveById(perturbedTargetEval, targetId);
+
+      if (!pUserPrim || !pTargetPrim) {
+        return fail(
+          `geometric-equivalent:${targetId}`,
+          `Verification failed: object was not realized after perturbation.`,
+        );
+      }
+
+      if (!arePrimitivesEquivalent(pUserPrim, pTargetPrim, tolerance.epsilon)) {
+        return fail(
+          `geometric-equivalent:${targetId}`,
+          `Verification failed: object is not mathematically equivalent under dragging.`,
+        );
+      }
+    }
+
+    return pass(
+      `geometric-equivalent:${targetId}`,
+      `Successfully constructed an object equivalent to the target.`,
+      { candidateId: candidatePrimitive.id },
+    );
   };
 }
 

@@ -178,7 +178,108 @@ function decodeAssessmentGoal(value: unknown, path: string): AssessmentGoalParse
     };
   }
 
+  if (value.kind === "geometric-equivalent") {
+    if (!Array.isArray(value.targetConstructions)) {
+      return invalid(`${path}.targetConstructions must be an array.`);
+    }
+    if (typeof value.targetId !== "string") {
+      return invalid(`${path}.targetId must be a string.`);
+    }
+    const tolerance = decodeTolerance(value.tolerance, `${path}.tolerance`);
+    if (!tolerance.ok) {
+      return invalid(tolerance.diagnostic);
+    }
+
+    const targetConstructions: Construction[] = [];
+    for (const [index, child] of value.targetConstructions.entries()) {
+      const decoded = decodeConstruction(child, `${path}.targetConstructions[${index}]`);
+      if (!decoded.ok) {
+        return invalid(decoded.diagnostic);
+      }
+      targetConstructions.push(decoded.construction);
+    }
+
+    return {
+      ok: true,
+      goal: {
+        kind: "geometric-equivalent",
+        targetConstructions,
+        targetId: value.targetId,
+        ...(tolerance.tolerance === undefined ? {} : { tolerance: tolerance.tolerance }),
+        ...descriptionObj,
+      },
+    };
+  }
+
   return invalid(`${path}.kind is not a supported assessment goal kind.`);
+}
+
+type ConstructionDecodeResult =
+  | Readonly<{
+      ok: true;
+      construction: Construction;
+    }>
+  | Readonly<{
+      ok: false;
+      diagnostic: string;
+    }>;
+
+function decodeConstruction(value: unknown, path: string): ConstructionDecodeResult {
+  if (!isRecord(value)) {
+    return constructionInvalid(`${path} must be a JSON object.`);
+  }
+  if (typeof value.id !== "string") {
+    return constructionInvalid(`${path}.id must be a string.`);
+  }
+  if (typeof value.label !== "string") {
+    return constructionInvalid(`${path}.label must be a string.`);
+  }
+  if (typeof value.kind !== "string") {
+    return constructionInvalid(`${path}.kind must be a string.`);
+  }
+
+  const exprDecode = decodeConstructionExpression(value, path);
+  if (!exprDecode.ok) {
+    return constructionInvalid(exprDecode.diagnostic);
+  }
+
+  if (value.kind === "free-point") {
+    if (
+      !isRecord(value.position) ||
+      typeof value.position.x !== "number" ||
+      typeof value.position.y !== "number"
+    ) {
+      return constructionInvalid(`${path}.position must be a Point2 object.`);
+    }
+    return {
+      ok: true,
+      construction: {
+        id: value.id,
+        kind: "free-point",
+        label: value.label,
+        position: {
+          x: value.position.x,
+          y: value.position.y,
+        },
+      },
+    };
+  }
+
+  return {
+    ok: true,
+    construction: {
+      id: value.id,
+      label: value.label,
+      ...exprDecode.expression,
+    } as unknown as Construction,
+  };
+}
+
+function constructionInvalid(diagnostic: string): ConstructionDecodeResult {
+  return {
+    ok: false,
+    diagnostic,
+  };
 }
 
 type ExpressionDecodeResult =

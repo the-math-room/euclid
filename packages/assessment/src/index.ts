@@ -7,6 +7,7 @@ export type {
 export {
   assessAll,
   assessAny,
+  arePrimitivesEquivalent,
   constructionIdsOfKind,
   dependsOn,
   directlyDependsOn,
@@ -16,6 +17,7 @@ export {
   isPointOnLine,
   requiresConstructionKind,
   requiresDependency,
+  requiresGeometricEquivalent,
   requiresMeaning,
   requiresPointOnCircle,
   requiresPointOnLine,
