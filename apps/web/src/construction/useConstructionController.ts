@@ -30,6 +30,7 @@ import { unprojectPoint, worldFrameFor, type IntersectionHit, type ViewCamera } 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ActiveTool } from "./tools";
 import { resolvePointInput, type PointInput, type ResolvedPointInput } from "./pointInput";
+import { deletableSelectionClosure } from "./deleteSelection";
 import {
   clearDraftUnlessTool,
   draftPreviewFor,
@@ -38,7 +39,7 @@ import {
   type ToolDraft,
 } from "./toolSession";
 import type { ActivityPolicy } from "@euclid/activity";
-import { canUseTool, canDeleteConstruction, canDragConstruction } from "@euclid/activity";
+import { canUseTool, canDragConstruction } from "@euclid/activity";
 
 export type ConstructionController = Readonly<{
   program: ConstructionProgram;
@@ -603,21 +604,26 @@ export function useConstructionController({
     [screenToWorld],
   );
 
-  const deletableSelectedIds = useMemo(
-    () => new Set(Array.from(selectedIds).filter((id) => canDeleteConstruction(policy, id))),
-    [selectedIds, policy],
+  const deleteSelectionIds = useMemo(
+    () =>
+      deletableSelectionClosure({
+        constructions: program.constructions,
+        selectedIds,
+        policy,
+      }),
+    [program.constructions, selectedIds, policy],
   );
 
-  const canDeleteSelected = deletableSelectedIds.size > 0;
+  const canDeleteSelected = deleteSelectionIds.size > 0;
 
   const handleDeleteSelected = useCallback(() => {
     if (selectedIds.size === 0) return;
-    if (deletableSelectedIds.size === 0) return;
+    if (deleteSelectionIds.size === 0) return;
     updateProgram({
-      constructions: deleteConstructions(program.constructions, deletableSelectedIds),
+      constructions: deleteConstructions(program.constructions, deleteSelectionIds),
     });
     clearSelection(setSelectedIds, setLastSelectedId);
-  }, [selectedIds.size, deletableSelectedIds, program.constructions, updateProgram]);
+  }, [selectedIds.size, deleteSelectionIds, program.constructions, updateProgram]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
