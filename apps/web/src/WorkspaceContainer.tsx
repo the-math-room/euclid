@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { evaluateConstruction } from "@euclid/geometry";
 import type { ConstructionProgram } from "@euclid/geometry";
-import { evaluateGoal } from "@euclid/assessment";
+import { evaluateGoal, mapGoalIds, resolveGoalMapping } from "@euclid/assessment";
 import { defaultScreenViewFor, sceneForEvaluation } from "@euclid/rendering";
 import { useMemo } from "react";
 import { useConstructionController } from "./construction/useConstructionController";
@@ -23,7 +23,6 @@ import { useCameraController } from "./view/useCameraController";
 import { ViewControls } from "./view/ViewControls";
 import { WorkspaceView } from "./WorkspaceView";
 import { lessons } from "./lessons/lessons";
-import { resolveGoalMapping, mapGoalIds } from "./lessons/assessmentResolver";
 
 const sceneSize = { width: 920, height: 620 };
 

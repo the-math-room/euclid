@@ -70,12 +70,13 @@ export const lessons: readonly EuclidLesson[] = [
         constructions: [
           { id: "A", kind: "free-point", label: "A", position: { x: -2.0, y: 0.0 } },
           { id: "B", kind: "free-point", label: "B", position: { x: 2.0, y: 0.0 } },
+          { id: "line-ab", kind: "line-through", label: "AB", points: ["A", "B"] },
         ],
       },
     },
     policy: {
-      allowedTools: ["select", "line", "circle"],
-      lockedConstructions: ["A", "B"],
+      allowedTools: ["select", "point", "line", "circle"],
+      lockedConstructions: ["A", "B", "line-ab"],
       allowDelete: true,
       pointDrag: "free-points",
       shapeDrag: "none",

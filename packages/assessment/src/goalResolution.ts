@@ -1,5 +1,5 @@
-import type { ConstructionExpression, Evaluation, ConstructionProgram } from "@euclid/geometry";
-import type { AssessmentGoal } from "@euclid/assessment";
+import type { ConstructionExpression, ConstructionProgram, Evaluation } from "@euclid/geometry";
+import type { AssessmentGoal } from "./goals";
 
 function extractMeaningGoals(goals: readonly AssessmentGoal[]): (AssessmentGoal & { kind: "meaning" })[] {
   const result: (AssessmentGoal & { kind: "meaning" })[] = [];
@@ -25,7 +25,6 @@ export function resolveGoalMapping(
 ): Map<string, string> {
   const mapping = new Map<string, string>();
 
-  // Initialize mapping with all starting constructions
   for (const construction of starterProgram.constructions) {
     mapping.set(construction.id, construction.id);
   }
@@ -122,10 +121,8 @@ function matchExpression(
           return false;
         }
       }
-    } else {
-      if (userVal !== goalVal) {
-        return false;
-      }
+    } else if (userVal !== goalVal) {
+      return false;
     }
   }
 

@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { evaluateConstruction, type ConstructionProgram } from "@euclid/geometry";
-import { evaluateGoal, type AssessmentGoal } from "@euclid/assessment";
-import { resolveGoalMapping, mapGoalIds } from "./assessmentResolver";
+import {
+  addCircleCircleIntersection,
+  addCircleThroughPoints,
+  addLineThroughPoints,
+  evaluateConstruction,
+  type ConstructionProgram,
+} from "@euclid/geometry";
+import { evaluateGoal, mapGoalIds, resolveGoalMapping, type AssessmentGoal } from "@euclid/assessment";
 import { lessons } from "./lessons";
 
 describe("assessmentResolver", () => {
@@ -273,5 +278,41 @@ describe("assessmentResolver", () => {
       // No goals should pass
       expect(results.every((r) => !r.passed)).toBe(true);
     }
+  });
+
+  it("evaluates the served perpendicular-bisector lesson using point-tool intersections", () => {
+    const lesson = lessons.find((candidate) => candidate.id === "perpendicular-bisector");
+    expect(lesson).toBeDefined();
+    if (!lesson) {
+      return;
+    }
+
+    expect(lesson.policy.allowedTools).toContain("point");
+
+    const circleA = addCircleThroughPoints(lesson.document.program, "A", "B");
+    expect(circleA.id).toBeDefined();
+    const circleB = addCircleThroughPoints(circleA.program, "B", "A");
+    expect(circleB.id).toBeDefined();
+    if (!circleA.id || !circleB.id) {
+      return;
+    }
+
+    const intersection0 = addCircleCircleIntersection(circleB.program, circleA.id, circleB.id, 0);
+    expect(intersection0.id).toBeDefined();
+    const intersection1 = addCircleCircleIntersection(intersection0.program, circleA.id, circleB.id, 1);
+    expect(intersection1.id).toBeDefined();
+    if (!intersection0.id || !intersection1.id) {
+      return;
+    }
+
+    const bisector = addLineThroughPoints(intersection1.program, [intersection0.id, intersection1.id]);
+    const evaluation = evaluateConstruction(bisector.program);
+    const mapping = resolveGoalMapping(evaluation, lesson.goals, lesson.document.program);
+    const results = lesson.goals.map((goal) =>
+      evaluateGoal({ program: bisector.program, evaluation }, mapGoalIds(goal, mapping)),
+    );
+
+    expect(bisector.id).toBeDefined();
+    expect(results.every((result) => result.passed)).toBe(true);
   });
 });
