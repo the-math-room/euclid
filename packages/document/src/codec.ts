@@ -1,4 +1,4 @@
-import type { ConstructionProgram } from "@euclid/geometry";
+import { toWorldPoint, type Construction, type ConstructionProgram } from "@euclid/geometry";
 import type { EuclidDocument } from "./model";
 
 export type DocumentParseResult =
@@ -43,8 +43,9 @@ function decodeEuclidDocument(value: unknown): DocumentParseResult {
     return invalid("Document title must be a string.");
   }
 
-  if (!isConstructionProgram(value.program)) {
-    return invalid("Document program must contain a constructions array.");
+  const program = decodeConstructionProgram(value.program);
+  if (!program.ok) {
+    return invalid(program.diagnostic);
   }
 
   return {
@@ -52,13 +53,49 @@ function decodeEuclidDocument(value: unknown): DocumentParseResult {
     document: {
       schemaVersion: 1,
       title: value.title,
-      program: value.program,
+      program: program.program,
     },
   };
 }
 
-function isConstructionProgram(value: unknown): value is ConstructionProgram {
-  return isRecord(value) && Array.isArray(value.constructions);
+type ProgramDecodeResult =
+  | Readonly<{ ok: true; program: ConstructionProgram }>
+  | Readonly<{ ok: false; diagnostic: string }>;
+
+function decodeConstructionProgram(value: unknown): ProgramDecodeResult {
+  if (!isRecord(value) || !Array.isArray(value.constructions)) {
+    return { ok: false, diagnostic: "Document program must contain a constructions array." };
+  }
+
+  const constructions: Construction[] = [];
+  for (const [index, construction] of value.constructions.entries()) {
+    if (isRecord(construction) && construction.kind === "free-point" && isRecord(construction.position)) {
+      if (typeof construction.position.x !== "number" || typeof construction.position.y !== "number") {
+        return {
+          ok: false,
+          diagnostic: `Document program.constructions[${index}].position must be a Point2 object.`,
+        };
+      }
+
+      constructions.push({
+        ...construction,
+        position: toWorldPoint({
+          x: construction.position.x,
+          y: construction.position.y,
+        }),
+      } as Construction);
+      continue;
+    }
+
+    constructions.push(construction as Construction);
+  }
+
+  return {
+    ok: true,
+    program: {
+      constructions,
+    },
+  };
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

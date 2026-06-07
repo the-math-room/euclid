@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
 import type { ActivityPolicy } from "@euclid/activity";
-import type { Construction } from "@euclid/geometry";
+import { toWorldPoint, type Construction } from "@euclid/geometry";
 import { deletableSelectionClosure } from "./deleteSelection";
 
 const constructions: readonly Construction[] = [
-  { id: "A", kind: "free-point", label: "A", position: { x: 0, y: 0 } },
-  { id: "B", kind: "free-point", label: "B", position: { x: 1, y: 0 } },
-  { id: "P", kind: "free-point", label: "P", position: { x: 0, y: 1 } },
+  { id: "A", kind: "free-point", label: "A", position: toWorldPoint({ x: 0, y: 0 }) },
+  { id: "B", kind: "free-point", label: "B", position: toWorldPoint({ x: 1, y: 0 }) },
+  { id: "P", kind: "free-point", label: "P", position: toWorldPoint({ x: 0, y: 1 }) },
   { id: "line-ab", kind: "line-through", label: "AB", points: ["A", "B"] },
   { id: "line-ap", kind: "line-through", label: "AP", points: ["A", "P"] },
   { id: "midpoint-ap", kind: "midpoint", label: "M", points: ["A", "P"] },

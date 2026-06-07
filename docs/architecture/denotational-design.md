@@ -16,6 +16,8 @@ React owns composition and presentation. The geometry core owns meaning. Renderi
 
 Euclid should favor meaning over representation in the Conal Elliott sense: first state what a construction denotes, then choose representations and algorithms that preserve that denotation. Floating point coordinates, vector arithmetic, and complex-number formulas are implementation techniques for approximate realization. They are not the ground truth of a construction document.
 
+Free-point coordinates stored in a `ConstructionProgram` are world-space values (`WorldPoint`), and evaluated primitives also expose world-space coordinates. Viewport-relative coordinates (`ScenePoint`) belong to rendering scenes, hit testing, pointer gestures, and preview drawing. Convert between them only at explicit projection/unprojection boundaries.
+
 Package-layer functions should be memoizable in theory: their meaning comes from explicit inputs, not ambient effects or hidden mutable module state.
 
 Source order is not semantic order. A document is evaluated by its dependency graph, and invalid graph structure produces diagnostics rather than partial implicit behavior.

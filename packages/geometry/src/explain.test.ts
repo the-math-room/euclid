@@ -1,16 +1,16 @@
 import { describe, expect, it } from "vitest";
 import { evaluateConstruction } from "./evaluate";
 import { explainConstruction, traceDependencies, traceDependents } from "./explain";
-import type { ConstructionProgram } from "./model";
+import { toWorldPoint, type ConstructionProgram } from "./model";
 
 describe("construction explanations", () => {
   it("explains a realized construction with parents, dependents, meaning, and primitive", () => {
     const program: ConstructionProgram = {
       constructions: [
-        { id: "A", kind: "free-point", label: "A", position: { x: 0, y: 0 } },
-        { id: "B", kind: "free-point", label: "B", position: { x: 2, y: 2 } },
-        { id: "C", kind: "free-point", label: "C", position: { x: 0, y: 2 } },
-        { id: "D", kind: "free-point", label: "D", position: { x: 2, y: 0 } },
+        { id: "A", kind: "free-point", label: "A", position: toWorldPoint({ x: 0, y: 0 }) },
+        { id: "B", kind: "free-point", label: "B", position: toWorldPoint({ x: 2, y: 2 }) },
+        { id: "C", kind: "free-point", label: "C", position: toWorldPoint({ x: 0, y: 2 }) },
+        { id: "D", kind: "free-point", label: "D", position: toWorldPoint({ x: 2, y: 0 }) },
         { id: "line-ab", kind: "line-through", label: "AB", points: ["A", "B"] },
         { id: "line-cd", kind: "line-through", label: "CD", points: ["C", "D"] },
         {
@@ -50,17 +50,17 @@ describe("construction explanations", () => {
       id: "intersection",
       kind: "point",
       label: "X",
-      position: { x: 1, y: 1 },
+      position: toWorldPoint({ x: 1, y: 1 }),
     });
   });
 
   it("explains a meaningful but currently unrealized construction", () => {
     const program: ConstructionProgram = {
       constructions: [
-        { id: "A", kind: "free-point", label: "A", position: { x: 0, y: 0 } },
-        { id: "B", kind: "free-point", label: "B", position: { x: 1, y: 0 } },
-        { id: "C", kind: "free-point", label: "C", position: { x: 0, y: 1 } },
-        { id: "D", kind: "free-point", label: "D", position: { x: 1, y: 1 } },
+        { id: "A", kind: "free-point", label: "A", position: toWorldPoint({ x: 0, y: 0 }) },
+        { id: "B", kind: "free-point", label: "B", position: toWorldPoint({ x: 1, y: 0 }) },
+        { id: "C", kind: "free-point", label: "C", position: toWorldPoint({ x: 0, y: 1 }) },
+        { id: "D", kind: "free-point", label: "D", position: toWorldPoint({ x: 1, y: 1 }) },
         { id: "line-ab", kind: "line-through", label: "AB", points: ["A", "B"] },
         { id: "line-cd", kind: "line-through", label: "CD", points: ["C", "D"] },
         {
@@ -98,7 +98,7 @@ describe("construction explanations", () => {
           label: "AB",
           points: ["A", "B"],
         },
-        { id: "A", kind: "free-point", label: "A", position: { x: 0, y: 0 } },
+        { id: "A", kind: "free-point", label: "A", position: toWorldPoint({ x: 0, y: 0 }) },
       ],
     };
     const evaluation = evaluateConstruction(program);
@@ -126,10 +126,10 @@ describe("construction explanations", () => {
   it("traces transitive dependencies and dependents", () => {
     const program: ConstructionProgram = {
       constructions: [
-        { id: "A", kind: "free-point", label: "A", position: { x: 0, y: 0 } },
-        { id: "B", kind: "free-point", label: "B", position: { x: 1, y: 0 } },
-        { id: "C", kind: "free-point", label: "C", position: { x: 0, y: 1 } },
-        { id: "D", kind: "free-point", label: "D", position: { x: 1, y: 1 } },
+        { id: "A", kind: "free-point", label: "A", position: toWorldPoint({ x: 0, y: 0 }) },
+        { id: "B", kind: "free-point", label: "B", position: toWorldPoint({ x: 1, y: 0 }) },
+        { id: "C", kind: "free-point", label: "C", position: toWorldPoint({ x: 0, y: 1 }) },
+        { id: "D", kind: "free-point", label: "D", position: toWorldPoint({ x: 1, y: 1 }) },
         { id: "line-ab", kind: "line-through", label: "AB", points: ["A", "B"] },
         { id: "line-cd", kind: "line-through", label: "CD", points: ["C", "D"] },
         {

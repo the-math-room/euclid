@@ -1,5 +1,6 @@
 import {
   evaluateConstruction,
+  toWorldPoint,
   dependencyIds,
   type Construction,
   type ConstructionExpression,
@@ -246,10 +247,10 @@ export function requiresGeometricEquivalent(
           const dy = (Math.sin(seedY) >= 0 ? 1 : -1) * (1.5 + Math.abs(Math.sin(seedY)) * 1.5);
           return {
             ...c,
-            position: {
+            position: toWorldPoint({
               x: c.position.x + dx,
               y: c.position.y + dy,
-            },
+            }),
           };
         }
         return c;

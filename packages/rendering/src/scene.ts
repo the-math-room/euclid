@@ -82,11 +82,11 @@ export function sceneForEvaluation(
         id: primitive.id,
         pointRole: freePointIds.has(primitive.id) ? "free" : "constructed",
         text: primitive.label,
-        mark: projectPoint(frame, toWorldPoint(primitive.position)),
+        mark: projectPoint(frame, primitive.position),
       });
     } else if (primitive.kind === "line") {
-      const a = projectPoint(frame, toWorldPoint(primitive.through[0]));
-      const b = projectPoint(frame, toWorldPoint(primitive.through[1]));
+      const a = projectPoint(frame, primitive.through[0]);
+      const b = projectPoint(frame, primitive.through[1]);
       const [from, to] = extendLineToViewport(a, b, view.viewport.size);
       lines.push({
         id: primitive.id,
@@ -96,8 +96,8 @@ export function sceneForEvaluation(
         supportLine: [a, b],
       });
     } else if (primitive.kind === "circle") {
-      const center = projectPoint(frame, toWorldPoint(primitive.center));
-      const edge = projectPoint(frame, toWorldPoint(primitive.pointOnCircle));
+      const center = projectPoint(frame, primitive.center);
+      const edge = projectPoint(frame, primitive.pointOnCircle);
       circles.push({
         id: primitive.id,
         kind: "circle",

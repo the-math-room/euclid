@@ -1,4 +1,5 @@
-import type { Construction, ConstructionId, ConstructionProgram, Point2 } from "./model";
+import type { Construction, ConstructionId, ConstructionProgram, Point2, WorldPoint } from "./model";
+import { toWorldPoint } from "./model";
 import { generateNextPointLabel } from "./names";
 
 export type AddConstructionResult = Readonly<{
@@ -10,7 +11,7 @@ export type AddConstructionResult = Readonly<{
 export function moveFreePoint(
   program: ConstructionProgram,
   id: ConstructionId,
-  position: Point2,
+  position: WorldPoint,
 ): ConstructionProgram {
   let changed = false;
   const constructions = program.constructions.map((construction): Construction => {
@@ -462,10 +463,10 @@ export function translateShape(
       changed = true;
       return {
         ...c,
-        position: {
+        position: toWorldPoint({
           x: c.position.x + delta.x,
           y: c.position.y + delta.y,
-        },
+        }),
       };
     }
     return c;

@@ -2,7 +2,7 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import type { ConstructionId, ScenePoint } from "@euclid/geometry";
+import { toWorldPoint, type ConstructionId, type ScenePoint } from "@euclid/geometry";
 import type { RenderItem } from "@euclid/rendering";
 import { WorkspaceView } from "../apps/web/src/WorkspaceView";
 
@@ -251,7 +251,7 @@ describe("WorkspaceView Integration", () => {
         id: "point-a",
         kind: "free-point" as const,
         label: "A",
-        position: { x: 100, y: 100 },
+        position: toWorldPoint({ x: 100, y: 100 }),
       },
     ];
 

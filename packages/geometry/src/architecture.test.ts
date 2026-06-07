@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { evaluateConstruction } from "./evaluate";
-import type { ConstructionProgram } from "./model";
+import { toWorldPoint, type ConstructionProgram } from "./model";
 
 const program: ConstructionProgram = {
   constructions: [
@@ -8,13 +8,13 @@ const program: ConstructionProgram = {
       id: "A",
       kind: "free-point",
       label: "A",
-      position: { x: 0, y: 0 },
+      position: toWorldPoint({ x: 0, y: 0 }),
     },
     {
       id: "B",
       kind: "free-point",
       label: "B",
-      position: { x: 1, y: 0 },
+      position: toWorldPoint({ x: 1, y: 0 }),
     },
     {
       id: "line-ab",
@@ -53,13 +53,13 @@ describe("geometry architecture", () => {
           id: "A",
           kind: "free-point",
           label: "A",
-          position: { x: 0, y: 0 },
+          position: toWorldPoint({ x: 0, y: 0 }),
         },
         {
           id: "B",
           kind: "free-point",
           label: "B",
-          position: { x: 1, y: 0 },
+          position: toWorldPoint({ x: 1, y: 0 }),
         },
       ],
     };

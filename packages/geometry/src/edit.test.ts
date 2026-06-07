@@ -13,20 +13,20 @@ import {
   moveFreePoint,
   translateShape,
 } from "./edit";
-import type { ConstructionProgram } from "./model";
+import { toWorldPoint, type ConstructionProgram } from "./model";
 
 describe("construction edits", () => {
   it("moves free points and lets dependent constructions re-evaluate", () => {
     const initial: ConstructionProgram = {
       constructions: [
-        { id: "A", kind: "free-point", label: "A", position: { x: 0, y: 0 } },
-        { id: "B", kind: "free-point", label: "B", position: { x: 1, y: 0 } },
+        { id: "A", kind: "free-point", label: "A", position: toWorldPoint({ x: 0, y: 0 }) },
+        { id: "B", kind: "free-point", label: "B", position: toWorldPoint({ x: 1, y: 0 }) },
         { id: "line-ab", kind: "line-through", label: "AB", points: ["A", "B"] },
       ],
     };
 
-    const degenerate = moveFreePoint(initial, "B", { x: 0, y: 0 });
-    const restored = moveFreePoint(degenerate, "B", { x: 2, y: 0 });
+    const degenerate = moveFreePoint(initial, "B", toWorldPoint({ x: 0, y: 0 }));
+    const restored = moveFreePoint(degenerate, "B", toWorldPoint({ x: 2, y: 0 }));
 
     expect(evaluateConstruction(degenerate).primitives.map((primitive) => primitive.id)).toEqual(["A", "B"]);
     expect(evaluateConstruction(restored).primitives.map((primitive) => primitive.id)).toEqual([
@@ -39,20 +39,20 @@ describe("construction edits", () => {
   it("returns the same program when the target is not a free point", () => {
     const program: ConstructionProgram = {
       constructions: [
-        { id: "A", kind: "free-point", label: "A", position: { x: 0, y: 0 } },
-        { id: "B", kind: "free-point", label: "B", position: { x: 1, y: 0 } },
+        { id: "A", kind: "free-point", label: "A", position: toWorldPoint({ x: 0, y: 0 }) },
+        { id: "B", kind: "free-point", label: "B", position: toWorldPoint({ x: 1, y: 0 }) },
         { id: "line-ab", kind: "line-through", label: "AB", points: ["A", "B"] },
       ],
     };
 
-    expect(moveFreePoint(program, "line-ab", { x: 2, y: 0 })).toBe(program);
+    expect(moveFreePoint(program, "line-ab", toWorldPoint({ x: 2, y: 0 }))).toBe(program);
   });
 
   it("adds a line through two points with a stable dependency-based id", () => {
     const program: ConstructionProgram = {
       constructions: [
-        { id: "A", kind: "free-point", label: "A", position: { x: 0, y: 0 } },
-        { id: "B", kind: "free-point", label: "B", position: { x: 1, y: 0 } },
+        { id: "A", kind: "free-point", label: "A", position: toWorldPoint({ x: 0, y: 0 }) },
+        { id: "B", kind: "free-point", label: "B", position: toWorldPoint({ x: 1, y: 0 }) },
       ],
     };
 
@@ -76,8 +76,8 @@ describe("construction edits", () => {
   it("does not add duplicate or self-dependent lines", () => {
     const program: ConstructionProgram = {
       constructions: [
-        { id: "A", kind: "free-point", label: "A", position: { x: 0, y: 0 } },
-        { id: "B", kind: "free-point", label: "B", position: { x: 1, y: 0 } },
+        { id: "A", kind: "free-point", label: "A", position: toWorldPoint({ x: 0, y: 0 }) },
+        { id: "B", kind: "free-point", label: "B", position: toWorldPoint({ x: 1, y: 0 }) },
       ],
     };
     const withLine = addLineThroughPoints(program, ["A", "B"]).program;
@@ -97,10 +97,10 @@ describe("construction edits", () => {
   it("adds a line-line intersection with an identity independent of realization", () => {
     const program: ConstructionProgram = {
       constructions: [
-        { id: "A", kind: "free-point", label: "A", position: { x: 0, y: 0 } },
-        { id: "B", kind: "free-point", label: "B", position: { x: 1, y: 0 } },
-        { id: "C", kind: "free-point", label: "C", position: { x: 0, y: 1 } },
-        { id: "D", kind: "free-point", label: "D", position: { x: 1, y: 1 } },
+        { id: "A", kind: "free-point", label: "A", position: toWorldPoint({ x: 0, y: 0 }) },
+        { id: "B", kind: "free-point", label: "B", position: toWorldPoint({ x: 1, y: 0 }) },
+        { id: "C", kind: "free-point", label: "C", position: toWorldPoint({ x: 0, y: 1 }) },
+        { id: "D", kind: "free-point", label: "D", position: toWorldPoint({ x: 1, y: 1 }) },
         { id: "line-a-b", kind: "line-through", label: "AB", points: ["A", "B"] },
         { id: "line-c-d", kind: "line-through", label: "CD", points: ["C", "D"] },
       ],
@@ -126,8 +126,8 @@ describe("construction edits", () => {
   it("adds a circle from center and boundary point", () => {
     const program: ConstructionProgram = {
       constructions: [
-        { id: "A", kind: "free-point", label: "A", position: { x: 0, y: 0 } },
-        { id: "B", kind: "free-point", label: "B", position: { x: 1, y: 0 } },
+        { id: "A", kind: "free-point", label: "A", position: toWorldPoint({ x: 0, y: 0 }) },
+        { id: "B", kind: "free-point", label: "B", position: toWorldPoint({ x: 1, y: 0 }) },
       ],
     };
 
@@ -159,9 +159,9 @@ describe("construction edits", () => {
   it("adds a 3-point circumscribed circle", () => {
     const program: ConstructionProgram = {
       constructions: [
-        { id: "A", kind: "free-point", label: "A", position: { x: 0, y: 0 } },
-        { id: "B", kind: "free-point", label: "B", position: { x: 2, y: 0 } },
-        { id: "C", kind: "free-point", label: "C", position: { x: 0, y: 2 } },
+        { id: "A", kind: "free-point", label: "A", position: toWorldPoint({ x: 0, y: 0 }) },
+        { id: "B", kind: "free-point", label: "B", position: toWorldPoint({ x: 2, y: 0 }) },
+        { id: "C", kind: "free-point", label: "C", position: toWorldPoint({ x: 0, y: 2 }) },
       ],
     };
 
@@ -192,8 +192,8 @@ describe("construction edits", () => {
   it("adds line-circle intersections", () => {
     const program: ConstructionProgram = {
       constructions: [
-        { id: "A", kind: "free-point", label: "A", position: { x: 0, y: 0 } },
-        { id: "B", kind: "free-point", label: "B", position: { x: 1, y: 0 } },
+        { id: "A", kind: "free-point", label: "A", position: toWorldPoint({ x: 0, y: 0 }) },
+        { id: "B", kind: "free-point", label: "B", position: toWorldPoint({ x: 1, y: 0 }) },
         { id: "circle", kind: "circle-through", label: "circle", center: "A", pointOnCircle: "B" },
         { id: "line", kind: "line-through", label: "line", points: ["A", "B"] },
       ],
@@ -221,8 +221,8 @@ describe("construction edits", () => {
   it("adds circle-circle intersections with canonical ordering", () => {
     const program: ConstructionProgram = {
       constructions: [
-        { id: "A", kind: "free-point", label: "A", position: { x: 0, y: 0 } },
-        { id: "B", kind: "free-point", label: "B", position: { x: 1, y: 0 } },
+        { id: "A", kind: "free-point", label: "A", position: toWorldPoint({ x: 0, y: 0 }) },
+        { id: "B", kind: "free-point", label: "B", position: toWorldPoint({ x: 1, y: 0 }) },
         { id: "circle-y", kind: "circle-through", label: "cY", center: "A", pointOnCircle: "B" },
         { id: "circle-x", kind: "circle-through", label: "cX", center: "B", pointOnCircle: "A" },
       ],
@@ -256,8 +256,8 @@ describe("construction edits", () => {
   it("translates defining free points of a line when translating the line", () => {
     const program: ConstructionProgram = {
       constructions: [
-        { id: "A", kind: "free-point", label: "A", position: { x: 1, y: 2 } },
-        { id: "B", kind: "free-point", label: "B", position: { x: 3, y: 4 } },
+        { id: "A", kind: "free-point", label: "A", position: toWorldPoint({ x: 1, y: 2 }) },
+        { id: "B", kind: "free-point", label: "B", position: toWorldPoint({ x: 3, y: 4 }) },
         { id: "line-ab", kind: "line-through", label: "AB", points: ["A", "B"] },
       ],
     };
@@ -268,20 +268,20 @@ describe("construction edits", () => {
       id: "A",
       kind: "free-point",
       label: "A",
-      position: { x: 11, y: -18 },
+      position: toWorldPoint({ x: 11, y: -18 }),
     });
     expect(translated.constructions).toContainEqual({
       id: "B",
       kind: "free-point",
       label: "B",
-      position: { x: 13, y: -16 },
+      position: toWorldPoint({ x: 13, y: -16 }),
     });
   });
 
   it("translates only free points when translating a circle", () => {
     const program: ConstructionProgram = {
       constructions: [
-        { id: "A", kind: "free-point", label: "A", position: { x: 0, y: 0 } },
+        { id: "A", kind: "free-point", label: "A", position: toWorldPoint({ x: 0, y: 0 }) },
         // B is not a free point, it is an intersection or similar (kind: line-line-intersection)
         { id: "B", kind: "line-line-intersection", label: "B", lines: ["l1", "l2"] },
         { id: "circle", kind: "circle-through", label: "Circle", center: "A", pointOnCircle: "B" },
@@ -295,7 +295,7 @@ describe("construction edits", () => {
       id: "A",
       kind: "free-point",
       label: "A",
-      position: { x: 5, y: 5 },
+      position: toWorldPoint({ x: 5, y: 5 }),
     });
 
     // B is not translated because it's not a free-point
@@ -310,10 +310,10 @@ describe("construction edits", () => {
   it("adds a parallel line and translates its defining point", () => {
     const program: ConstructionProgram = {
       constructions: [
-        { id: "A", kind: "free-point", label: "A", position: { x: 0, y: 0 } },
-        { id: "B", kind: "free-point", label: "B", position: { x: 2, y: 0 } },
+        { id: "A", kind: "free-point", label: "A", position: toWorldPoint({ x: 0, y: 0 }) },
+        { id: "B", kind: "free-point", label: "B", position: toWorldPoint({ x: 2, y: 0 }) },
         { id: "line-ab", kind: "line-through", label: "AB", points: ["A", "B"] },
-        { id: "C", kind: "free-point", label: "C", position: { x: 0, y: 1 } },
+        { id: "C", kind: "free-point", label: "C", position: toWorldPoint({ x: 0, y: 1 }) },
       ],
     };
 
@@ -334,17 +334,17 @@ describe("construction edits", () => {
       id: "C",
       kind: "free-point",
       label: "C",
-      position: { x: 5, y: 6 },
+      position: toWorldPoint({ x: 5, y: 6 }),
     });
   });
 
   it("adds a perpendicular line and translates its defining point", () => {
     const program: ConstructionProgram = {
       constructions: [
-        { id: "A", kind: "free-point", label: "A", position: { x: 0, y: 0 } },
-        { id: "B", kind: "free-point", label: "B", position: { x: 2, y: 0 } },
+        { id: "A", kind: "free-point", label: "A", position: toWorldPoint({ x: 0, y: 0 }) },
+        { id: "B", kind: "free-point", label: "B", position: toWorldPoint({ x: 2, y: 0 }) },
         { id: "line-ab", kind: "line-through", label: "AB", points: ["A", "B"] },
-        { id: "C", kind: "free-point", label: "C", position: { x: 0, y: 1 } },
+        { id: "C", kind: "free-point", label: "C", position: toWorldPoint({ x: 0, y: 1 }) },
       ],
     };
 
@@ -365,15 +365,15 @@ describe("construction edits", () => {
       id: "C",
       kind: "free-point",
       label: "C",
-      position: { x: 5, y: 6 },
+      position: toWorldPoint({ x: 5, y: 6 }),
     });
   });
 
   it("adds a midpoint and translates its parent points", () => {
     const program: ConstructionProgram = {
       constructions: [
-        { id: "A", kind: "free-point", label: "A", position: { x: 0, y: 0 } },
-        { id: "B", kind: "free-point", label: "B", position: { x: 2, y: 4 } },
+        { id: "A", kind: "free-point", label: "A", position: toWorldPoint({ x: 0, y: 0 }) },
+        { id: "B", kind: "free-point", label: "B", position: toWorldPoint({ x: 2, y: 4 }) },
       ],
     };
 
@@ -393,13 +393,13 @@ describe("construction edits", () => {
       id: "A",
       kind: "free-point",
       label: "A",
-      position: { x: 5, y: 5 },
+      position: toWorldPoint({ x: 5, y: 5 }),
     });
     expect(translated.constructions.find((c) => c.id === "B")).toEqual({
       id: "B",
       kind: "free-point",
       label: "B",
-      position: { x: 7, y: 9 },
+      position: toWorldPoint({ x: 7, y: 9 }),
     });
   });
 });

@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
-import type { Construction } from "./model";
+import { toWorldPoint, type Construction } from "./model";
 import { transitiveDependentsOf, deleteConstructions } from "./dependencies";
 
 const mockConstructions: readonly Construction[] = [
-  { id: "A", kind: "free-point", label: "A", position: { x: 0, y: 0 } },
-  { id: "B", kind: "free-point", label: "B", position: { x: 1, y: 0 } },
-  { id: "C", kind: "free-point", label: "C", position: { x: 0, y: 1 } },
+  { id: "A", kind: "free-point", label: "A", position: toWorldPoint({ x: 0, y: 0 }) },
+  { id: "B", kind: "free-point", label: "B", position: toWorldPoint({ x: 1, y: 0 }) },
+  { id: "C", kind: "free-point", label: "C", position: toWorldPoint({ x: 0, y: 1 }) },
   { id: "AB", kind: "line-through", label: "AB", points: ["A", "B"] },
   { id: "circleAB", kind: "circle-through", label: "circle(A,B)", center: "A", pointOnCircle: "B" },
   { id: "circleBC", kind: "circle-through", label: "circle(B,C)", center: "B", pointOnCircle: "C" },
@@ -32,7 +32,7 @@ describe("transitiveDependentsOf", () => {
   it("cascades through multiple levels", () => {
     // If we have a dependency chain A -> B -> C:
     const chainConstructions: readonly Construction[] = [
-      { id: "A", kind: "free-point", label: "A", position: { x: 0, y: 0 } },
+      { id: "A", kind: "free-point", label: "A", position: toWorldPoint({ x: 0, y: 0 }) },
       { id: "B", kind: "circle-through", label: "B", center: "A", pointOnCircle: "A" },
       { id: "C", kind: "circle-through", label: "C", center: "B", pointOnCircle: "B" },
     ];

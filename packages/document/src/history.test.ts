@@ -1,15 +1,15 @@
 import { describe, expect, it } from "vitest";
-import type { ConstructionProgram } from "@euclid/geometry";
+import { toWorldPoint, type ConstructionProgram } from "@euclid/geometry";
 import { createHistory, pushState, undo, redo, canUndo, canRedo } from "./history";
 
 const program1: ConstructionProgram = { constructions: [] };
 const program2: ConstructionProgram = {
-  constructions: [{ id: "A", kind: "free-point", label: "A", position: { x: 0, y: 0 } }],
+  constructions: [{ id: "A", kind: "free-point", label: "A", position: toWorldPoint({ x: 0, y: 0 }) }],
 };
 const program3: ConstructionProgram = {
   constructions: [
-    { id: "A", kind: "free-point", label: "A", position: { x: 0, y: 0 } },
-    { id: "B", kind: "free-point", label: "B", position: { x: 1, y: 1 } },
+    { id: "A", kind: "free-point", label: "A", position: toWorldPoint({ x: 0, y: 0 }) },
+    { id: "B", kind: "free-point", label: "B", position: toWorldPoint({ x: 1, y: 1 }) },
   ],
 };
 

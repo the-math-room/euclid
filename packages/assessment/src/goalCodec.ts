@@ -1,5 +1,5 @@
 import type { AssessmentGoal } from "./goals";
-import type { Construction, ConstructionExpression } from "@euclid/geometry";
+import { toWorldPoint, type Construction, type ConstructionExpression } from "@euclid/geometry";
 
 export type AssessmentGoalParseResult =
   | Readonly<{
@@ -257,10 +257,10 @@ function decodeConstruction(value: unknown, path: string): ConstructionDecodeRes
         id: value.id,
         kind: "free-point",
         label: value.label,
-        position: {
+        position: toWorldPoint({
           x: value.position.x,
           y: value.position.y,
-        },
+        }),
       },
     };
   }

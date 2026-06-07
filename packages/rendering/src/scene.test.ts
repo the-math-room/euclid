@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { evaluateConstruction, type ConstructionProgram, type WorldPoint } from "@euclid/geometry";
+import {
+  evaluateConstruction,
+  toWorldPoint,
+  type ConstructionProgram,
+  type WorldPoint,
+} from "@euclid/geometry";
 import { defaultScreenViewFor, sceneForEvaluation } from "./scene";
 import { moveCameraInScreen, rotateCamera, zoomCamera, type ScreenView, type ViewportSize } from "./viewport";
 
@@ -9,19 +14,19 @@ const program: ConstructionProgram = {
       id: "A",
       kind: "free-point",
       label: "A",
-      position: { x: -2.4, y: -0.6 },
+      position: toWorldPoint({ x: -2.4, y: -0.6 }),
     },
     {
       id: "B",
       kind: "free-point",
       label: "B",
-      position: { x: 2.1, y: -0.2 },
+      position: toWorldPoint({ x: 2.1, y: -0.2 }),
     },
     {
       id: "C",
       kind: "free-point",
       label: "C",
-      position: { x: -0.4, y: 2.2 },
+      position: toWorldPoint({ x: -0.4, y: 2.2 }),
     },
     {
       id: "line-ab",
@@ -81,10 +86,10 @@ describe("sceneForEvaluation", () => {
   it("marks constructed point render items separately from free points", () => {
     const evaluation = evaluateConstruction({
       constructions: [
-        { id: "A", kind: "free-point", label: "A", position: { x: 0, y: 0 } },
-        { id: "B", kind: "free-point", label: "B", position: { x: 2, y: 2 } },
-        { id: "C", kind: "free-point", label: "C", position: { x: 0, y: 2 } },
-        { id: "D", kind: "free-point", label: "D", position: { x: 2, y: 0 } },
+        { id: "A", kind: "free-point", label: "A", position: toWorldPoint({ x: 0, y: 0 }) },
+        { id: "B", kind: "free-point", label: "B", position: toWorldPoint({ x: 2, y: 2 }) },
+        { id: "C", kind: "free-point", label: "C", position: toWorldPoint({ x: 0, y: 2 }) },
+        { id: "D", kind: "free-point", label: "D", position: toWorldPoint({ x: 2, y: 0 }) },
         { id: "line-ab", kind: "line-through", label: "AB", points: ["A", "B"] },
         { id: "line-cd", kind: "line-through", label: "CD", points: ["C", "D"] },
         {
@@ -108,13 +113,13 @@ describe("sceneForEvaluation", () => {
           id: "A",
           kind: "free-point",
           label: "A",
-          position: { x: 1, y: 0 },
+          position: toWorldPoint({ x: 1, y: 0 }),
         },
         {
           id: "B",
           kind: "free-point",
           label: "B",
-          position: { x: 0, y: 0 },
+          position: toWorldPoint({ x: 0, y: 0 }),
         },
       ],
     });
@@ -148,13 +153,13 @@ describe("sceneForEvaluation", () => {
           id: "A",
           kind: "free-point",
           label: "A",
-          position: { x: 1, y: 0 },
+          position: toWorldPoint({ x: 1, y: 0 }),
         },
         {
           id: "B",
           kind: "free-point",
           label: "B",
-          position: { x: 0, y: 0 },
+          position: toWorldPoint({ x: 0, y: 0 }),
         },
       ],
     });
@@ -178,13 +183,13 @@ describe("sceneForEvaluation", () => {
           id: "A",
           kind: "free-point",
           label: "A",
-          position: { x: 1, y: 0 },
+          position: toWorldPoint({ x: 1, y: 0 }),
         },
         {
           id: "B",
           kind: "free-point",
           label: "B",
-          position: { x: 0, y: 0 },
+          position: toWorldPoint({ x: 0, y: 0 }),
         },
       ],
     });
@@ -206,13 +211,13 @@ describe("sceneForEvaluation", () => {
           id: "A",
           kind: "free-point",
           label: "A",
-          position: { x: 1, y: 0 },
+          position: toWorldPoint({ x: 1, y: 0 }),
         },
         {
           id: "B",
           kind: "free-point",
           label: "B",
-          position: { x: 0, y: 0 },
+          position: toWorldPoint({ x: 0, y: 0 }),
         },
       ],
     });
@@ -236,13 +241,13 @@ describe("sceneForEvaluation", () => {
           id: "A",
           kind: "free-point",
           label: "A",
-          position: { x: -100, y: 0 },
+          position: toWorldPoint({ x: -100, y: 0 }),
         },
         {
           id: "B",
           kind: "free-point",
           label: "B",
-          position: { x: -99, y: 0 },
+          position: toWorldPoint({ x: -99, y: 0 }),
         },
         {
           id: "line-ab",

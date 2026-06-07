@@ -1,4 +1,5 @@
 import { openActivityPolicy } from "@euclid/activity";
+import { toWorldPoint } from "@euclid/geometry";
 import type { EuclidLesson } from "@euclid/lesson";
 
 export const lessons: readonly EuclidLesson[] = [
@@ -13,10 +14,10 @@ export const lessons: readonly EuclidLesson[] = [
       title: "Line intersection starter",
       program: {
         constructions: [
-          { id: "A", kind: "free-point", label: "A", position: { x: -2.0, y: -1.0 } },
-          { id: "B", kind: "free-point", label: "B", position: { x: 2.0, y: 1.0 } },
-          { id: "C", kind: "free-point", label: "C", position: { x: -1.0, y: 1.5 } },
-          { id: "D", kind: "free-point", label: "D", position: { x: 1.0, y: -1.5 } },
+          { id: "A", kind: "free-point", label: "A", position: toWorldPoint({ x: -2.0, y: -1.0 }) },
+          { id: "B", kind: "free-point", label: "B", position: toWorldPoint({ x: 2.0, y: 1.0 }) },
+          { id: "C", kind: "free-point", label: "C", position: toWorldPoint({ x: -1.0, y: 1.5 }) },
+          { id: "D", kind: "free-point", label: "D", position: toWorldPoint({ x: 1.0, y: -1.5 }) },
         ],
       },
     },
@@ -68,8 +69,8 @@ export const lessons: readonly EuclidLesson[] = [
       title: "Perpendicular bisector starter",
       program: {
         constructions: [
-          { id: "A", kind: "free-point", label: "A", position: { x: -2.0, y: 0.0 } },
-          { id: "B", kind: "free-point", label: "B", position: { x: 2.0, y: 0.0 } },
+          { id: "A", kind: "free-point", label: "A", position: toWorldPoint({ x: -2.0, y: 0.0 }) },
+          { id: "B", kind: "free-point", label: "B", position: toWorldPoint({ x: 2.0, y: 0.0 }) },
           { id: "line-ab", kind: "line-through", label: "AB", points: ["A", "B"] },
         ],
       },
@@ -110,9 +111,9 @@ export const lessons: readonly EuclidLesson[] = [
       title: "Free draw starter",
       program: {
         constructions: [
-          { id: "A", kind: "free-point", label: "A", position: { x: -1.5, y: -1.0 } },
-          { id: "B", kind: "free-point", label: "B", position: { x: 1.5, y: -1.0 } },
-          { id: "C", kind: "free-point", label: "C", position: { x: 0.0, y: 1.5 } },
+          { id: "A", kind: "free-point", label: "A", position: toWorldPoint({ x: -1.5, y: -1.0 }) },
+          { id: "B", kind: "free-point", label: "B", position: toWorldPoint({ x: 1.5, y: -1.0 }) },
+          { id: "C", kind: "free-point", label: "C", position: toWorldPoint({ x: 0.0, y: 1.5 }) },
         ],
       },
     },
@@ -130,10 +131,10 @@ export const lessons: readonly EuclidLesson[] = [
       title: "Parallel line starter",
       program: {
         constructions: [
-          { id: "A", kind: "free-point", label: "A", position: { x: -2.0, y: -0.5 } },
-          { id: "B", kind: "free-point", label: "B", position: { x: 2.0, y: -0.5 } },
+          { id: "A", kind: "free-point", label: "A", position: toWorldPoint({ x: -2.0, y: -0.5 }) },
+          { id: "B", kind: "free-point", label: "B", position: toWorldPoint({ x: 2.0, y: -0.5 }) },
           { id: "line-ab", kind: "line-through", label: "AB", points: ["A", "B"] },
-          { id: "C", kind: "free-point", label: "C", position: { x: 0.0, y: 1.0 } },
+          { id: "C", kind: "free-point", label: "C", position: toWorldPoint({ x: 0.0, y: 1.0 }) },
         ],
       },
     },

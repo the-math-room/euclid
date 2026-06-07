@@ -1,4 +1,5 @@
 import type { EuclidDocument } from "./model";
+import { toWorldPoint } from "@euclid/geometry";
 
 export const seedDocument: EuclidDocument = {
   schemaVersion: 1,
@@ -9,19 +10,19 @@ export const seedDocument: EuclidDocument = {
         id: "A",
         kind: "free-point",
         label: "A",
-        position: { x: -2.4, y: -0.6 },
+        position: toWorldPoint({ x: -2.4, y: -0.6 }),
       },
       {
         id: "B",
         kind: "free-point",
         label: "B",
-        position: { x: 2.1, y: -0.2 },
+        position: toWorldPoint({ x: 2.1, y: -0.2 }),
       },
       {
         id: "C",
         kind: "free-point",
         label: "C",
-        position: { x: -0.4, y: 2.2 },
+        position: toWorldPoint({ x: -0.4, y: 2.2 }),
       },
       {
         id: "line-ab",

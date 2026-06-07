@@ -3,7 +3,7 @@ import { describe, expect, it, beforeEach, afterEach, vi } from "vitest";
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { SelectionDetails } from "../apps/web/src/objects/SelectionDetails";
-import type { Construction } from "@euclid/geometry";
+import { toWorldPoint, type Construction } from "@euclid/geometry";
 
 const globalWithAct = globalThis as unknown as { IS_REACT_ACT_ENVIRONMENT: boolean };
 globalWithAct.IS_REACT_ACT_ENVIRONMENT = true;
@@ -58,7 +58,7 @@ describe("SelectionDetails Component", () => {
         id: "A",
         kind: "free-point",
         label: "A",
-        position: { x: 0, y: 0 },
+        position: toWorldPoint({ x: 0, y: 0 }),
       },
     ];
 

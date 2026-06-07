@@ -15,15 +15,15 @@ import {
   requiresPointOnCircle,
   requiresPointOnLine,
 } from "./assessment";
-import { evaluateConstruction, type ConstructionProgram } from "@euclid/geometry";
+import { evaluateConstruction, toWorldPoint, type ConstructionProgram } from "@euclid/geometry";
 
 describe("assessment primitives", () => {
   const program: ConstructionProgram = {
     constructions: [
-      { id: "A", kind: "free-point", label: "A", position: { x: 0, y: 0 } },
-      { id: "B", kind: "free-point", label: "B", position: { x: 2, y: 0 } },
-      { id: "C", kind: "free-point", label: "C", position: { x: 1, y: 1 } },
-      { id: "D", kind: "free-point", label: "D", position: { x: 1, y: -1 } },
+      { id: "A", kind: "free-point", label: "A", position: toWorldPoint({ x: 0, y: 0 }) },
+      { id: "B", kind: "free-point", label: "B", position: toWorldPoint({ x: 2, y: 0 }) },
+      { id: "C", kind: "free-point", label: "C", position: toWorldPoint({ x: 1, y: 1 }) },
+      { id: "D", kind: "free-point", label: "D", position: toWorldPoint({ x: 1, y: -1 }) },
       { id: "line-ab", kind: "line-through", label: "AB", points: ["A", "B"] },
       { id: "line-cd", kind: "line-through", label: "CD", points: ["C", "D"] },
       { id: "circle-a-b", kind: "circle-through", label: "Circle(A, B)", center: "A", pointOnCircle: "B" },
@@ -145,8 +145,8 @@ describe("assessment primitives", () => {
   it("returns false for incidence checks when primitives are not realized", () => {
     const degenerateProgram: ConstructionProgram = {
       constructions: [
-        { id: "A", kind: "free-point", label: "A", position: { x: 0, y: 0 } },
-        { id: "B", kind: "free-point", label: "B", position: { x: 0, y: 0 } },
+        { id: "A", kind: "free-point", label: "A", position: toWorldPoint({ x: 0, y: 0 }) },
+        { id: "B", kind: "free-point", label: "B", position: toWorldPoint({ x: 0, y: 0 }) },
         { id: "line-ab", kind: "line-through", label: "AB", points: ["A", "B"] },
       ],
     };

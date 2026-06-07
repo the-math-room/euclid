@@ -4,6 +4,7 @@ import {
   addCircleThroughPoints,
   addLineThroughPoints,
   evaluateConstruction,
+  toWorldPoint,
   type ConstructionProgram,
 } from "@euclid/geometry";
 import { evaluateGoal, mapGoalIds, resolveGoalMapping, type AssessmentGoal } from "@euclid/assessment";
@@ -14,10 +15,10 @@ describe("assessmentResolver", () => {
     // 1. Define starter program (e.g. 4 points)
     const starterProgram: ConstructionProgram = {
       constructions: [
-        { id: "A", kind: "free-point", label: "A", position: { x: 0, y: 0 } },
-        { id: "B", kind: "free-point", label: "B", position: { x: 2, y: 0 } },
-        { id: "C", kind: "free-point", label: "C", position: { x: 1, y: 1 } },
-        { id: "D", kind: "free-point", label: "D", position: { x: 1, y: -1 } },
+        { id: "A", kind: "free-point", label: "A", position: toWorldPoint({ x: 0, y: 0 }) },
+        { id: "B", kind: "free-point", label: "B", position: toWorldPoint({ x: 2, y: 0 }) },
+        { id: "C", kind: "free-point", label: "C", position: toWorldPoint({ x: 1, y: 1 }) },
+        { id: "D", kind: "free-point", label: "D", position: toWorldPoint({ x: 1, y: -1 }) },
       ],
     };
 
@@ -93,8 +94,8 @@ describe("assessmentResolver", () => {
   it("resolves nested goals correctly", () => {
     const starterProgram: ConstructionProgram = {
       constructions: [
-        { id: "A", kind: "free-point", label: "A", position: { x: 0, y: 0 } },
-        { id: "B", kind: "free-point", label: "B", position: { x: 2, y: 0 } },
+        { id: "A", kind: "free-point", label: "A", position: toWorldPoint({ x: 0, y: 0 }) },
+        { id: "B", kind: "free-point", label: "B", position: toWorldPoint({ x: 2, y: 0 }) },
       ],
     };
 
@@ -130,8 +131,8 @@ describe("assessmentResolver", () => {
   it("accepts a user-drawn line with reversed endpoint order for curriculum line goals", () => {
     const starterProgram: ConstructionProgram = {
       constructions: [
-        { id: "A", kind: "free-point", label: "A", position: { x: 0, y: 0 } },
-        { id: "B", kind: "free-point", label: "B", position: { x: 2, y: 0 } },
+        { id: "A", kind: "free-point", label: "A", position: toWorldPoint({ x: 0, y: 0 }) },
+        { id: "B", kind: "free-point", label: "B", position: toWorldPoint({ x: 2, y: 0 }) },
       ],
     };
     const goals: readonly AssessmentGoal[] = [
@@ -256,7 +257,7 @@ describe("assessmentResolver", () => {
             id: "C",
             kind: "free-point",
             label: "C",
-            position: { x: 5, y: 5 },
+            position: toWorldPoint({ x: 5, y: 5 }),
           },
           {
             id: "user-circle-wrong",

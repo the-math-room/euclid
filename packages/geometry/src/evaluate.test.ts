@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { evaluateConstruction } from "./evaluate";
-import type { ConstructionProgram } from "./model";
+import { toWorldPoint, type ConstructionProgram } from "./model";
 
 describe("evaluateConstruction", () => {
   it("evaluates constructions in dependency order rather than source order", () => {
@@ -16,13 +16,13 @@ describe("evaluateConstruction", () => {
           id: "A",
           kind: "free-point",
           label: "A",
-          position: { x: 0, y: 0 },
+          position: toWorldPoint({ x: 0, y: 0 }),
         },
         {
           id: "B",
           kind: "free-point",
           label: "B",
-          position: { x: 1, y: 0 },
+          position: toWorldPoint({ x: 1, y: 0 }),
         },
       ],
     };
@@ -51,7 +51,7 @@ describe("evaluateConstruction", () => {
           id: "A",
           kind: "free-point",
           label: "A",
-          position: { x: 0, y: 0 },
+          position: toWorldPoint({ x: 0, y: 0 }),
         },
       ],
     };
@@ -75,13 +75,13 @@ describe("evaluateConstruction", () => {
           id: "A",
           kind: "free-point",
           label: "A",
-          position: { x: 0, y: 0 },
+          position: toWorldPoint({ x: 0, y: 0 }),
         },
         {
           id: "A",
           kind: "free-point",
           label: "A prime",
-          position: { x: 1, y: 0 },
+          position: toWorldPoint({ x: 1, y: 0 }),
         },
       ],
     };
@@ -127,13 +127,13 @@ describe("evaluateConstruction", () => {
           id: "A",
           kind: "free-point",
           label: "A",
-          position: { x: 0, y: 0 },
+          position: toWorldPoint({ x: 0, y: 0 }),
         },
         {
           id: "B",
           kind: "free-point",
           label: "B",
-          position: { x: 0, y: 0 },
+          position: toWorldPoint({ x: 0, y: 0 }),
         },
         {
           id: "line-ab",
@@ -163,13 +163,13 @@ describe("evaluateConstruction", () => {
           id: "A",
           kind: "free-point",
           label: "A",
-          position: { x: 0, y: 0 },
+          position: toWorldPoint({ x: 0, y: 0 }),
         },
         {
           id: "B",
           kind: "free-point",
           label: "B",
-          position: { x: 0, y: 0 },
+          position: toWorldPoint({ x: 0, y: 0 }),
         },
         {
           id: "circle-ab",
@@ -196,10 +196,10 @@ describe("evaluateConstruction", () => {
   it("realizes a line-line intersection as a constructed point", () => {
     const program: ConstructionProgram = {
       constructions: [
-        { id: "A", kind: "free-point", label: "A", position: { x: 0, y: 0 } },
-        { id: "B", kind: "free-point", label: "B", position: { x: 2, y: 2 } },
-        { id: "C", kind: "free-point", label: "C", position: { x: 0, y: 2 } },
-        { id: "D", kind: "free-point", label: "D", position: { x: 2, y: 0 } },
+        { id: "A", kind: "free-point", label: "A", position: toWorldPoint({ x: 0, y: 0 }) },
+        { id: "B", kind: "free-point", label: "B", position: toWorldPoint({ x: 2, y: 2 }) },
+        { id: "C", kind: "free-point", label: "C", position: toWorldPoint({ x: 0, y: 2 }) },
+        { id: "D", kind: "free-point", label: "D", position: toWorldPoint({ x: 2, y: 0 }) },
         { id: "line-ab", kind: "line-through", label: "AB", points: ["A", "B"] },
         { id: "line-cd", kind: "line-through", label: "CD", points: ["C", "D"] },
         {
@@ -226,17 +226,17 @@ describe("evaluateConstruction", () => {
       id: "intersection",
       kind: "point",
       label: "X",
-      position: { x: 1, y: 1 },
+      position: toWorldPoint({ x: 1, y: 1 }),
     });
   });
 
   it("keeps line-line intersection meaning when parallel lines have no realization", () => {
     const program: ConstructionProgram = {
       constructions: [
-        { id: "A", kind: "free-point", label: "A", position: { x: 0, y: 0 } },
-        { id: "B", kind: "free-point", label: "B", position: { x: 2, y: 0 } },
-        { id: "C", kind: "free-point", label: "C", position: { x: 0, y: 1 } },
-        { id: "D", kind: "free-point", label: "D", position: { x: 2, y: 1 } },
+        { id: "A", kind: "free-point", label: "A", position: toWorldPoint({ x: 0, y: 0 }) },
+        { id: "B", kind: "free-point", label: "B", position: toWorldPoint({ x: 2, y: 0 }) },
+        { id: "C", kind: "free-point", label: "C", position: toWorldPoint({ x: 0, y: 1 }) },
+        { id: "D", kind: "free-point", label: "D", position: toWorldPoint({ x: 2, y: 1 }) },
         { id: "line-ab", kind: "line-through", label: "AB", points: ["A", "B"] },
         { id: "line-cd", kind: "line-through", label: "CD", points: ["C", "D"] },
         {
@@ -276,9 +276,9 @@ describe("evaluateConstruction", () => {
   it("evaluates and realizes a 3-point circumscribed circle", () => {
     const program: ConstructionProgram = {
       constructions: [
-        { id: "A", kind: "free-point", label: "A", position: { x: 0, y: 0 } },
-        { id: "B", kind: "free-point", label: "B", position: { x: 2, y: 0 } },
-        { id: "C", kind: "free-point", label: "C", position: { x: 0, y: 2 } },
+        { id: "A", kind: "free-point", label: "A", position: toWorldPoint({ x: 0, y: 0 }) },
+        { id: "B", kind: "free-point", label: "B", position: toWorldPoint({ x: 2, y: 0 }) },
+        { id: "C", kind: "free-point", label: "C", position: toWorldPoint({ x: 0, y: 2 }) },
         {
           id: "circle-abc",
           kind: "circle-three-points",
@@ -304,9 +304,9 @@ describe("evaluateConstruction", () => {
   it("does not evaluate a 3-point circle if points are collinear", () => {
     const program: ConstructionProgram = {
       constructions: [
-        { id: "A", kind: "free-point", label: "A", position: { x: 0, y: 0 } },
-        { id: "B", kind: "free-point", label: "B", position: { x: 1, y: 1 } },
-        { id: "C", kind: "free-point", label: "C", position: { x: 2, y: 2 } },
+        { id: "A", kind: "free-point", label: "A", position: toWorldPoint({ x: 0, y: 0 }) },
+        { id: "B", kind: "free-point", label: "B", position: toWorldPoint({ x: 1, y: 1 }) },
+        { id: "C", kind: "free-point", label: "C", position: toWorldPoint({ x: 2, y: 2 }) },
         {
           id: "circle-abc",
           kind: "circle-three-points",
@@ -330,11 +330,11 @@ describe("evaluateConstruction", () => {
   it("realizes line-circle intersections", () => {
     const program: ConstructionProgram = {
       constructions: [
-        { id: "A", kind: "free-point", label: "A", position: { x: 0, y: 0 } },
-        { id: "B", kind: "free-point", label: "B", position: { x: 0, y: 1 } },
+        { id: "A", kind: "free-point", label: "A", position: toWorldPoint({ x: 0, y: 0 }) },
+        { id: "B", kind: "free-point", label: "B", position: toWorldPoint({ x: 0, y: 1 }) },
         { id: "circle", kind: "circle-through", label: "circle", center: "A", pointOnCircle: "B" },
-        { id: "C", kind: "free-point", label: "C", position: { x: -2, y: 0 } },
-        { id: "D", kind: "free-point", label: "D", position: { x: 2, y: 0 } },
+        { id: "C", kind: "free-point", label: "C", position: toWorldPoint({ x: -2, y: 0 }) },
+        { id: "D", kind: "free-point", label: "D", position: toWorldPoint({ x: 2, y: 0 }) },
         { id: "line", kind: "line-through", label: "line", points: ["C", "D"] },
         {
           id: "intersect-0",
@@ -377,8 +377,8 @@ describe("evaluateConstruction", () => {
   it("realizes circle-circle intersections", () => {
     const program: ConstructionProgram = {
       constructions: [
-        { id: "A", kind: "free-point", label: "A", position: { x: -0.5, y: 0 } },
-        { id: "B", kind: "free-point", label: "B", position: { x: 0.5, y: 0 } },
+        { id: "A", kind: "free-point", label: "A", position: toWorldPoint({ x: -0.5, y: 0 }) },
+        { id: "B", kind: "free-point", label: "B", position: toWorldPoint({ x: 0.5, y: 0 }) },
         { id: "circle1", kind: "circle-through", label: "c1", center: "A", pointOnCircle: "B" },
         { id: "circle2", kind: "circle-through", label: "c2", center: "B", pointOnCircle: "A" },
         {
@@ -422,10 +422,10 @@ describe("evaluateConstruction", () => {
   it("realizes parallel lines", () => {
     const program: ConstructionProgram = {
       constructions: [
-        { id: "A", kind: "free-point", label: "A", position: { x: 0, y: 0 } },
-        { id: "B", kind: "free-point", label: "B", position: { x: 2, y: 0 } },
+        { id: "A", kind: "free-point", label: "A", position: toWorldPoint({ x: 0, y: 0 }) },
+        { id: "B", kind: "free-point", label: "B", position: toWorldPoint({ x: 2, y: 0 }) },
         { id: "line-ab", kind: "line-through", label: "AB", points: ["A", "B"] },
-        { id: "C", kind: "free-point", label: "C", position: { x: 0, y: 1 } },
+        { id: "C", kind: "free-point", label: "C", position: toWorldPoint({ x: 0, y: 1 }) },
         {
           id: "parallel-line",
           kind: "parallel-line",
@@ -451,10 +451,10 @@ describe("evaluateConstruction", () => {
   it("realizes perpendicular lines", () => {
     const program: ConstructionProgram = {
       constructions: [
-        { id: "A", kind: "free-point", label: "A", position: { x: 0, y: 0 } },
-        { id: "B", kind: "free-point", label: "B", position: { x: 2, y: 0 } },
+        { id: "A", kind: "free-point", label: "A", position: toWorldPoint({ x: 0, y: 0 }) },
+        { id: "B", kind: "free-point", label: "B", position: toWorldPoint({ x: 2, y: 0 }) },
         { id: "line-ab", kind: "line-through", label: "AB", points: ["A", "B"] },
-        { id: "C", kind: "free-point", label: "C", position: { x: 1, y: 1 } },
+        { id: "C", kind: "free-point", label: "C", position: toWorldPoint({ x: 1, y: 1 }) },
         {
           id: "perpendicular-line",
           kind: "perpendicular-line",
@@ -483,8 +483,8 @@ describe("evaluateConstruction", () => {
   it("realizes midpoints", () => {
     const program: ConstructionProgram = {
       constructions: [
-        { id: "A", kind: "free-point", label: "A", position: { x: 0, y: 0 } },
-        { id: "B", kind: "free-point", label: "B", position: { x: 2, y: 4 } },
+        { id: "A", kind: "free-point", label: "A", position: toWorldPoint({ x: 0, y: 0 }) },
+        { id: "B", kind: "free-point", label: "B", position: toWorldPoint({ x: 2, y: 4 }) },
         {
           id: "midpoint",
           kind: "midpoint",

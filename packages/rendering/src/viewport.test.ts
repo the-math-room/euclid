@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { EvaluatedPrimitive, WorldPoint } from "@euclid/geometry";
+import { toWorldPoint, type EvaluatedPrimitive, type WorldPoint } from "@euclid/geometry";
 import {
   fitCameraFor,
   moveCameraInScreen,
@@ -69,13 +69,13 @@ describe("camera operations", () => {
         id: "A",
         kind: "point",
         label: "A",
-        position: { x: 0, y: 0 },
+        position: toWorldPoint({ x: 0, y: 0 }),
       },
       {
         id: "B",
         kind: "point",
         label: "B",
-        position: { x: 4, y: 2 },
+        position: toWorldPoint({ x: 4, y: 2 }),
       },
     ];
 

@@ -134,6 +134,7 @@ npm run check
 
 ## Journal (Most Recent First)
 
+- `docs/journal/2026-06-07-coordinate-branding-completion.md` — completed world/scene coordinate branding in construction storage, realization, parsing boundaries, and fixtures.
 - `docs/journal/2026-06-07-rendering-style-consolidation-and-gesture-tests.md` — unified style resolution across Canvas/SVG and pure headless testing of GestureController.
 - `docs/journal/2026-06-07-architectural-precepts.md` — architectural precepts codifying design philosophy (denotational design, UI interpretation, branded types, and extensibility).
 - `docs/journal/2026-06-06-lesson-authoring-and-gesture-decoupling.md` — visual lesson authoring panel, magic auto-detect algorithm, and GestureController decoupling.

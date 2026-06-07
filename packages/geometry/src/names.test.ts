@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { Construction } from "./model";
+import { toWorldPoint, type Construction } from "./model";
 import { generateNextPointLabel } from "./names";
 
 describe("generateNextPointLabel", () => {
@@ -9,7 +9,7 @@ describe("generateNextPointLabel", () => {
 
   it("returns B when A already exists", () => {
     const mockConstructions: Construction[] = [
-      { id: "A", kind: "free-point", label: "A", position: { x: 0, y: 0 } },
+      { id: "A", kind: "free-point", label: "A", position: toWorldPoint({ x: 0, y: 0 }) },
     ];
     expect(generateNextPointLabel(mockConstructions)).toBe("B");
   });
@@ -18,7 +18,12 @@ describe("generateNextPointLabel", () => {
     const mockConstructions: Construction[] = [];
     for (let i = 0; i < 26; i++) {
       const label = String.fromCharCode(65 + i);
-      mockConstructions.push({ id: label, kind: "free-point", label, position: { x: 0, y: 0 } });
+      mockConstructions.push({
+        id: label,
+        kind: "free-point",
+        label,
+        position: toWorldPoint({ x: 0, y: 0 }),
+      });
     }
     expect(generateNextPointLabel(mockConstructions)).toBe("A1");
   });
@@ -27,9 +32,19 @@ describe("generateNextPointLabel", () => {
     const mockConstructions: Construction[] = [];
     for (let i = 0; i < 26; i++) {
       const label = String.fromCharCode(65 + i);
-      mockConstructions.push({ id: label, kind: "free-point", label, position: { x: 0, y: 0 } });
+      mockConstructions.push({
+        id: label,
+        kind: "free-point",
+        label,
+        position: toWorldPoint({ x: 0, y: 0 }),
+      });
     }
-    mockConstructions.push({ id: "A1", kind: "free-point", label: "A1", position: { x: 0, y: 0 } });
+    mockConstructions.push({
+      id: "A1",
+      kind: "free-point",
+      label: "A1",
+      position: toWorldPoint({ x: 0, y: 0 }),
+    });
     expect(generateNextPointLabel(mockConstructions)).toBe("B1");
   });
 });

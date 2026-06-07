@@ -1,4 +1,5 @@
 import type { Construction, ConstructionId, EvaluatedPrimitive, EvaluationDiagnostic } from "./model";
+import { toWorldPoint } from "./model";
 import {
   lineLineIntersection,
   samePoint,
@@ -143,10 +144,10 @@ function realizeOne(
     const bSq = bp.x * bp.x + bp.y * bp.y;
     const cSq = cp.x * cp.x + cp.y * cp.y;
 
-    const center = {
+    const center = toWorldPoint({
       x: (aSq * (bp.y - cp.y) + bSq * (cp.y - ap.y) + cSq * (ap.y - bp.y)) / d,
       y: (aSq * (cp.x - bp.x) + bSq * (ap.x - cp.x) + cSq * (bp.x - ap.x)) / d,
-    };
+    });
 
     return {
       id: construction.id,
@@ -181,7 +182,7 @@ function realizeOne(
       id: construction.id,
       kind: "point",
       label: construction.label,
-      position,
+      position: toWorldPoint(position),
     };
   }
 
@@ -221,7 +222,7 @@ function realizeOne(
       id: construction.id,
       kind: "point",
       label: construction.label,
-      position,
+      position: toWorldPoint(position),
     };
   }
 
@@ -265,7 +266,7 @@ function realizeOne(
       id: construction.id,
       kind: "point",
       label: construction.label,
-      position,
+      position: toWorldPoint(position),
     };
   }
 
@@ -284,10 +285,10 @@ function realizeOne(
     const dx = b.x - a.x;
     const dy = b.y - a.y;
 
-    const p2 = {
+    const p2 = toWorldPoint({
       x: point.position.x + dx,
       y: point.position.y + dy,
-    };
+    });
 
     return {
       id: construction.id,
@@ -312,10 +313,10 @@ function realizeOne(
     const dx = b.x - a.x;
     const dy = b.y - a.y;
 
-    const p2 = {
+    const p2 = toWorldPoint({
       x: point.position.x - dy,
       y: point.position.y + dx,
-    };
+    });
 
     return {
       id: construction.id,
@@ -336,10 +337,10 @@ function realizeOne(
       };
     }
 
-    const position = {
+    const position = toWorldPoint({
       x: (a.position.x + b.position.x) / 2,
       y: (a.position.y + b.position.y) / 2,
-    };
+    });
 
     return {
       id: construction.id,

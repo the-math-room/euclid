@@ -1,14 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { compileEuclidLesson, autoDetectStartersAndGoals } from "./authoring";
-import type { ConstructionProgram } from "@euclid/geometry";
+import { toWorldPoint, type ConstructionProgram } from "@euclid/geometry";
 import { parseEuclidLesson } from "@euclid/lesson";
 
 describe("compileEuclidLesson", () => {
   it("compiles a valid EuclidLesson that passes lesson validation", () => {
     const program: ConstructionProgram = {
       constructions: [
-        { id: "A", kind: "free-point", label: "A", position: { x: 0, y: 0 } },
-        { id: "B", kind: "free-point", label: "B", position: { x: 1, y: 1 } },
+        { id: "A", kind: "free-point", label: "A", position: toWorldPoint({ x: 0, y: 0 }) },
+        { id: "B", kind: "free-point", label: "B", position: toWorldPoint({ x: 1, y: 1 }) },
         { id: "line-ab", kind: "line-through", label: "AB", points: ["A", "B"] },
       ],
     };
@@ -49,10 +49,10 @@ describe("autoDetectStartersAndGoals", () => {
   it("auto-detects free points as locked and terminal nodes as goals", () => {
     const program: ConstructionProgram = {
       constructions: [
-        { id: "A", kind: "free-point", label: "A", position: { x: 0, y: 0 } },
-        { id: "B", kind: "free-point", label: "B", position: { x: 2, y: 2 } },
+        { id: "A", kind: "free-point", label: "A", position: toWorldPoint({ x: 0, y: 0 }) },
+        { id: "B", kind: "free-point", label: "B", position: toWorldPoint({ x: 2, y: 2 }) },
         { id: "line-ab", kind: "line-through", label: "AB", points: ["A", "B"] },
-        { id: "C", kind: "free-point", label: "C", position: { x: 4, y: 4 } },
+        { id: "C", kind: "free-point", label: "C", position: toWorldPoint({ x: 4, y: 4 }) },
         { id: "perp", kind: "perpendicular-line", label: "perp", line: "line-ab", point: "C" },
       ],
     };

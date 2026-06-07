@@ -25,7 +25,7 @@ export type Construction =
       id: ConstructionId;
       kind: "free-point";
       label: string;
-      position: Point2;
+      position: WorldPoint;
     }>
   | Readonly<{
       id: ConstructionId;
@@ -94,20 +94,20 @@ export type EvaluatedPrimitive =
       id: ConstructionId;
       kind: "point";
       label: string;
-      position: Point2;
+      position: WorldPoint;
     }>
   | Readonly<{
       id: ConstructionId;
       kind: "line";
       label: string;
-      through: readonly [Point2, Point2];
+      through: readonly [WorldPoint, WorldPoint];
     }>
   | Readonly<{
       id: ConstructionId;
       kind: "circle";
       label: string;
-      center: Point2;
-      pointOnCircle: Point2;
+      center: WorldPoint;
+      pointOnCircle: WorldPoint;
     }>;
 
 export type ConstructionExpression =

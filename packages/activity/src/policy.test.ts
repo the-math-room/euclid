@@ -12,6 +12,7 @@ import {
   readOnlyActivityPolicy,
   type ActivityPolicy,
 } from "./policy";
+import { toWorldPoint } from "@euclid/geometry";
 
 describe("activity policy", () => {
   const policy: ActivityPolicy = {
@@ -45,7 +46,7 @@ describe("activity policy", () => {
         id: "B",
         kind: "free-point",
         label: "B",
-        position: { x: 0, y: 0 },
+        position: toWorldPoint({ x: 0, y: 0 }),
       }),
     ).toBe(true);
     expect(
@@ -53,7 +54,7 @@ describe("activity policy", () => {
         id: "A",
         kind: "free-point",
         label: "A",
-        position: { x: 0, y: 0 },
+        position: toWorldPoint({ x: 0, y: 0 }),
       }),
     ).toBe(false);
     expect(
@@ -63,7 +64,7 @@ describe("activity policy", () => {
           id: "B",
           kind: "free-point",
           label: "B",
-          position: { x: 0, y: 0 },
+          position: toWorldPoint({ x: 0, y: 0 }),
         },
       ),
     ).toBe(false);
