@@ -384,7 +384,7 @@ describe("construction edits", () => {
     expect(updated.constructions.at(-1)).toEqual({
       id: "midpoint-a-b",
       kind: "midpoint",
-      label: "Midpoint(A, B)",
+      label: "C",
       points: ["A", "B"],
     });
 

@@ -1,8 +1,10 @@
+import { openActivityPolicy } from "@euclid/activity";
 import type { EuclidLesson } from "@euclid/lesson";
 
 export const lessons: readonly EuclidLesson[] = [
   {
     schemaVersion: 1,
+    id: "line-intersection",
     title: "1. Line Intersection",
     description:
       "Construct a line through points A and B, then a line through C and D. Finally, use the Point tool to create a point at the intersection of these two lines.",
@@ -57,6 +59,7 @@ export const lessons: readonly EuclidLesson[] = [
   },
   {
     schemaVersion: 1,
+    id: "perpendicular-bisector",
     title: "2. Perpendicular Bisector",
     description:
       "Construct the perpendicular bisector of segment AB by first drawing two circles (center A through B, and center B through A), intersecting them, and drawing a line through those intersection points.",
@@ -133,6 +136,7 @@ export const lessons: readonly EuclidLesson[] = [
   },
   {
     schemaVersion: 1,
+    id: "free-draw",
     title: "3. Free Draw",
     description:
       "Explore construction tools freely! Create lines, circles, and drag points to see how geometric relations are preserved.",
@@ -147,17 +151,12 @@ export const lessons: readonly EuclidLesson[] = [
         ],
       },
     },
-    policy: {
-      allowedTools: ["select", "point", "line", "circle", "parallel"],
-      lockedConstructions: [],
-      allowDelete: true,
-      pointDrag: "free-points",
-      shapeDrag: "all",
-    },
+    policy: openActivityPolicy,
     goals: [],
   },
   {
     schemaVersion: 1,
+    id: "parallel-line",
     title: "4. Parallel Line",
     description:
       "Construct a line parallel to line AB that passes through point C using the Parallel Line tool.",

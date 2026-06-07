@@ -34,73 +34,13 @@ type ChosenPlacement = Readonly<{
   gap: number;
 }>;
 
-type Cache<K, V> = Readonly<{
-  get(key: K): V | undefined;
-  set(key: K, value: V): void;
-  delete(key: K): void;
-  readonly size: number;
-  keys(): IterableIterator<K>;
-}>;
-
-function makeCache<K, V>(): Cache<K, V> {
-  const map = new Map<K, V>();
-  return {
-    get: (key) => map.get(key),
-    set: (key, value) => map.set(key, value),
-    delete: (key) => map.delete(key),
-    get size() {
-      return map.size;
-    },
-    keys: () => map.keys(),
-  };
-}
-
-const MAX_CACHE_SIZE = 10;
-const labelCandidateCache = makeCache<string, ReadonlyMap<string, ChosenPlacement>>();
-
-function getLayoutCacheKey(
-  targets: readonly PointLabelTarget[],
-  obstacles: readonly RenderItem[],
-  fontSize: number,
-): string {
-  if (targets.length === 0) {
-    return "";
-  }
-  const origin = targets[0].mark;
-
-  const targetStr = targets
-    .map((t) => `${t.id}:${(t.mark.x - origin.x).toFixed(4)}:${(t.mark.y - origin.y).toFixed(4)}:${t.text}`)
-    .join(";");
-
-  const obstacleStr = obstacles
-    .map((o) => {
-      if (o.kind === "point") {
-        return `p:${o.id}:${(o.mark.x - origin.x).toFixed(4)}:${(o.mark.y - origin.y).toFixed(4)}`;
-      } else if (o.kind === "line") {
-        return `l:${o.id}:${(o.supportLine[0].x - origin.x).toFixed(4)}:${(o.supportLine[0].y - origin.y).toFixed(4)}:${(o.supportLine[1].x - origin.x).toFixed(4)}:${(o.supportLine[1].y - origin.y).toFixed(4)}`;
-      } else if (o.kind === "circle") {
-        return `c:${o.id}:${(o.center.x - origin.x).toFixed(4)}:${(o.center.y - origin.y).toFixed(4)}:${o.radius.toFixed(4)}`;
-      }
-      return "";
-    })
-    .join(";");
-
-  return `${fontSize}|${targetStr}|${obstacleStr}`;
-}
-
-function getCachedCandidates(
+function chooseLabelCandidates(
   targets: readonly PointLabelTarget[],
   obstacles: readonly RenderItem[],
   fontSize: number,
 ): ReadonlyMap<string, ChosenPlacement> {
-  const key = getLayoutCacheKey(targets, obstacles, fontSize);
-  if (key === "") {
+  if (targets.length === 0) {
     return new Map();
-  }
-
-  const cached = labelCandidateCache.get(key);
-  if (cached) {
-    return cached;
   }
 
   const candidateSets = targets.map((target) => {
@@ -149,14 +89,6 @@ function getCachedCandidates(
     const candidateName = candidateSets[index][selectedIndex].candidate;
     result.set(target.id, { candidate: candidateName, gap });
   }
-
-  if (labelCandidateCache.size >= MAX_CACHE_SIZE) {
-    const firstKey = labelCandidateCache.keys().next().value;
-    if (firstKey !== undefined) {
-      labelCandidateCache.delete(firstKey);
-    }
-  }
-  labelCandidateCache.set(key, result);
 
   return result;
 }
@@ -246,7 +178,7 @@ export function layoutPointLabels(
     }
   } else {
     // Normal path: run optimization
-    const resolved = getCachedCandidates(targets, obstacles, fontSize);
+    const resolved = chooseLabelCandidates(targets, obstacles, fontSize);
     for (const [id, val] of resolved) {
       chosenPlacements.set(id, val);
     }

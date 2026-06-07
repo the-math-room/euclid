@@ -84,6 +84,10 @@ export function WorkspaceContainer({
   );
 
   const goalResults = useMemo(() => {
+    if (activeLesson.goals.length === 0) {
+      return [];
+    }
+
     const context = {
       program: construction.program,
       evaluation: construction.evaluated,

@@ -66,7 +66,7 @@ export function findItemAtPosition(
 
   for (const item of scene.items) {
     if (item.kind === "point") {
-      const dist = distance(position, item.mark);
+      const dist = distanceToPointItem(position, item);
       if (dist <= threshold && dist < minPointDist) {
         minPointDist = dist;
         closestPoint = item;
@@ -102,6 +102,32 @@ export function findItemAtPosition(
   }
 
   return closestShape;
+}
+
+function distanceToPointItem(position: ScenePoint, item: RenderItem & { kind: "point" }): number {
+  if (isInsideExpandedLabelBounds(position, item, 2)) {
+    return 0;
+  }
+
+  return distance(position, item.mark);
+}
+
+function isInsideExpandedLabelBounds(
+  position: ScenePoint,
+  item: RenderItem & { kind: "point" },
+  padding: number,
+): boolean {
+  const bounds = item.label.bounds;
+  if (!bounds) {
+    return false;
+  }
+
+  return (
+    position.x >= bounds.x - padding &&
+    position.x <= bounds.x + bounds.width + padding &&
+    position.y >= bounds.y - padding &&
+    position.y <= bounds.y + bounds.height + padding
+  );
 }
 
 function getIntersections(

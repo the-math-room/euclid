@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
+  activityTools,
   allowedToolsInOrder,
   canDeleteConstruction,
   canDragConstruction,
   canUseTool,
+  isActivityTool,
   isConstructionLocked,
   openActivityPolicy,
   readOnlyActivityPolicy,
@@ -80,9 +82,15 @@ describe("activity policy", () => {
   });
 
   it("provides open and read-only reference policies", () => {
+    expect(openActivityPolicy.allowedTools).toEqual(activityTools);
     expect(canUseTool(openActivityPolicy, "circle")).toBe(true);
     expect(canDeleteConstruction(openActivityPolicy, "A")).toBe(true);
     expect(canUseTool(readOnlyActivityPolicy, "point")).toBe(false);
     expect(canDeleteConstruction(readOnlyActivityPolicy, "A")).toBe(false);
+  });
+
+  it("validates activity tools from the shared source of truth", () => {
+    expect(activityTools.every((tool) => isActivityTool(tool))).toBe(true);
+    expect(isActivityTool("measure")).toBe(false);
   });
 });

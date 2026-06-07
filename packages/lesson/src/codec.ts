@@ -1,4 +1,5 @@
 import type { ActivityPolicy, ActivityTool, DragPolicy } from "@euclid/activity";
+import { isActivityTool } from "@euclid/activity";
 import type { AssessmentGoal } from "@euclid/assessment";
 import { parseAssessmentGoal } from "@euclid/assessment";
 import type { EuclidDocument } from "@euclid/document";
@@ -40,6 +41,10 @@ function decodeEuclidLesson(value: unknown): LessonParseResult {
     return invalid("Lesson schemaVersion must be 1.");
   }
 
+  if (typeof value.id !== "string") {
+    return invalid("Lesson id must be a string.");
+  }
+
   if (typeof value.title !== "string") {
     return invalid("Lesson title must be a string.");
   }
@@ -71,6 +76,7 @@ function decodeEuclidLesson(value: unknown): LessonParseResult {
     ok: true,
     lesson: {
       schemaVersion: 1,
+      id: value.id,
       title: value.title,
       description,
       document: starter.starterDocument,
@@ -242,10 +248,6 @@ function decodeAssessmentGoals(value: unknown): GoalsDecodeResult {
     ok: true,
     goals,
   };
-}
-
-function isActivityTool(value: unknown): value is ActivityTool {
-  return value === "select" || value === "point" || value === "line" || value === "circle";
 }
 
 function isDragPolicy(value: unknown): value is DragPolicy {

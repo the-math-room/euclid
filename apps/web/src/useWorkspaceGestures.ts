@@ -2,11 +2,17 @@ import {
   findIntersectionAtPosition,
   findItemAtPosition,
   type IntersectionHit,
+  type RenderItem,
   type RenderScene,
 } from "@euclid/rendering";
 import type { ConstructionId, Point2, ScenePoint } from "@euclid/geometry";
 import { useEffect, useRef, type PointerEvent } from "react";
-import type { ActiveTool } from "./construction/tools";
+import {
+  gesturePolicyForTool,
+  type ActiveTool,
+  type ConstructionGestureTarget,
+  type ConstructionToolGesturePolicy,
+} from "./construction/tools";
 import { clientToSceneCoords, getCanvasProjection } from "./workspaceCoordinates";
 
 type ActivePointer = Readonly<{
@@ -33,6 +39,7 @@ type GestureState = {
     id: ConstructionId;
     startSceneCoords: ScenePoint;
   };
+  pointerDownItem?: RenderItem;
 };
 
 export type WorkspacePointerProps = Readonly<{
@@ -90,6 +97,7 @@ export function useWorkspaceGestures({
     pinchLastMidpoint: { x: 0, y: 0 },
     activePointDrag: undefined,
     activeShapeDrag: undefined,
+    pointerDownItem: undefined,
   });
 
   const currentZoomRef = useRef(currentZoom);
@@ -122,11 +130,11 @@ export function useWorkspaceGestures({
         scene.size.height,
       );
       onPointerMoveCoords?.(sceneCoords);
+      const threshold = getHitThreshold(event.pointerType);
+      const item = findItemAtPosition(scene, sceneCoords, threshold);
+      g.pointerDownItem = item;
 
       if (activeTool === "select" && !event.ctrlKey && !event.shiftKey) {
-        const threshold = getHitThreshold(event.pointerType);
-        const item = findItemAtPosition(scene, sceneCoords, threshold);
-
         if (item?.kind === "point" && canDragPoint(item.id)) {
           g.activePointDrag = {
             pointerId: event.pointerId,
@@ -177,6 +185,7 @@ export function useWorkspaceGestures({
     g.lastPos.delete(pointerId);
     if (g.pointers.size === 0) {
       g.hasMoved = false;
+      g.pointerDownItem = undefined;
       onPointerDownStateChange?.(false);
     }
   };
@@ -273,22 +282,25 @@ export function useWorkspaceGestures({
       const threshold = getHitThreshold(event.pointerType);
       const isTouch = event.pointerType === "touch" || event.pointerType === "pen";
 
-      if (activeTool === "point" || activeTool === "line" || activeTool === "circle") {
-        const intersection = findIntersectionAtPosition(scene, sceneCoords, threshold);
-        if (intersection) {
-          onAddIntersection(intersection);
-        } else {
-          const item = findItemAtPosition(scene, sceneCoords, threshold);
-          if (item?.kind === "point") {
-            onSelect(item.id, { ctrlKey: event.ctrlKey || isTouch, shiftKey: event.shiftKey });
-          } else {
-            onAddPoint(sceneCoords);
-          }
-        }
+      const modifiers = { ctrlKey: event.ctrlKey || isTouch, shiftKey: event.shiftKey };
+
+      const gesturePolicy = gesturePolicyForTool(activeTool);
+
+      if (gesturePolicy) {
+        handleConstructionPointerUp({
+          policy: gesturePolicy,
+          scene,
+          sceneCoords,
+          threshold,
+          pointerDownItem: g.pointerDownItem,
+          onSelect: (id) => onSelect(id, modifiers),
+          onAddPoint,
+          onAddIntersection,
+        });
       } else {
         const item = findItemAtPosition(scene, sceneCoords, threshold);
         if (item) {
-          onSelect(item.id, { ctrlKey: event.ctrlKey || isTouch, shiftKey: event.shiftKey });
+          onSelect(item.id, modifiers);
         } else {
           onSelect(undefined);
         }
@@ -342,6 +354,91 @@ function pointerDistance(a: ActivePointer, b: ActivePointer): number {
 
 function pointerMidpoint(a: ActivePointer, b: ActivePointer): Point2 {
   return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+}
+
+function handleConstructionPointerUp({
+  policy,
+  scene,
+  sceneCoords,
+  threshold,
+  pointerDownItem,
+  onSelect,
+  onAddPoint,
+  onAddIntersection,
+}: {
+  policy: ConstructionToolGesturePolicy;
+  scene: RenderScene;
+  sceneCoords: ScenePoint;
+  threshold: number;
+  pointerDownItem: RenderItem | undefined;
+  onSelect: (id: ConstructionId) => void;
+  onAddPoint: (sceneCoords: ScenePoint) => void;
+  onAddIntersection: (hit: IntersectionHit) => void;
+}): void {
+  const releaseItem = findItemAtPosition(scene, sceneCoords, threshold);
+  const item = releaseItem ?? pointerDownItem;
+
+  for (const target of policy.pointerUpPriority) {
+    if (
+      handleGestureTarget(target, {
+        scene,
+        sceneCoords,
+        threshold,
+        item,
+        onSelect,
+        onAddPoint,
+        onAddIntersection,
+      })
+    ) {
+      return;
+    }
+  }
+}
+
+function handleGestureTarget(
+  target: ConstructionGestureTarget,
+  {
+    scene,
+    sceneCoords,
+    threshold,
+    item,
+    onSelect,
+    onAddPoint,
+    onAddIntersection,
+  }: {
+    scene: RenderScene;
+    sceneCoords: ScenePoint;
+    threshold: number;
+    item: RenderItem | undefined;
+    onSelect: (id: ConstructionId) => void;
+    onAddPoint: (sceneCoords: ScenePoint) => void;
+    onAddIntersection: (hit: IntersectionHit) => void;
+  },
+): boolean {
+  if (target === "point" && item?.kind === "point") {
+    onSelect(item.id);
+    return true;
+  }
+
+  if (target === "line" && item?.kind === "line") {
+    onSelect(item.id);
+    return true;
+  }
+
+  if (target === "intersection") {
+    const intersection = findIntersectionAtPosition(scene, sceneCoords, threshold);
+    if (intersection) {
+      onAddIntersection(intersection);
+      return true;
+    }
+  }
+
+  if (target === "empty-point") {
+    onAddPoint(sceneCoords);
+    return true;
+  }
+
+  return false;
 }
 
 function getHitThreshold(pointerType: string): number {

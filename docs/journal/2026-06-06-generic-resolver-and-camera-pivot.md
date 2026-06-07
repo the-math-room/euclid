@@ -23,3 +23,27 @@ Refactored the curriculum assessment resolver to be fully open-ended and generic
 ## Strategic Meaning
 
 This refactoring aligns with the **open-architecture principle** for the Headless EdTech SDK. The assessment engine is now decoupled from the exact set of construction primitives, making the system open to extension. Additionally, refining the camera pivot logic guarantees a smooth and mathematically correct pan/rotate interaction model on mobile and desktop viewports.
+
+## Follow-Up: Tool Gesture Policy
+
+After duplicate point aliases appeared in circle and construction workflows, gesture routing was moved toward a declarative policy table in `apps/web/src/construction/tools.ts`.
+
+The important design point is future tool growth:
+
+- Built-in construction tools declare a `ConstructionToolGesturePolicy`.
+- The policy describes pointer-up priority, such as whether to prefer intersections, existing points, existing lines, or empty-space point creation.
+- Tests require every non-select built-in tool to have a policy entry.
+- Unregistered construction tools fall back to a conservative default policy: existing point, existing line, intersection, then empty-space point creation.
+- Future user-created tools should provide the same kind of policy data instead of requiring new conditional branches inside `useWorkspaceGestures.ts`.
+
+This keeps the current app behavior explicit while preserving a path toward user-defined tools.
+
+## Tech Debt Pass
+
+Addressed several architecture pain points found after the tool and lesson-player work:
+
+- `@euclid/activity` now exports `activityTools` and `isActivityTool` as the source of truth for activity tool validation.
+- `@euclid/lesson` now requires stable `EuclidLesson.id`, and the web app persists/reset lesson programs by id rather than array index.
+- Removed hidden module-level label layout caching from `@euclid/rendering` so rendering production code stays pure by explicit inputs.
+
+Remaining pressure: `useConstructionController.ts` still owns a large per-tool command state machine. The next larger architectural move should be a command/session registry that pairs with the gesture policy table.

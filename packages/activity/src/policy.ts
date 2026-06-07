@@ -1,6 +1,16 @@
 import type { Construction, ConstructionId } from "@euclid/geometry";
 
-export type ActivityTool = "select" | "point" | "line" | "circle" | "parallel" | "perpendicular" | "midpoint";
+export const activityTools = [
+  "select",
+  "point",
+  "line",
+  "circle",
+  "parallel",
+  "perpendicular",
+  "midpoint",
+] as const;
+
+export type ActivityTool = (typeof activityTools)[number];
 
 export type DragPolicy = "none" | "free-points" | "all";
 
@@ -13,7 +23,7 @@ export type ActivityPolicy = Readonly<{
 }>;
 
 export const openActivityPolicy: ActivityPolicy = {
-  allowedTools: ["select", "point", "line", "circle", "parallel", "perpendicular", "midpoint"],
+  allowedTools: activityTools,
   lockedConstructions: [],
   allowDelete: true,
   pointDrag: "free-points",
@@ -34,17 +44,13 @@ export function canUseTool(policy: ActivityPolicy, tool: ActivityTool): boolean 
 
 export function allowedToolsInOrder(
   policy: ActivityPolicy,
-  tools: readonly ActivityTool[] = [
-    "select",
-    "point",
-    "line",
-    "circle",
-    "parallel",
-    "perpendicular",
-    "midpoint",
-  ],
+  tools: readonly ActivityTool[] = activityTools,
 ): readonly ActivityTool[] {
   return tools.filter((tool) => canUseTool(policy, tool));
+}
+
+export function isActivityTool(value: unknown): value is ActivityTool {
+  return typeof value === "string" && activityTools.includes(value as ActivityTool);
 }
 
 export function isConstructionLocked(policy: ActivityPolicy, id: ConstructionId): boolean {

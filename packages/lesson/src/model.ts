@@ -4,6 +4,7 @@ import type { EuclidDocument } from "@euclid/document";
 
 export type EuclidLesson = Readonly<{
   schemaVersion: 1;
+  id: string;
   title: string;
   description?: string;
   document: EuclidDocument;

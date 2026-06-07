@@ -377,6 +377,280 @@ describe("WorkspaceView Integration", () => {
     });
   });
 
+  it("reuses an existing point in circle mode even when pointer release drifts outside the hit radius", async () => {
+    const onSelectMock = vi.fn();
+    const onAddPointMock = vi.fn();
+    const sceneWithPoint = {
+      size: { width: 920, height: 620 },
+      grid: [] as { id: string; from: ScenePoint; to: ScenePoint }[],
+      items: [
+        {
+          id: "point-a",
+          kind: "point" as const,
+          pointRole: "free" as const,
+          mark: { x: 100, y: 100 } as ScenePoint,
+          label: { text: "A", anchor: { x: 110, y: 90 } as ScenePoint },
+        },
+      ],
+    };
+
+    let root: Root | undefined;
+    await act(async () => {
+      root = createRoot(container);
+      root.render(
+        <WorkspaceView
+          {...defaultProps}
+          scene={sceneWithPoint}
+          onSelect={onSelectMock}
+          onAddPoint={onAddPointMock}
+          activeTool="circle"
+        />,
+      );
+    });
+
+    const svg = container.querySelector("svg");
+    expect(svg).toBeTruthy();
+
+    if (svg) {
+      svg.getBoundingClientRect = () => ({
+        width: 920,
+        height: 620,
+        top: 0,
+        left: 0,
+        bottom: 620,
+        right: 920,
+        x: 0,
+        y: 0,
+        toJSON: vi.fn(),
+      });
+
+      await act(async () => {
+        svg.dispatchEvent(
+          new PointerEvent("pointerdown", {
+            clientX: 100,
+            clientY: 100,
+            pointerId: 1,
+            pointerType: "mouse",
+            bubbles: true,
+          }),
+        );
+        svg.dispatchEvent(
+          new PointerEvent("pointermove", {
+            clientX: 112,
+            clientY: 100,
+            pointerId: 1,
+            pointerType: "mouse",
+            bubbles: true,
+          }),
+        );
+        svg.dispatchEvent(
+          new PointerEvent("pointerup", {
+            clientX: 112,
+            clientY: 100,
+            pointerId: 1,
+            pointerType: "mouse",
+            bubbles: true,
+          }),
+        );
+      });
+
+      expect(onSelectMock).toHaveBeenCalledWith("point-a", { ctrlKey: false, shiftKey: false });
+      expect(onAddPointMock).not.toHaveBeenCalled();
+    }
+
+    await act(async () => {
+      root?.unmount();
+    });
+  });
+
+  it("reuses an existing point in circle mode when the point is also a curve intersection", async () => {
+    const onSelectMock = vi.fn();
+    const onAddIntersectionMock = vi.fn();
+    const onAddPointMock = vi.fn();
+    const sceneWithIntersectionPoint = {
+      size: { width: 920, height: 620 },
+      grid: [] as { id: string; from: ScenePoint; to: ScenePoint }[],
+      items: [
+        {
+          id: "point-b",
+          kind: "point" as const,
+          pointRole: "free" as const,
+          mark: { x: 100, y: 100 } as ScenePoint,
+          label: { text: "B", anchor: { x: 110, y: 90 } as ScenePoint },
+        },
+        {
+          id: "line-ab",
+          kind: "line" as const,
+          from: { x: 0, y: 100 } as ScenePoint,
+          to: { x: 200, y: 100 } as ScenePoint,
+          supportLine: [{ x: 0, y: 100 } as ScenePoint, { x: 200, y: 100 } as ScenePoint] as const,
+        },
+        {
+          id: "circle-o",
+          kind: "circle" as const,
+          center: { x: 100, y: 150 } as ScenePoint,
+          radius: 50,
+        },
+      ],
+    };
+
+    let root: Root | undefined;
+    await act(async () => {
+      root = createRoot(container);
+      root.render(
+        <WorkspaceView
+          {...defaultProps}
+          scene={sceneWithIntersectionPoint}
+          onSelect={onSelectMock}
+          onAddIntersection={onAddIntersectionMock}
+          onAddPoint={onAddPointMock}
+          activeTool="circle"
+        />,
+      );
+    });
+
+    const svg = container.querySelector("svg");
+    expect(svg).toBeTruthy();
+
+    if (svg) {
+      svg.getBoundingClientRect = () => ({
+        width: 920,
+        height: 620,
+        top: 0,
+        left: 0,
+        bottom: 620,
+        right: 920,
+        x: 0,
+        y: 0,
+        toJSON: vi.fn(),
+      });
+
+      await act(async () => {
+        svg.dispatchEvent(
+          new PointerEvent("pointerdown", {
+            clientX: 100,
+            clientY: 100,
+            pointerId: 1,
+            pointerType: "mouse",
+            bubbles: true,
+          }),
+        );
+        svg.dispatchEvent(
+          new PointerEvent("pointerup", {
+            clientX: 100,
+            clientY: 100,
+            pointerId: 1,
+            pointerType: "mouse",
+            bubbles: true,
+          }),
+        );
+      });
+
+      expect(onSelectMock).toHaveBeenCalledWith("point-b", { ctrlKey: false, shiftKey: false });
+      expect(onAddIntersectionMock).not.toHaveBeenCalled();
+      expect(onAddPointMock).not.toHaveBeenCalled();
+    }
+
+    await act(async () => {
+      root?.unmount();
+    });
+  });
+
+  it("adds a witness point on empty-space second click for perpendicular lines", async () => {
+    const onSelectMock = vi.fn();
+    const onAddPointMock = vi.fn();
+    const sceneWithLine = {
+      size: { width: 920, height: 620 },
+      grid: [] as { id: string; from: ScenePoint; to: ScenePoint }[],
+      items: [
+        {
+          id: "line-ab",
+          kind: "line" as const,
+          from: { x: 50, y: 100 } as ScenePoint,
+          to: { x: 250, y: 100 } as ScenePoint,
+          supportLine: [{ x: 50, y: 100 } as ScenePoint, { x: 250, y: 100 } as ScenePoint] as const,
+        },
+      ],
+    };
+
+    let root: Root | undefined;
+    await act(async () => {
+      root = createRoot(container);
+      root.render(
+        <WorkspaceView
+          {...defaultProps}
+          scene={sceneWithLine}
+          onSelect={onSelectMock}
+          onAddPoint={onAddPointMock}
+          activeTool="perpendicular"
+        />,
+      );
+    });
+
+    const svg = container.querySelector("svg");
+    expect(svg).toBeTruthy();
+
+    if (svg) {
+      svg.getBoundingClientRect = () => ({
+        width: 920,
+        height: 620,
+        top: 0,
+        left: 0,
+        bottom: 620,
+        right: 920,
+        x: 0,
+        y: 0,
+        toJSON: vi.fn(),
+      });
+
+      await act(async () => {
+        svg.dispatchEvent(
+          new PointerEvent("pointerdown", {
+            clientX: 150,
+            clientY: 100,
+            pointerId: 1,
+            pointerType: "mouse",
+            bubbles: true,
+          }),
+        );
+        svg.dispatchEvent(
+          new PointerEvent("pointerup", {
+            clientX: 150,
+            clientY: 100,
+            pointerId: 1,
+            pointerType: "mouse",
+            bubbles: true,
+          }),
+        );
+        svg.dispatchEvent(
+          new PointerEvent("pointerdown", {
+            clientX: 150,
+            clientY: 180,
+            pointerId: 2,
+            pointerType: "mouse",
+            bubbles: true,
+          }),
+        );
+        svg.dispatchEvent(
+          new PointerEvent("pointerup", {
+            clientX: 150,
+            clientY: 180,
+            pointerId: 2,
+            pointerType: "mouse",
+            bubbles: true,
+          }),
+        );
+      });
+
+      expect(onSelectMock).toHaveBeenCalledWith("line-ab", { ctrlKey: false, shiftKey: false });
+      expect(onAddPointMock).toHaveBeenCalledWith({ x: 150, y: 180 });
+    }
+
+    await act(async () => {
+      root?.unmount();
+    });
+  });
+
   it("clears stale SVG pointers when pointer capture is lost", async () => {
     const onBeginPointDragMock = vi.fn();
     const onMovePointMock = vi.fn();

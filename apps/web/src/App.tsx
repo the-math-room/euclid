@@ -7,34 +7,34 @@ export function App() {
   const [activeLessonIndex, setActiveLessonIndex] = useState(0);
   const activeLesson = lessons[activeLessonIndex];
 
-  const [lessonPrograms, setLessonPrograms] = useState<Record<number, ConstructionProgram>>({});
-  const [lessonVersions, setLessonVersions] = useState<Record<number, number>>({});
+  const [lessonPrograms, setLessonPrograms] = useState<Record<string, ConstructionProgram>>({});
+  const [lessonVersions, setLessonVersions] = useState<Record<string, number>>({});
 
   const activeProgram = useMemo(() => {
-    return lessonPrograms[activeLessonIndex] ?? activeLesson.document.program;
-  }, [activeLessonIndex, lessonPrograms, activeLesson]);
+    return lessonPrograms[activeLesson.id] ?? activeLesson.document.program;
+  }, [lessonPrograms, activeLesson]);
 
   const handleProgramChange = useCallback(
     (newProgram: ConstructionProgram) => {
       setLessonPrograms((prev) => ({
         ...prev,
-        [activeLessonIndex]: newProgram,
+        [activeLesson.id]: newProgram,
       }));
     },
-    [activeLessonIndex],
+    [activeLesson.id],
   );
 
   const handleResetLesson = useCallback(() => {
     setLessonPrograms((prev) =>
-      Object.fromEntries(Object.entries(prev).filter(([key]) => Number(key) !== activeLessonIndex)),
+      Object.fromEntries(Object.entries(prev).filter(([key]) => key !== activeLesson.id)),
     );
     setLessonVersions((prev) => ({
       ...prev,
-      [activeLessonIndex]: (prev[activeLessonIndex] ?? 0) + 1,
+      [activeLesson.id]: (prev[activeLesson.id] ?? 0) + 1,
     }));
-  }, [activeLessonIndex]);
+  }, [activeLesson.id]);
 
-  const lessonVersion = lessonVersions[activeLessonIndex] ?? 0;
+  const lessonVersion = lessonVersions[activeLesson.id] ?? 0;
 
   const [sizeScale, setSizeScale] = useState(() => {
     const isMobile = typeof window !== "undefined" && window.matchMedia("(max-width: 720px)").matches;
@@ -46,7 +46,7 @@ export function App() {
   return (
     <main className={`app-shell ${isDrawerExpanded ? "drawer-expanded" : ""}`}>
       <WorkspaceContainer
-        key={`${activeLessonIndex}-${lessonVersion}`}
+        key={`${activeLesson.id}-${lessonVersion}`}
         activeLesson={activeLesson}
         activeLessonIndex={activeLessonIndex}
         setActiveLessonIndex={setActiveLessonIndex}

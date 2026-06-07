@@ -44,6 +44,27 @@ describe("interaction hit testing", () => {
     expect(findItemAtPosition(mockScene, p(60, 60))?.id).not.toBe("point-A");
   });
 
+  it("treats point labels as hits on their owning point", () => {
+    const scene = {
+      size: { width: 100, height: 100 },
+      grid: [],
+      items: [
+        {
+          id: "point-A",
+          kind: "point",
+          mark: { x: 50, y: 50 },
+          label: {
+            text: "A",
+            anchor: { x: 70, y: 40 },
+            bounds: { x: 68, y: 24, width: 12, height: 18 },
+          },
+        },
+      ],
+    } as unknown as RenderScene;
+
+    expect(findItemAtPosition(scene, p(74, 32))?.id).toBe("point-A");
+  });
+
   it("finds lines close to query position", () => {
     // Exactly on the line segment
     expect(findItemAtPosition(mockScene, p(30, 10))?.id).toBe("line-B");

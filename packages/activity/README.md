@@ -35,10 +35,13 @@ Functions in this package should be memoizable in theory.
 The package entrypoint uses explicit named exports. Treat these groups as the intentional activity surface:
 
 - Policy model: `ActivityPolicy`, `ActivityTool`, `DragPolicy`.
+- Tool source of truth: `activityTools`, `isActivityTool`.
 - Reference policies: `openActivityPolicy`, `readOnlyActivityPolicy`.
 - Policy helpers: `canUseTool`, `allowedToolsInOrder`, `isConstructionLocked`, `canDeleteConstruction`, `canDragConstruction`.
 
-`ActivityTool` currently covers: `"select"`, `"point"`, `"line"`, `"circle"`, `"parallel"`, `"perpendicular"`, `"midpoint"`. The `openActivityPolicy` enables all tools. Curriculum-specific policies restrict the set by listing only the tools relevant to the activity.
+`ActivityTool` is derived from the exported `activityTools` tuple. The `openActivityPolicy` enables all tools from that tuple. Curriculum-specific policies restrict the set by listing only the tools relevant to the activity.
+
+Use `isActivityTool` at JSON or plugin boundaries instead of duplicating string checks in another package.
 
 Do not add wildcard exports to `src/index.ts`. New public exports should be named intentionally.
 

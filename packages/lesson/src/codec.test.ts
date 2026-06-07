@@ -6,6 +6,7 @@ import type { EuclidLesson } from "./model";
 
 const lesson: EuclidLesson = {
   schemaVersion: 1,
+  id: "construct-line",
   title: "Construct a line",
   document: seedDocument,
   policy: readOnlyActivityPolicy,
@@ -45,6 +46,32 @@ describe("lesson codec", () => {
     ).toEqual({
       ok: false,
       diagnostics: ["Lesson schemaVersion must be 1."],
+    });
+  });
+
+  it("rejects missing lesson ids", () => {
+    const { id: omittedId, ...lessonWithoutId } = lesson;
+
+    expect(omittedId).toBe("construct-line");
+    expect(parseEuclidLesson(JSON.stringify(lessonWithoutId))).toEqual({
+      ok: false,
+      diagnostics: ["Lesson id must be a string."],
+    });
+  });
+
+  it("accepts every activity tool supported by the activity package", () => {
+    const parsed = parseEuclidLesson(
+      JSON.stringify({
+        ...lesson,
+        policy: {
+          ...lesson.policy,
+          allowedTools: ["select", "point", "line", "circle", "parallel", "perpendicular", "midpoint"],
+        },
+      }),
+    );
+
+    expect(parsed).toMatchObject({
+      ok: true,
     });
   });
 

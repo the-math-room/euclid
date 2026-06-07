@@ -376,6 +376,7 @@ export function addMidpoint(
   }
 
   const id = uniqueConstructionId(program, `midpoint-${slugFor(points[0])}-${slugFor(points[1])}`);
+  const label = generateNextPointLabel(program.constructions);
 
   return {
     program: {
@@ -384,7 +385,7 @@ export function addMidpoint(
         {
           id,
           kind: "midpoint",
-          label: `Midpoint(${points[0]}, ${points[1]})`,
+          label,
           points,
         },
       ],

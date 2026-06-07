@@ -5,6 +5,7 @@ Owns the headless composition format for learning activities.
 ## Owns
 
 - `EuclidLesson` as a serializable activity shell.
+- Stable lesson identity for host persistence.
 - Composition of a starter document, activity policy, and assessment goals.
 - Parse and serialize boundaries for lesson JSON.
 
@@ -45,6 +46,8 @@ Do not add wildcard exports to `src/index.ts`. New public exports should be name
 Lessons are product-level curriculum data, but still headless. They describe the initial construction document, allowed learner actions, and goals a host can evaluate.
 
 This package should stay a composition layer. It may depend on document, activity, and assessment packages, but lower-level packages should not depend on it.
+
+`EuclidLesson.id` is stable curriculum identity. Hosts should persist learner state by lesson id rather than by array order or display title.
 
 ## Example
 
