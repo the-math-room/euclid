@@ -23,7 +23,7 @@ export const lessons: readonly EuclidLesson[] = [
     policy: {
       allowedTools: ["select", "point", "line"],
       lockedConstructions: ["A", "B", "C", "D"],
-      allowDelete: false,
+      allowDelete: true,
       pointDrag: "none",
       shapeDrag: "none",
     },

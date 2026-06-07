@@ -84,7 +84,13 @@ describe("assessment primitives", () => {
         kind: "line-line-intersection",
         lines: ["line-cd", "line-ab"],
       }),
-    ).toBe(false);
+    ).toBe(true);
+    expect(
+      hasConstructionMeaning(evaluation, "line-ab", {
+        kind: "line-through",
+        points: ["B", "A"],
+      }),
+    ).toBe(true);
     expect(
       hasConstructionMeaning(evaluation, "parallel", {
         kind: "parallel-line",

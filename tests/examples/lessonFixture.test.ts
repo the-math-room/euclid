@@ -21,7 +21,7 @@ describe("lesson examples", () => {
     expect(parsed.lesson.policy).toMatchObject({
       allowedTools: ["select", "line"],
       lockedConstructions: ["A", "B", "C", "D"],
-      allowDelete: false,
+      allowDelete: true,
       pointDrag: "none",
       shapeDrag: "none",
     });

@@ -328,7 +328,20 @@ function sameExpression(a: ConstructionExpression, b: ConstructionExpression): b
 }
 
 function sameIds(a: readonly ConstructionId[], b: readonly ConstructionId[]): boolean {
-  return a.length === b.length && a.every((id, index) => id === b[index]);
+  if (a.length !== b.length) {
+    return false;
+  }
+
+  const remaining = [...b];
+  for (const id of a) {
+    const index = remaining.indexOf(id);
+    if (index === -1) {
+      return false;
+    }
+    remaining.splice(index, 1);
+  }
+
+  return true;
 }
 
 function pass(code: string, message: string, evidence?: unknown): AssessmentResult {

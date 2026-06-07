@@ -122,6 +122,39 @@ describe("assessmentResolver", () => {
     expect(mapping.get("line-ab")).toBe("line-a-b");
   });
 
+  it("accepts a user-drawn line with reversed endpoint order for curriculum line goals", () => {
+    const starterProgram: ConstructionProgram = {
+      constructions: [
+        { id: "A", kind: "free-point", label: "A", position: { x: 0, y: 0 } },
+        { id: "B", kind: "free-point", label: "B", position: { x: 2, y: 0 } },
+      ],
+    };
+    const goals: readonly AssessmentGoal[] = [
+      {
+        kind: "meaning",
+        id: "line-ab",
+        expression: {
+          kind: "line-through",
+          points: ["A", "B"],
+        },
+      },
+    ];
+    const userProgram: ConstructionProgram = {
+      constructions: [
+        ...starterProgram.constructions,
+        { id: "line-b-a", kind: "line-through", label: "BA", points: ["B", "A"] },
+      ],
+    };
+
+    const evaluation = evaluateConstruction(userProgram);
+    const mapping = resolveGoalMapping(evaluation, goals, starterProgram);
+    const mappedGoal = mapGoalIds(goals[0], mapping);
+    const result = evaluateGoal({ program: userProgram, evaluation }, mappedGoal);
+
+    expect(mapping.get("line-ab")).toBe("line-b-a");
+    expect(result.passed).toBe(true);
+  });
+
   it("evaluates Lesson 2 (Perpendicular Bisector) with solutions and non-solutions", () => {
     const lesson = lessons[1];
     expect(lesson.title).toContain("Perpendicular Bisector");
