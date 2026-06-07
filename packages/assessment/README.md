@@ -102,6 +102,15 @@ Use `evaluateGoal(context, goal)` for one-off evaluation or `predicateForGoal(go
 
 Use `parseAssessmentGoal` and `serializeAssessmentGoal` at JSON boundaries. Parsing validates structure only; it does not require referenced construction IDs to exist in a particular student program.
 
+## Construction Expression Kinds
+
+`sameExpression` comparison (used by `hasConstructionMeaning` and `requiresMeaning`) supports all current construction expression kinds. Some notes on non-obvious comparison semantics:
+
+- `"line-line-intersection"` — order-sensitive: `[line-ab, line-cd]` does not match `[line-cd, line-ab]`.
+- `"circle-circle-intersection"` — order-sensitive via `firstCircle` / `secondCircle`.
+- `"midpoint"` — **order-independent**: `[A, B]` matches `[B, A]`. Midpoint is symmetric and curriculum authors should not need to specify which parent is "first."
+- `"parallel-line"` and `"perpendicular-line"` — compared by `line` and `point` identity. The witness point uniquely determines the line in the context of a reference, so order does not apply.
+
 ## Verification Command
 
 Always run the validation suite before finishing:

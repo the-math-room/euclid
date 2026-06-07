@@ -22,6 +22,8 @@ export {
   addLineLineIntersection,
   addLineThroughPoints,
   addParallelLine,
+  addPerpendicularLine,
+  addMidpoint,
   moveFreePoint,
   translateShape,
 } from "./edit";

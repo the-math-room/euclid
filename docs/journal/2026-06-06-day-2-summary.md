@@ -1,63 +1,85 @@
-# 2026-06-06: Day 2 — The Cohesive Story of the Headless EdTech SDK
+# 2026-06-06: Day 2 — Building the Infrastructure Layer
 
-## Overview
+## The Story
 
-On June 6 (Day 2), Euclid transitioned from a local geometry applet into a **modular, headless geometry infrastructure SDK** tailored for EdTech products. This change was accomplished by establishing strict compile-time domain boundaries, introducing structured query APIs, formulating a portable curriculum and activity schema, and refining user-interaction math and component boundaries.
+Day 1 left us with a geometry kernel that could evaluate a construction graph and a React app that could render it. Day 2's question was: what does Euclid actually *want to be*?
 
-By the end of the day, all 151 unit and UI integration tests were passing, ESLint rules were fully satisfied, and a generic, extensible assessment resolver was successfully wired to a multi-lesson student dashboard.
+The answer that emerged was not "a geometry applet." It was something more constrained and more useful: a **headless geometry infrastructure layer** for edTech products. The kernel should be inspectable, assessable, and embeddable without coupling to any particular UI. The web app is one possible interpreter of the geometry — not the thing itself.
 
----
-
-## The Day 2 Narrative
-
-### Phase 1: Compile-Time Safety & Richer Interaction
-
-We started the day by tightening the codebase's type safety and interaction boundaries:
-
-- **Branded Coordinates**: Introduced compile-time nomial-like brands (`WorldPoint` and `ScenePoint`) to ensure coordinate math cannot mix world-space coordinate semantics with viewport-relative screen pixels.
-- **Shape Translation**: Enhanced direct manipulation by enabling line and circle dragging. Moving a shape translates its underlying free point dependencies, leaving constrained elements to recalculate automatically.
-- **Continuous Viewport Control**: Added smooth keyboard-driven panning, zooming, and rotation to bypass OS-specific key-repeat delays.
-
-### Phase 2: Building the Headless Package Stack
-
-To support portable, host-agnostic curriculum activities, we extracted three new pure layers under the `packages/` directory:
-
-1. **`@euclid/activity`**: Manages allowed tool lists, locked constructions, and element deletion permissions independent of the UI representation.
-2. **`@euclid/assessment`**: Performs real-time semantic audits of the student construction graph. It evaluates structural relationships (incidence, dependency trees, mathematical expression isomorphism) instead of pixel coordinates.
-3. **`@euclid/lesson`**: Composes the starter document, activity policy, and assessment goals into a portable curriculum format (`.lesson.json`).
-
-### Phase 3: Bringing Curriculum and Step Feedback to the App
-
-With the headless layers in place, we transformed the web interface into an interactive lesson player:
-
-- **Objectives Panel**: Integrated a step-by-step checklist providing real-time feedback on individual milestones.
-- **Dynamic ID Resolution**: Created the `assessmentResolver` to resolve the mismatch between static lesson goal identifiers (e.g. `"line-ab"`) and dynamic user constructions (e.g. `"line-a-b"`).
-- **Multi-Lesson Persistence**: Moved construction state storage to a high-level map index, allowing students to switch between activities without losing work, and added a robust reset mechanism.
-
-### Phase 4: Final Refinement & Open Architecture
-
-In the final phase of the day, we focused on architectural cleanliness and future extensibility:
-
-- **The Camera Rotation Pivot**: We refactored camera panning math to directly modify the camera's world center rather than collecting offset coordinates. This corrected the rotation pivot so rotation centers around the visible screen context after panning.
-- **Generic Resolver**: We rewrote the assessment resolution and mapping pipelines to be completely open-ended and generic, replacing hardcoded primitive switches with recursive property reflection. Any new geometric tool added to the core package will now be automatically supported by the curriculum resolver.
-- **Decoupled Shell**: Simplified the entry points by splitting the interactive view controller (`WorkspaceContainer.tsx`) out of the parent shell (`App.tsx`).
+That framing changed everything about what we built.
 
 ---
 
-## Architectural State & Boundaries
+## Making the Kernel Trustworthy
 
-The codebase enforces a strict dependency chain:
+Before the infrastructure story could hold, the kernel needed to be tighter. We started by introducing **branded coordinates** — `WorldPoint` and `ScenePoint` — as compile-time intersection brands on `Point2`. The distinction between world-space math coordinates and viewport-relative screen pixels was always semantically meaningful, but TypeScript had been treating them as the same type. Enforcing the brand at the type boundary meant that any coordinate passing through the wrong layer would fail to compile, not just fail at runtime.
 
-```mermaid
-graph TD
-  App[apps/web] --> Lesson[@euclid/lesson]
-  Lesson --> Assessment[@euclid/assessment]
-  Lesson --> Activity[@euclid/activity]
-  Lesson --> Document[@euclid/document]
-  Assessment --> Geometry[@euclid/geometry]
-  Document --> Geometry
-  Activity --> Geometry
+Alongside that, we expanded **direct manipulation** so that shapes — not just free points — could be dragged. Dragging a line or circle translates its underlying free point dependencies in world space. Dependent constructions recalculate automatically, so nothing in the pure evaluation graph is broken by the edit. This gave us a much more natural canvas interaction model.
+
+Finally, we added **smooth keyboard viewport control** (pan, zoom, rotate via arrow keys and brackets) using a custom key-repeat mechanism to bypass the OS delay that makes navigation feel sticky.
+
+---
+
+## Building the Package Stack
+
+With the kernel behavior settled, we extracted the next three layers.
+
+**`@euclid/activity`** is the simplest: it holds what a learner is *allowed to do* in a given activity. Which tools are available? Which constructions are locked? Can items be deleted? Can shapes be dragged? These are curriculum decisions, not geometry decisions, and they belong in their own headless package that doesn't know about React or SVG.
+
+**`@euclid/assessment`** is the most consequential. Rather than assess learners by checking pixel positions or hardcoded IDs, the assessment layer operates on construction *meaning* — the structural relationships in the dependency graph. A predicate like `requiresMeaning` doesn't ask "is there a construction named `line-ab`?" It asks "is there a construction whose expression is exactly `line-through` with points `A` and `B`?" This distinction makes assessment robust to renaming, reordering, and idiomatic variation in how learners construct things.
+
+The assessment API was designed as small, composable predicates: `requiresConstructionKind`, `requiresDependency`, `requiresMeaning`, `requiresPointOnLine`. Hosts can use these as-is, compose them with `assessAll` / `assessAny`, or replace them entirely with their own engine over the same `@euclid/geometry` data.
+
+**`@euclid/lesson`** wraps the three concerns — a starter document, an activity policy, and a list of assessment goals — into a portable, serializable lesson format. A `.lesson.json` file is a complete curriculum activity specification. The lesson codec validates structure at the JSON boundary without assuming anything about the learner's current program.
+
+---
+
+## Bringing It Into the App
+
+With the layers defined, we wired them into the web app as a **lesson player**.
+
+The objectives panel gave learners real-time step-by-step feedback: each goal in the lesson's goal list evaluates live against the current construction graph and shows a pass/fail checkmark. Completing all objectives surfaces a visual "solved" state.
+
+This required solving a subtle problem: **ID mismatch**. A lesson's goal might reference `"line-ab"` (a curriculum-authored label), but a learner might have constructed an equivalent line that the kernel named `"line-a-b"`. We wrote an `assessmentResolver` that walks the current evaluation to find constructions whose *meaning* matches the lesson's goal references, regardless of what string ID was assigned. This resolver uses structural property reflection rather than hardcoded switches, so future construction primitives are handled automatically without touching the resolver.
+
+We also wired **multi-lesson persistence**: each lesson stores its construction state separately, so learners can switch activities without losing work. A reset button restores any lesson to its starter state.
+
+Finally, we untangled the **camera rotation pivot bug** that had been lurking since Day 1. Panning the viewport was adjusting a screen offset, so rotating after a pan would pivot around the original origin rather than the current screen center. The fix was simple once the mental model was clear: panning should move the camera's world-space center, not collect a screen delta. After that change, rotation always pivots on the center of what the user is currently looking at.
+
+---
+
+## Late in the Day: New Construction Tools
+
+The final push of the day added three new geometric primitives: **parallel lines**, **perpendicular lines**, and **midpoints**.
+
+Each follows the same full-stack discipline: new `Construction` and `ConstructionExpression` variants in the kernel, realization math that derives coordinates from the parent primitives, edit helpers that return `{ program, id, changed }` and detect duplicates, and assessment `sameExpression` comparison cases.
+
+Parallel and perpendicular tools share the same two-step interaction: select a reference line, then click or place a witness point. The draft preview renders a ghost line through the cursor oriented correctly before the second click lands.
+
+Midpoint uses the two-step point-selection pattern: pick the first parent, then pick the second, with a ghost midpoint and segment drawn at the average cursor position in real time.
+
+Assessment comparison for midpoints is order-independent — `[A, B]` matches `[B, A]` — because the mathematical operation is symmetric and curriculum authors shouldn't need to specify which parent comes first.
+
+---
+
+## Where Things Stand
+
+By the end of Day 2, the package stack looks like this:
+
+```
+apps/web
+  └── @euclid/lesson
+        ├── @euclid/activity
+        ├── @euclid/assessment
+        │     └── @euclid/geometry
+        └── @euclid/document
+              └── @euclid/geometry
+  └── @euclid/rendering
+        └── @euclid/geometry
 ```
 
-- **The Pure Core** (`packages/*`) is completely side-effect-free, serializable, and easily tested headlessly.
-- **The Imperative Shell** (`apps/web`) handles rendering outputs (SVG/Canvas), pointer event capture, keyboard inputs, and React mounting.
+The pure core is completely side-effect free, serializable, and independently testable. The web app is an interpreter of geometry state, not the authority on it. A curriculum lesson is a portable JSON document. An assessment is a semantic query, not a pixel check.
+
+That's the infrastructure story. Everything else — a richer curriculum library, a hosted runtime, analytics, mobile polish — sits on top of this foundation cleanly.
+
+**157 tests passing. Production build green.**

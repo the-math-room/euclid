@@ -127,6 +127,29 @@ function meaningFor(construction: Construction): ConstructionMeaning {
     };
   }
 
+  if (construction.kind === "perpendicular-line") {
+    return {
+      id: construction.id,
+      label: construction.label,
+      expression: {
+        kind: "perpendicular-line",
+        line: construction.line,
+        point: construction.point,
+      },
+    };
+  }
+
+  if (construction.kind === "midpoint") {
+    return {
+      id: construction.id,
+      label: construction.label,
+      expression: {
+        kind: "midpoint",
+        points: construction.points,
+      },
+    };
+  }
+
   const _exhaustiveCheck: never = construction;
   return _exhaustiveCheck;
 }

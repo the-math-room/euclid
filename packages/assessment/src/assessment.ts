@@ -313,6 +313,17 @@ function sameExpression(a: ConstructionExpression, b: ConstructionExpression): b
     return a.line === b.line && a.point === b.point;
   }
 
+  if (a.kind === "perpendicular-line" && b.kind === "perpendicular-line") {
+    return a.line === b.line && a.point === b.point;
+  }
+
+  if (a.kind === "midpoint" && b.kind === "midpoint") {
+    return (
+      (a.points[0] === b.points[0] && a.points[1] === b.points[1]) ||
+      (a.points[0] === b.points[1] && a.points[1] === b.points[0])
+    );
+  }
+
   return false;
 }
 

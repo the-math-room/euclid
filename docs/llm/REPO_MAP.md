@@ -95,6 +95,8 @@ Start here:
 - `apps/web/src/App.tsx`
 - `apps/web/src/construction/useConstructionController.ts`
 - `apps/web/src/WorkspaceView.tsx`
+- `apps/web/src/workspacePreview.ts`
+- `apps/web/src/WorkspaceContainer.tsx`
 
 ## Examples
 
@@ -125,3 +127,16 @@ Run:
 ```bash
 npm run check
 ```
+
+## Journal (Most Recent First)
+
+- `docs/journal/2026-06-06-parallel-perpendicular-midpoint.md` — parallel line, perpendicular line, and midpoint tools (full kernel-to-UI vertical slice).
+- `docs/journal/2026-06-06-day-2-summary.md` — Day 2 narrative summary.
+- `docs/journal/2026-06-06-generic-resolver-and-camera-pivot.md` — generic assessment resolver and camera pivot fix.
+- `docs/journal/2026-06-06-lesson-persistence-and-resolution.md` — multi-lesson persistence and ID resolution.
+- `docs/journal/2026-06-06-lesson-composition.md` — `@euclid/lesson` composition layer.
+- `docs/journal/2026-06-06-semantic-assessment.md` — `@euclid/assessment` and serializable goals.
+- `docs/journal/2026-06-06-activity-policy.md` — `@euclid/activity` headless policy package.
+- `docs/journal/2026-06-06-headless-sdk-and-provenance.md` — headless SDK direction and provenance API.
+- `docs/journal/2026-06-06-coordinate-branding-and-features.md` — branded coordinates and shape translation.
+- `docs/journal/2026-06-05-initial-foundation.md` — Day 1: initial foundation.

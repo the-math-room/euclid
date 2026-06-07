@@ -7,8 +7,12 @@ export type DraftPreview =
       anchorId: ConstructionId;
     }>
   | Readonly<{
-      kind: "parallel";
+      kind: "parallel" | "perpendicular";
       lineId: ConstructionId;
+    }>
+  | Readonly<{
+      kind: "midpoint";
+      anchorId: ConstructionId;
     }>;
 
 export type PreviewPoint = Readonly<{
@@ -88,16 +92,17 @@ export function previewsForWorkspace({
   const previews: WorkspacePreview[] = [];
 
   if (pointerCoords && draftPreview) {
-    if (draftPreview.kind === "parallel") {
+    if (draftPreview.kind === "parallel" || draftPreview.kind === "perpendicular") {
       const lineItem = scene.items.find((item) => item.id === draftPreview.lineId && item.kind === "line");
       if (lineItem?.kind === "line") {
         const [a, b] = lineItem.supportLine;
-        const dx = b.x - a.x;
-        const dy = b.y - a.y;
-        const len = Math.hypot(dx, dy);
+        const rawDx = b.x - a.x;
+        const rawDy = b.y - a.y;
+        const len = Math.hypot(rawDx, rawDy);
         if (len > 1e-9) {
-          const ux = dx / len;
-          const uy = dy / len;
+          // parallel: same direction; perpendicular: rotate 90°
+          const ux = draftPreview.kind === "perpendicular" ? -rawDy / len : rawDx / len;
+          const uy = draftPreview.kind === "perpendicular" ? rawDx / len : rawDy / len;
           const halfLength = 5000;
           const from = {
             x: pointerCoords.x - ux * halfLength,
@@ -115,7 +120,28 @@ export function previewsForWorkspace({
           });
         }
       }
-    } else {
+    } else if (draftPreview.kind === "midpoint") {
+      const anchorItem = scene.items.find(
+        (item) => item.id === draftPreview.anchorId && item.kind === "point",
+      );
+      if (anchorItem?.kind === "point") {
+        // Ghost segment from anchor to cursor
+        previews.push({
+          kind: "line",
+          from: anchorItem.mark,
+          to: pointerCoords,
+          style: THEME.preview.draftLine,
+        });
+        // Ghost midpoint at the average position
+        const midX = (anchorItem.mark.x + pointerCoords.x) / 2;
+        const midY = (anchorItem.mark.y + pointerCoords.y) / 2;
+        previews.push({
+          kind: "point",
+          center: { x: midX, y: midY } as ScenePoint,
+          style: THEME.preview.freePoint,
+        });
+      }
+    } else if (draftPreview.kind === "line" || draftPreview.kind === "circle") {
       const anchorItem = scene.items.find(
         (item) => item.id === draftPreview.anchorId && item.kind === "point",
       );

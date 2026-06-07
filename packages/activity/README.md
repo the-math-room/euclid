@@ -38,6 +38,8 @@ The package entrypoint uses explicit named exports. Treat these groups as the in
 - Reference policies: `openActivityPolicy`, `readOnlyActivityPolicy`.
 - Policy helpers: `canUseTool`, `allowedToolsInOrder`, `isConstructionLocked`, `canDeleteConstruction`, `canDragConstruction`.
 
+`ActivityTool` currently covers: `"select"`, `"point"`, `"line"`, `"circle"`, `"parallel"`, `"perpendicular"`, `"midpoint"`. The `openActivityPolicy` enables all tools. Curriculum-specific policies restrict the set by listing only the tools relevant to the activity.
+
 Do not add wildcard exports to `src/index.ts`. New public exports should be named intentionally.
 
 ## Design Intent

@@ -169,6 +169,14 @@ function explanationFor(construction: Construction): string {
     return `${construction.label} is the line through ${construction.point} parallel to line ${construction.line}.`;
   }
 
+  if (construction.kind === "perpendicular-line") {
+    return `${construction.label} is the line through ${construction.point} perpendicular to line ${construction.line}.`;
+  }
+
+  if (construction.kind === "midpoint") {
+    return `${construction.label} is the midpoint of segment between ${construction.points[0]} and ${construction.points[1]}.`;
+  }
+
   const _exhaustiveCheck: never = construction;
   return _exhaustiveCheck;
 }

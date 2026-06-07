@@ -45,7 +45,7 @@ The package entrypoint uses explicit named exports. Treat these groups as the in
 
 - Model and branded coordinates: `ConstructionProgram`, `Construction`, `ConstructionExpression`, `EvaluatedPrimitive`, `Evaluation`, `Point2`, `WorldPoint`, `ScenePoint`, `toWorldPoint`, `toScenePoint`.
 - Evaluation and realization: `evaluateConstruction`, `realizeConstructions`.
-- Pure edits: `moveFreePoint`, `addLineThroughPoints`, `addCircleThroughPoints`, `addCircleThreePoints`, `addLineLineIntersection`, `addLineCircleIntersection`, `addCircleCircleIntersection`, `translateShape`.
+- Pure edits: `moveFreePoint`, `addLineThroughPoints`, `addCircleThroughPoints`, `addCircleThreePoints`, `addLineLineIntersection`, `addLineCircleIntersection`, `addCircleCircleIntersection`, `addParallelLine`, `addPerpendicularLine`, `addMidpoint`, `translateShape`.
 - Dependency inspection and deletion: `dependencyIds`, `dependencyGraphFor`, `transitiveDependentsOf`, `deleteConstructions`.
 - Provenance: `explainConstruction`, `traceDependencies`, `traceDependents`.
 - Floating-point helpers used by interpreters: `lineLineIntersection`, `lineCircleIntersections`, `circleCircleIntersections`, `samePoint`, `cross`, `dot`.

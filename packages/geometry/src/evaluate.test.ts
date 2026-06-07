@@ -447,4 +447,60 @@ describe("evaluateConstruction", () => {
       expect(parallel.through[1]).toEqual({ x: 2, y: 1 });
     }
   });
+
+  it("realizes perpendicular lines", () => {
+    const program: ConstructionProgram = {
+      constructions: [
+        { id: "A", kind: "free-point", label: "A", position: { x: 0, y: 0 } },
+        { id: "B", kind: "free-point", label: "B", position: { x: 2, y: 0 } },
+        { id: "line-ab", kind: "line-through", label: "AB", points: ["A", "B"] },
+        { id: "C", kind: "free-point", label: "C", position: { x: 1, y: 1 } },
+        {
+          id: "perpendicular-line",
+          kind: "perpendicular-line",
+          label: "Perpendicular",
+          line: "line-ab",
+          point: "C",
+        },
+      ],
+    };
+
+    const evaluation = evaluateConstruction(program);
+    expect(evaluation.diagnostics).toEqual([]);
+
+    const perp = evaluation.primitives.find((p) => p.id === "perpendicular-line");
+    expect(perp?.kind).toBe("line");
+    if (perp && perp.kind === "line") {
+      // Perpendicular line through C (1, 1). AB is along x-axis, so perp is along y-axis.
+      // (dx, dy) = (2, 0)
+      // perpendicular direction: (-dy, dx) = (0, 2)
+      // perp goes through (1, 1) and (1, 3)
+      expect(perp.through[0]).toEqual({ x: 1, y: 1 });
+      expect(perp.through[1]).toEqual({ x: 1, y: 3 });
+    }
+  });
+
+  it("realizes midpoints", () => {
+    const program: ConstructionProgram = {
+      constructions: [
+        { id: "A", kind: "free-point", label: "A", position: { x: 0, y: 0 } },
+        { id: "B", kind: "free-point", label: "B", position: { x: 2, y: 4 } },
+        {
+          id: "midpoint",
+          kind: "midpoint",
+          label: "Midpoint",
+          points: ["A", "B"],
+        },
+      ],
+    };
+
+    const evaluation = evaluateConstruction(program);
+    expect(evaluation.diagnostics).toEqual([]);
+
+    const midpoint = evaluation.primitives.find((p) => p.id === "midpoint");
+    expect(midpoint?.kind).toBe("point");
+    if (midpoint && midpoint.kind === "point") {
+      expect(midpoint.position).toEqual({ x: 1, y: 2 });
+    }
+  });
 });

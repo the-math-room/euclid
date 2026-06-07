@@ -1,4 +1,16 @@
-import { Circle, MousePointer2, Ruler, Waypoints, Undo2, Redo2, Trash2, Sliders, Equal } from "lucide-react";
+import {
+  Circle,
+  MousePointer2,
+  Ruler,
+  Waypoints,
+  Undo2,
+  Redo2,
+  Trash2,
+  Sliders,
+  Equal,
+  BetweenHorizonalEnd,
+  Milestone,
+} from "lucide-react";
 import { evaluateConstruction } from "@euclid/geometry";
 import type { ConstructionProgram } from "@euclid/geometry";
 import { evaluateGoal } from "@euclid/assessment";
@@ -184,6 +196,24 @@ export function WorkspaceContainer({
                 disabled={!activeLesson.policy.allowedTools.includes("parallel")}
               >
                 <Equal size={16} aria-hidden style={{ transform: "rotate(45deg)" }} />
+              </button>
+              <button
+                type="button"
+                className={`tool-button ${construction.activeTool === "perpendicular" ? "active" : ""}`}
+                title="Perpendicular Line"
+                onClick={() => construction.setTool("perpendicular")}
+                disabled={!activeLesson.policy.allowedTools.includes("perpendicular")}
+              >
+                <BetweenHorizonalEnd size={16} aria-hidden />
+              </button>
+              <button
+                type="button"
+                className={`tool-button ${construction.activeTool === "midpoint" ? "active" : ""}`}
+                title="Midpoint"
+                onClick={() => construction.setTool("midpoint")}
+                disabled={!activeLesson.policy.allowedTools.includes("midpoint")}
+              >
+                <Milestone size={16} aria-hidden />
               </button>
             </nav>
           </div>

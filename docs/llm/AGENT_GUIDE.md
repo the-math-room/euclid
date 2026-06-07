@@ -76,7 +76,7 @@ When changing behavior, inspect files in this order:
 
 ## Useful Vocabulary
 
-- **Construction**: a user-authored geometric object such as a point, line, circle, or intersection.
+- **Construction**: a user-authored geometric object such as a point, line, circle, intersection, parallel line, perpendicular line, or midpoint.
 - **Construction Program**: a serializable list of constructions that forms the ground truth of a document.
 - **Document**: versioned persistent data containing a construction program.
 - **Dependency**: a reference from one construction to another.
@@ -87,6 +87,8 @@ When changing behavior, inspect files in this order:
 - **Label layout**: optimization-based placement of point labels to avoid overlapping obstacles.
 - **Intersection snapping**: when the point tool detects and constructs a curve intersection point rather than a free point.
 - **Point drag**: direct manipulation of free point positions, batched into a single undo step.
+- **Draft preview**: the real-time ghost geometry drawn between the first click and the second in multi-step tool interactions (e.g. the ghost line when the first point of a line tool is set). Draft state lives in `useConstructionController.ts`; preview rendering lives in `workspacePreview.ts`.
+- **Witness point**: the free point that determines the position of a derived line (parallel or perpendicular). When the derived line is dragged, only the witness point moves.
 - **Interpretation**: a view of the same construction program, such as rendering, serialization, validation, or export.
 
 ## Lessons From The Initial Scaffold

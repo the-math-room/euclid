@@ -14,6 +14,8 @@ import {
   addCircleCircleIntersection,
   addLineThroughPoints,
   addParallelLine,
+  addPerpendicularLine,
+  addMidpoint,
   deleteConstructions,
   evaluateConstruction,
   generateNextPointLabel,
@@ -65,8 +67,12 @@ export type ConstructionController = Readonly<{
         anchorId: ConstructionId;
       }>
     | Readonly<{
-        kind: "parallel";
+        kind: "parallel" | "perpendicular";
         lineId: ConstructionId;
+      }>
+    | Readonly<{
+        kind: "midpoint";
+        anchorId: ConstructionId;
       }>;
 }>;
 
@@ -95,6 +101,8 @@ export function useConstructionController({
   const [lineDraftPointId, setLineDraftPointId] = useState<ConstructionId | undefined>();
   const [circleDraftPointId, setCircleDraftPointId] = useState<ConstructionId | undefined>();
   const [parallelDraftLineId, setParallelDraftLineId] = useState<ConstructionId | undefined>();
+  const [perpendicularDraftLineId, setPerpendicularDraftLineId] = useState<ConstructionId | undefined>();
+  const [midpointDraftPointId, setMidpointDraftPointId] = useState<ConstructionId | undefined>();
   const dragStartProgram = useRef<ConstructionProgram | undefined>(undefined);
 
   const program = history.present;
@@ -144,6 +152,12 @@ export function useConstructionController({
       if (tool !== "parallel") {
         setParallelDraftLineId(undefined);
       }
+      if (tool !== "perpendicular") {
+        setPerpendicularDraftLineId(undefined);
+      }
+      if (tool !== "midpoint") {
+        setMidpointDraftPointId(undefined);
+      }
     },
     [policy],
   );
@@ -167,6 +181,8 @@ export function useConstructionController({
         setLineDraftPointId(undefined);
         setCircleDraftPointId(undefined);
         setParallelDraftLineId(undefined);
+        setPerpendicularDraftLineId(undefined);
+        setMidpointDraftPointId(undefined);
         return;
       }
 
@@ -189,6 +205,52 @@ export function useConstructionController({
         updateProgram(result.program);
         setParallelDraftLineId(undefined);
         setSelectedIds(result.id ? new Set([result.id]) : new Set([id]));
+        setLastSelectedId(result.id ?? id);
+        return;
+      }
+
+      if (activeTool === "perpendicular") {
+        if (!perpendicularDraftLineId) {
+          if (!realizedLineIds.has(id)) {
+            return;
+          }
+          setPerpendicularDraftLineId(id);
+          setSelectedIds(new Set([id]));
+          setLastSelectedId(id);
+          return;
+        }
+
+        if (!realizedPointIds.has(id)) {
+          return;
+        }
+
+        const result = addPerpendicularLine(program, perpendicularDraftLineId, id);
+        updateProgram(result.program);
+        setPerpendicularDraftLineId(undefined);
+        setSelectedIds(result.id ? new Set([result.id]) : new Set([id]));
+        setLastSelectedId(result.id ?? id);
+        return;
+      }
+
+      if (activeTool === "midpoint") {
+        if (!midpointDraftPointId || midpointDraftPointId === id) {
+          if (!realizedPointIds.has(id)) {
+            return;
+          }
+          setMidpointDraftPointId(id);
+          setSelectedIds(new Set([id]));
+          setLastSelectedId(id);
+          return;
+        }
+
+        if (!realizedPointIds.has(id)) {
+          return;
+        }
+
+        const result = addMidpoint(program, [midpointDraftPointId, id]);
+        updateProgram(result.program);
+        setMidpointDraftPointId(undefined);
+        setSelectedIds(result.id ? new Set([result.id]) : new Set([midpointDraftPointId, id]));
         setLastSelectedId(result.id ?? id);
         return;
       }
@@ -276,6 +338,8 @@ export function useConstructionController({
       lineDraftPointId,
       circleDraftPointId,
       parallelDraftLineId,
+      perpendicularDraftLineId,
+      midpointDraftPointId,
       program,
       realizedPointIds,
       realizedLineIds,
@@ -368,6 +432,46 @@ export function useConstructionController({
         return;
       }
 
+      if (activeTool === "perpendicular") {
+        if (!perpendicularDraftLineId) {
+          return;
+        }
+
+        const programWithPoint = {
+          constructions: [...program.constructions, newPoint],
+        };
+        const result = addPerpendicularLine(programWithPoint, perpendicularDraftLineId, newPoint.id);
+
+        updateProgram(result.program);
+        setPerpendicularDraftLineId(undefined);
+        setSelectedIds(result.id ? new Set([result.id]) : new Set([newPoint.id]));
+        setLastSelectedId(result.id ?? newPoint.id);
+        return;
+      }
+
+      if (activeTool === "midpoint") {
+        if (!midpointDraftPointId) {
+          updateProgram({
+            constructions: [...program.constructions, newPoint],
+          });
+          setMidpointDraftPointId(newPoint.id);
+          setSelectedIds(new Set([newPoint.id]));
+          setLastSelectedId(newPoint.id);
+        } else {
+          const firstPoint = midpointDraftPointId;
+          const programWithPoint = {
+            constructions: [...program.constructions, newPoint],
+          };
+          const result = addMidpoint(programWithPoint, [firstPoint, newPoint.id]);
+
+          updateProgram(result.program);
+          setMidpointDraftPointId(undefined);
+          setSelectedIds(result.id ? new Set([result.id]) : new Set([firstPoint, newPoint.id]));
+          setLastSelectedId(result.id ?? newPoint.id);
+        }
+        return;
+      }
+
       updateProgram({
         constructions: [...program.constructions, newPoint],
       });
@@ -380,6 +484,8 @@ export function useConstructionController({
       lineDraftPointId,
       circleDraftPointId,
       parallelDraftLineId,
+      perpendicularDraftLineId,
+      midpointDraftPointId,
       program,
       screenToWorld,
       updateProgram,
@@ -459,11 +565,50 @@ export function useConstructionController({
         return;
       }
 
+      if (activeTool === "perpendicular") {
+        if (!perpendicularDraftLineId) {
+          return;
+        }
+
+        const perpResult = addPerpendicularLine(result.program, perpendicularDraftLineId, result.id);
+        updateProgram(perpResult.program);
+        setPerpendicularDraftLineId(undefined);
+        setSelectedIds(perpResult.id ? new Set([perpResult.id]) : new Set([result.id]));
+        setLastSelectedId(perpResult.id ?? result.id);
+        return;
+      }
+
+      if (activeTool === "midpoint") {
+        if (!midpointDraftPointId) {
+          updateProgram(result.program);
+          setMidpointDraftPointId(result.id);
+          setSelectedIds(new Set([result.id]));
+          setLastSelectedId(result.id);
+        } else {
+          const firstPoint = midpointDraftPointId;
+          const midResult = addMidpoint(result.program, [firstPoint, result.id]);
+          updateProgram(midResult.program);
+          setMidpointDraftPointId(undefined);
+          setSelectedIds(midResult.id ? new Set([midResult.id]) : new Set([firstPoint, result.id]));
+          setLastSelectedId(midResult.id ?? result.id);
+        }
+        return;
+      }
+
       updateProgram(result.program);
       setSelectedIds(new Set([result.id]));
       setLastSelectedId(result.id);
     },
-    [activeTool, lineDraftPointId, circleDraftPointId, parallelDraftLineId, program, updateProgram],
+    [
+      activeTool,
+      lineDraftPointId,
+      circleDraftPointId,
+      parallelDraftLineId,
+      perpendicularDraftLineId,
+      midpointDraftPointId,
+      program,
+      updateProgram,
+    ],
   );
 
   const canDragPoint = useCallback(
@@ -633,8 +778,21 @@ export function useConstructionController({
     if (activeTool === "parallel" && parallelDraftLineId !== undefined) {
       return { kind: "parallel" as const, lineId: parallelDraftLineId };
     }
+    if (activeTool === "perpendicular" && perpendicularDraftLineId !== undefined) {
+      return { kind: "perpendicular" as const, lineId: perpendicularDraftLineId };
+    }
+    if (activeTool === "midpoint" && midpointDraftPointId !== undefined) {
+      return { kind: "midpoint" as const, anchorId: midpointDraftPointId };
+    }
     return undefined;
-  }, [activeTool, lineDraftPointId, circleDraftPointId, parallelDraftLineId]);
+  }, [
+    activeTool,
+    lineDraftPointId,
+    circleDraftPointId,
+    parallelDraftLineId,
+    perpendicularDraftLineId,
+    midpointDraftPointId,
+  ]);
 
   return {
     program,

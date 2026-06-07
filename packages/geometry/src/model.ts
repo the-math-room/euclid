@@ -74,6 +74,19 @@ export type Construction =
       label: string;
       line: ConstructionId;
       point: ConstructionId;
+    }>
+  | Readonly<{
+      id: ConstructionId;
+      kind: "perpendicular-line";
+      label: string;
+      line: ConstructionId;
+      point: ConstructionId;
+    }>
+  | Readonly<{
+      id: ConstructionId;
+      kind: "midpoint";
+      label: string;
+      points: readonly [ConstructionId, ConstructionId];
     }>;
 
 export type EvaluatedPrimitive =
@@ -134,6 +147,15 @@ export type ConstructionExpression =
       kind: "parallel-line";
       line: ConstructionId;
       point: ConstructionId;
+    }>
+  | Readonly<{
+      kind: "perpendicular-line";
+      line: ConstructionId;
+      point: ConstructionId;
+    }>
+  | Readonly<{
+      kind: "midpoint";
+      points: readonly [ConstructionId, ConstructionId];
     }>;
 
 export type ConstructionMeaning = Readonly<{

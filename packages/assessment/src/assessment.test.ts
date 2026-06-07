@@ -40,6 +40,19 @@ describe("assessment primitives", () => {
         line: "line-ab",
         point: "C",
       },
+      {
+        id: "perp",
+        kind: "perpendicular-line",
+        label: "Perpendicular",
+        line: "line-ab",
+        point: "C",
+      },
+      {
+        id: "midpoint",
+        kind: "midpoint",
+        label: "Midpoint",
+        points: ["A", "B"],
+      },
     ],
   };
 
@@ -86,6 +99,32 @@ describe("assessment primitives", () => {
         point: "D",
       }),
     ).toBe(false);
+    expect(
+      hasConstructionMeaning(evaluation, "perp", {
+        kind: "perpendicular-line",
+        line: "line-ab",
+        point: "C",
+      }),
+    ).toBe(true);
+    expect(
+      hasConstructionMeaning(evaluation, "perp", {
+        kind: "perpendicular-line",
+        line: "line-ab",
+        point: "D",
+      }),
+    ).toBe(false);
+    expect(
+      hasConstructionMeaning(evaluation, "midpoint", {
+        kind: "midpoint",
+        points: ["A", "B"],
+      }),
+    ).toBe(true);
+    expect(
+      hasConstructionMeaning(evaluation, "midpoint", {
+        kind: "midpoint",
+        points: ["B", "A"],
+      }),
+    ).toBe(true);
   });
 
   it("checks realized point-line and point-circle incidence with tolerance", () => {

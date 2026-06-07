@@ -1,6 +1,6 @@
 import type { Construction, ConstructionId } from "@euclid/geometry";
 
-export type ActivityTool = "select" | "point" | "line" | "circle" | "parallel";
+export type ActivityTool = "select" | "point" | "line" | "circle" | "parallel" | "perpendicular" | "midpoint";
 
 export type DragPolicy = "none" | "free-points" | "all";
 
@@ -13,7 +13,7 @@ export type ActivityPolicy = Readonly<{
 }>;
 
 export const openActivityPolicy: ActivityPolicy = {
-  allowedTools: ["select", "point", "line", "circle", "parallel"],
+  allowedTools: ["select", "point", "line", "circle", "parallel", "perpendicular", "midpoint"],
   lockedConstructions: [],
   allowDelete: true,
   pointDrag: "free-points",
@@ -34,7 +34,15 @@ export function canUseTool(policy: ActivityPolicy, tool: ActivityTool): boolean 
 
 export function allowedToolsInOrder(
   policy: ActivityPolicy,
-  tools: readonly ActivityTool[] = ["select", "point", "line", "circle", "parallel"],
+  tools: readonly ActivityTool[] = [
+    "select",
+    "point",
+    "line",
+    "circle",
+    "parallel",
+    "perpendicular",
+    "midpoint",
+  ],
 ): readonly ActivityTool[] {
   return tools.filter((tool) => canUseTool(policy, tool));
 }

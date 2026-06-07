@@ -8,6 +8,8 @@ import {
   addCircleCircleIntersection,
   addLineThroughPoints,
   addParallelLine,
+  addPerpendicularLine,
+  addMidpoint,
   moveFreePoint,
   translateShape,
 } from "./edit";
@@ -333,6 +335,71 @@ describe("construction edits", () => {
       kind: "free-point",
       label: "C",
       position: { x: 5, y: 6 },
+    });
+  });
+
+  it("adds a perpendicular line and translates its defining point", () => {
+    const program: ConstructionProgram = {
+      constructions: [
+        { id: "A", kind: "free-point", label: "A", position: { x: 0, y: 0 } },
+        { id: "B", kind: "free-point", label: "B", position: { x: 2, y: 0 } },
+        { id: "line-ab", kind: "line-through", label: "AB", points: ["A", "B"] },
+        { id: "C", kind: "free-point", label: "C", position: { x: 0, y: 1 } },
+      ],
+    };
+
+    const result = addPerpendicularLine(program, "line-ab", "C");
+    const updated = result.program;
+
+    expect(result).toMatchObject({ id: "perpendicular-line-ab-c", changed: true });
+    expect(updated.constructions.at(-1)).toEqual({
+      id: "perpendicular-line-ab-c",
+      kind: "perpendicular-line",
+      label: "Perpendicular(line-ab, C)",
+      line: "line-ab",
+      point: "C",
+    });
+
+    const translated = translateShape(updated, "perpendicular-line-ab-c", { x: 5, y: 5 });
+    expect(translated.constructions.find((c) => c.id === "C")).toEqual({
+      id: "C",
+      kind: "free-point",
+      label: "C",
+      position: { x: 5, y: 6 },
+    });
+  });
+
+  it("adds a midpoint and translates its parent points", () => {
+    const program: ConstructionProgram = {
+      constructions: [
+        { id: "A", kind: "free-point", label: "A", position: { x: 0, y: 0 } },
+        { id: "B", kind: "free-point", label: "B", position: { x: 2, y: 4 } },
+      ],
+    };
+
+    const result = addMidpoint(program, ["A", "B"]);
+    const updated = result.program;
+
+    expect(result).toMatchObject({ id: "midpoint-a-b", changed: true });
+    expect(updated.constructions.at(-1)).toEqual({
+      id: "midpoint-a-b",
+      kind: "midpoint",
+      label: "Midpoint(A, B)",
+      points: ["A", "B"],
+    });
+
+    const translated = translateShape(updated, "midpoint-a-b", { x: 5, y: 5 });
+    expect(translated.constructions.find((c) => c.id === "A")).toEqual({
+      id: "A",
+      kind: "free-point",
+      label: "A",
+      position: { x: 5, y: 5 },
+    });
+    expect(translated.constructions.find((c) => c.id === "B")).toEqual({
+      id: "B",
+      kind: "free-point",
+      label: "B",
+      position: { x: 7, y: 9 },
     });
   });
 });

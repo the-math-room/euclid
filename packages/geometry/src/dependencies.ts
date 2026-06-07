@@ -33,6 +33,14 @@ export function dependencyIds(construction: Construction): readonly Construction
     return [construction.line, construction.point];
   }
 
+  if (construction.kind === "perpendicular-line") {
+    return [construction.line, construction.point];
+  }
+
+  if (construction.kind === "midpoint") {
+    return construction.points;
+  }
+
   const _exhaustiveCheck: never = construction;
   return _exhaustiveCheck;
 }

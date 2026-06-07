@@ -297,6 +297,58 @@ function realizeOne(
     };
   }
 
+  if (construction.kind === "perpendicular-line") {
+    const line = lineNamed(previous, construction.line);
+    const point = pointNamed(previous, construction.point);
+
+    if (!line || !point) {
+      return {
+        kind: "diagnostic",
+        message: `Perpendicular line ${construction.label} needs line and point dependencies.`,
+      };
+    }
+
+    const [a, b] = line.through;
+    const dx = b.x - a.x;
+    const dy = b.y - a.y;
+
+    const p2 = {
+      x: point.position.x - dy,
+      y: point.position.y + dx,
+    };
+
+    return {
+      id: construction.id,
+      kind: "line",
+      label: construction.label,
+      through: [point.position, p2],
+    };
+  }
+
+  if (construction.kind === "midpoint") {
+    const a = pointNamed(previous, construction.points[0]);
+    const b = pointNamed(previous, construction.points[1]);
+
+    if (!a || !b) {
+      return {
+        kind: "diagnostic",
+        message: `Midpoint ${construction.label} needs two point dependencies.`,
+      };
+    }
+
+    const position = {
+      x: (a.position.x + b.position.x) / 2,
+      y: (a.position.y + b.position.y) / 2,
+    };
+
+    return {
+      id: construction.id,
+      kind: "point",
+      label: construction.label,
+      position,
+    };
+  }
+
   const _exhaustiveCheck: never = construction;
   return _exhaustiveCheck;
 }

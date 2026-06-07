@@ -323,6 +323,77 @@ export function addParallelLine(
   };
 }
 
+export function addPerpendicularLine(
+  program: ConstructionProgram,
+  line: ConstructionId,
+  point: ConstructionId,
+): AddConstructionResult {
+  const existing = program.constructions.find(
+    (construction) =>
+      construction.kind === "perpendicular-line" &&
+      construction.line === line &&
+      construction.point === point,
+  );
+
+  if (existing) {
+    return unchanged(program, existing.id);
+  }
+
+  const id = uniqueConstructionId(program, `perpendicular-${slugFor(line)}-${slugFor(point)}`);
+
+  return {
+    program: {
+      constructions: [
+        ...program.constructions,
+        {
+          id,
+          kind: "perpendicular-line",
+          label: `Perpendicular(${line}, ${point})`,
+          line,
+          point,
+        },
+      ],
+    },
+    id,
+    changed: true,
+  };
+}
+
+export function addMidpoint(
+  program: ConstructionProgram,
+  points: readonly [ConstructionId, ConstructionId],
+): AddConstructionResult {
+  if (points[0] === points[1]) {
+    return unchanged(program);
+  }
+
+  const existing = program.constructions.find(
+    (construction) => construction.kind === "midpoint" && sameIdSet(construction.points, points),
+  );
+
+  if (existing) {
+    return unchanged(program, existing.id);
+  }
+
+  const id = uniqueConstructionId(program, `midpoint-${slugFor(points[0])}-${slugFor(points[1])}`);
+
+  return {
+    program: {
+      constructions: [
+        ...program.constructions,
+        {
+          id,
+          kind: "midpoint",
+          label: `Midpoint(${points[0]}, ${points[1]})`,
+          points,
+        },
+      ],
+    },
+    id,
+    changed: true,
+  };
+}
+
 function unchanged(program: ConstructionProgram, id?: ConstructionId): AddConstructionResult {
   return {
     program,
@@ -373,8 +444,11 @@ export function translateShape(
     pointsToTranslate.add(construction.points[0]);
     pointsToTranslate.add(construction.points[1]);
     pointsToTranslate.add(construction.points[2]);
-  } else if (construction.kind === "parallel-line") {
+  } else if (construction.kind === "parallel-line" || construction.kind === "perpendicular-line") {
     pointsToTranslate.add(construction.point);
+  } else if (construction.kind === "midpoint") {
+    pointsToTranslate.add(construction.points[0]);
+    pointsToTranslate.add(construction.points[1]);
   }
 
   if (pointsToTranslate.size === 0) {
