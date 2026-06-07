@@ -60,7 +60,7 @@ When changing behavior, inspect files in this order:
 
 - `App.tsx` is a composition root. It should wire packages together and render JSX. It should not contain construction logic.
 - `useConstructionController.ts` owns construction history, tool state, selection, and command wiring. Construction-level state changes belong here.
-- `useWorkspaceGestures.ts` owns gesture interpretation. It translates pointer events into construction commands. `WorkspaceView.tsx` composes workspace surfaces and should not own construction state.
+- `useWorkspaceGestures.ts` owns gesture interpretation, translating pointer events into construction commands. Gesture targeting priorities (preferring points, lines, intersections, or empty space) are defined declaratively per tool via `ConstructionToolGesturePolicy` in `apps/web/src/construction/tools.ts`. All non-select tools must declare a policy.
 - Prefer command-shaped changes and serializable data over hidden mutable UI state.
 
 ### Verification

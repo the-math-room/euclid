@@ -31,6 +31,7 @@ Functions in this package should be memoizable in theory.
 
 - `src/assessment.ts`: reference assessment predicates.
 - `src/goalCodec.ts`: explicit parse and serialize boundary for assessment goal JSON.
+- `src/goalResolution.ts`: dynamic resolution of curriculum goal references to learner construction IDs.
 - `src/goals.ts`: serializable assessment goal specs and reference goal evaluation.
 - `src/index.ts`: public package entrypoint.
 
@@ -41,6 +42,7 @@ The package entrypoint uses explicit named exports. Treat these groups as the in
 - Predicate interface: `AssessmentContext`, `AssessmentPredicate`, `AssessmentResult`, `AssessmentTolerance`.
 - Predicate composition and factories: `assessAll`, `assessAny`, `requiresConstructionKind`, `requiresDependency`, `requiresMeaning`, `requiresPointOnLine`, `requiresPointOnCircle`.
 - Low-level boolean helpers: `hasConstructionKind`, `constructionIdsOfKind`, `directlyDependsOn`, `dependsOn`, `hasConstructionMeaning`, `isPointOnLine`, `isPointOnCircle`.
+- Dynamic goal resolution: `mapGoalIds`, `resolveGoalMapping`.
 - Serializable goals: `AssessmentGoal`, `predicateForGoal`, `evaluateGoal`.
 - Goal codec: `AssessmentGoalParseResult`, `parseAssessmentGoal`, `serializeAssessmentGoal`.
 
