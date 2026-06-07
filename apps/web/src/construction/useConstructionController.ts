@@ -9,10 +9,6 @@ import {
 import {
   addCircleThreePoints,
   addCircleThroughPoints,
-  addLineThroughPoints,
-  addParallelLine,
-  addPerpendicularLine,
-  addMidpoint,
   deleteConstructions,
   evaluateConstruction,
   generateNextPointLabel,
@@ -35,6 +31,7 @@ import {
   clearDraftUnlessTool,
   draftPreviewFor,
   emptyToolDraft,
+  toolSessionRegistry,
   type DraftPreview,
   type ToolDraft,
 } from "./toolSession";
@@ -123,6 +120,16 @@ export function useConstructionController({
     [evaluated.primitives],
   );
 
+  const realizedCircleIds = useMemo(
+    () =>
+      new Set(
+        evaluated.primitives
+          .filter((primitive) => primitive.kind === "circle")
+          .map((primitive) => primitive.id),
+      ),
+    [evaluated.primitives],
+  );
+
   const updateProgram = useCallback((nextProgram: { constructions: readonly Construction[] }) => {
     setHistory((prev) => pushState(prev, nextProgram));
   }, []);
@@ -150,130 +157,31 @@ export function useConstructionController({
     clearSelection(setSelectedIds, setLastSelectedId);
   }, [history]);
 
-  const handleLinePointInput = useCallback(
+  const handlePointInput = useCallback(
     (input: PointInput, options?: { restartOnSameAnchor?: boolean }) => {
       const resolved = resolvePointInput(program, input);
       if (!resolved.id) {
         return;
       }
 
-      if (
-        toolDraft.kind !== "line" ||
-        (options?.restartOnSameAnchor === true && toolDraft.anchorId === resolved.id)
-      ) {
-        updateProgramIfChanged(resolved, updateProgram);
-        setToolDraft({ kind: "line", anchorId: resolved.id });
-        setSelectedIds(new Set([resolved.id]));
-        setLastSelectedId(resolved.id);
-        return;
+      const session = toolSessionRegistry[activeTool];
+      if (session && session.onPointInput) {
+        const context = {
+          program: resolved.program,
+          realizedPointIds,
+          realizedLineIds,
+          realizedCircleIds,
+        };
+        const result = session.onPointInput(context, toolDraft, resolved.id, options);
+        if (result) {
+          updateProgram(result.program);
+          setToolDraft(result.nextDraft);
+          setSelectedIds(result.selectedIds);
+          setLastSelectedId(result.lastSelectedId);
+        }
       }
-
-      const points: readonly [ConstructionId, ConstructionId] = [toolDraft.anchorId, resolved.id];
-      const result = addLineThroughPoints(resolved.program, points);
-
-      updateProgram(result.program);
-      setToolDraft(emptyToolDraft);
-      setSelectedIds(result.id ? new Set([result.id]) : new Set(points));
-      setLastSelectedId(result.id ?? resolved.id);
     },
-    [program, toolDraft, updateProgram],
-  );
-
-  const handleCirclePointInput = useCallback(
-    (input: PointInput, options?: { restartOnSameAnchor?: boolean }) => {
-      const resolved = resolvePointInput(program, input);
-      if (!resolved.id) {
-        return;
-      }
-
-      if (
-        toolDraft.kind !== "circle" ||
-        (options?.restartOnSameAnchor === true && toolDraft.anchorId === resolved.id)
-      ) {
-        updateProgramIfChanged(resolved, updateProgram);
-        setToolDraft({ kind: "circle", anchorId: resolved.id });
-        setSelectedIds(new Set([resolved.id]));
-        setLastSelectedId(resolved.id);
-        return;
-      }
-
-      const center = toolDraft.anchorId;
-      const result = addCircleThroughPoints(resolved.program, center, resolved.id);
-
-      updateProgram(result.program);
-      setToolDraft(emptyToolDraft);
-      setSelectedIds(result.id ? new Set([result.id]) : new Set([center, resolved.id]));
-      setLastSelectedId(result.id ?? resolved.id);
-    },
-    [program, toolDraft, updateProgram],
-  );
-
-  const handleParallelPointInput = useCallback(
-    (input: PointInput) => {
-      if (toolDraft.kind !== "parallel") {
-        return;
-      }
-
-      const resolved = resolvePointInput(program, input);
-      if (!resolved.id) {
-        return;
-      }
-
-      const result = addParallelLine(resolved.program, toolDraft.lineId, resolved.id);
-      updateProgram(result.program);
-      setToolDraft(emptyToolDraft);
-      setSelectedIds(result.id ? new Set([result.id]) : new Set([resolved.id]));
-      setLastSelectedId(result.id ?? resolved.id);
-    },
-    [program, toolDraft, updateProgram],
-  );
-
-  const handlePerpendicularPointInput = useCallback(
-    (input: PointInput) => {
-      if (toolDraft.kind !== "perpendicular") {
-        return;
-      }
-
-      const resolved = resolvePointInput(program, input);
-      if (!resolved.id) {
-        return;
-      }
-
-      const result = addPerpendicularLine(resolved.program, toolDraft.lineId, resolved.id);
-      updateProgram(result.program);
-      setToolDraft(emptyToolDraft);
-      setSelectedIds(result.id ? new Set([result.id]) : new Set([resolved.id]));
-      setLastSelectedId(result.id ?? resolved.id);
-    },
-    [program, toolDraft, updateProgram],
-  );
-
-  const handleMidpointPointInput = useCallback(
-    (input: PointInput, options?: { restartOnSameAnchor?: boolean }) => {
-      const resolved = resolvePointInput(program, input);
-      if (!resolved.id) {
-        return;
-      }
-
-      if (
-        toolDraft.kind !== "midpoint" ||
-        (options?.restartOnSameAnchor === true && toolDraft.anchorId === resolved.id)
-      ) {
-        updateProgramIfChanged(resolved, updateProgram);
-        setToolDraft({ kind: "midpoint", anchorId: resolved.id });
-        setSelectedIds(new Set([resolved.id]));
-        setLastSelectedId(resolved.id);
-        return;
-      }
-
-      const firstPoint = toolDraft.anchorId;
-      const result = addMidpoint(resolved.program, [firstPoint, resolved.id]);
-      updateProgram(result.program);
-      setToolDraft(emptyToolDraft);
-      setSelectedIds(result.id ? new Set([result.id]) : new Set([firstPoint, resolved.id]));
-      setLastSelectedId(result.id ?? resolved.id);
-    },
-    [program, toolDraft, updateProgram],
+    [activeTool, program, toolDraft, realizedPointIds, realizedLineIds, realizedCircleIds, updateProgram],
   );
 
   const handleSelect = useCallback(
@@ -284,68 +192,31 @@ export function useConstructionController({
         return;
       }
 
-      if (activeTool === "parallel") {
-        if (toolDraft.kind !== "parallel") {
-          if (!realizedLineIds.has(id)) {
+      const session = toolSessionRegistry[activeTool];
+      if (session) {
+        const context = {
+          program,
+          realizedPointIds,
+          realizedLineIds,
+          realizedCircleIds,
+        };
+
+        if (session.onSelectShape) {
+          const result = session.onSelectShape(context, toolDraft, id);
+          if (result) {
+            updateProgram(result.program);
+            setToolDraft(result.nextDraft);
+            setSelectedIds(result.selectedIds);
+            setLastSelectedId(result.lastSelectedId);
             return;
           }
-          setToolDraft({ kind: "parallel", lineId: id });
-          setSelectedIds(new Set([id]));
-          setLastSelectedId(id);
+        }
+
+        if (realizedPointIds.has(id)) {
+          handlePointInput({ kind: "existing-point", id }, { restartOnSameAnchor: true });
           return;
         }
 
-        if (!realizedPointIds.has(id)) {
-          return;
-        }
-
-        handleParallelPointInput({ kind: "existing-point", id });
-        return;
-      }
-
-      if (activeTool === "perpendicular") {
-        if (toolDraft.kind !== "perpendicular") {
-          if (!realizedLineIds.has(id)) {
-            return;
-          }
-          setToolDraft({ kind: "perpendicular", lineId: id });
-          setSelectedIds(new Set([id]));
-          setLastSelectedId(id);
-          return;
-        }
-
-        if (!realizedPointIds.has(id)) {
-          return;
-        }
-
-        handlePerpendicularPointInput({ kind: "existing-point", id });
-        return;
-      }
-
-      if (activeTool === "midpoint") {
-        if (!realizedPointIds.has(id)) {
-          return;
-        }
-
-        handleMidpointPointInput({ kind: "existing-point", id }, { restartOnSameAnchor: true });
-        return;
-      }
-
-      if (activeTool === "line") {
-        if (!realizedPointIds.has(id)) {
-          return;
-        }
-
-        handleLinePointInput({ kind: "existing-point", id }, { restartOnSameAnchor: true });
-        return;
-      }
-
-      if (activeTool === "circle") {
-        if (!realizedPointIds.has(id)) {
-          return;
-        }
-
-        handleCirclePointInput({ kind: "existing-point", id }, { restartOnSameAnchor: true });
         return;
       }
 
@@ -389,11 +260,9 @@ export function useConstructionController({
       program,
       realizedPointIds,
       realizedLineIds,
-      handleLinePointInput,
-      handleCirclePointInput,
-      handleParallelPointInput,
-      handlePerpendicularPointInput,
-      handleMidpointPointInput,
+      realizedCircleIds,
+      handlePointInput,
+      updateProgram,
     ],
   );
 
@@ -410,28 +279,10 @@ export function useConstructionController({
 
   const handleAddPoint = useCallback(
     (sceneCoords: ScenePoint) => {
-      if (activeTool === "line") {
-        handleLinePointInput({ kind: "free-point", position: screenToWorld(sceneCoords) });
-        return;
-      }
-
-      if (activeTool === "circle") {
-        handleCirclePointInput({ kind: "free-point", position: screenToWorld(sceneCoords) });
-        return;
-      }
-
-      if (activeTool === "parallel") {
-        handleParallelPointInput({ kind: "free-point", position: screenToWorld(sceneCoords) });
-        return;
-      }
-
-      if (activeTool === "perpendicular") {
-        handlePerpendicularPointInput({ kind: "free-point", position: screenToWorld(sceneCoords) });
-        return;
-      }
-
-      if (activeTool === "midpoint") {
-        handleMidpointPointInput({ kind: "free-point", position: screenToWorld(sceneCoords) });
+      const pointInput: PointInput = { kind: "free-point", position: screenToWorld(sceneCoords) };
+      const session = toolSessionRegistry[activeTool];
+      if (session && activeTool !== "select") {
+        handlePointInput(pointInput);
         return;
       }
 
@@ -451,47 +302,19 @@ export function useConstructionController({
       setSelectedIds(new Set([newPoint.id]));
       setLastSelectedId(newPoint.id);
     },
-    [
-      activeTool,
-      program,
-      screenToWorld,
-      updateProgram,
-      handleLinePointInput,
-      handleCirclePointInput,
-      handleParallelPointInput,
-      handlePerpendicularPointInput,
-      handleMidpointPointInput,
-    ],
+    [activeTool, program, screenToWorld, updateProgram, handlePointInput],
   );
 
   const handleAddIntersection = useCallback(
     (hit: IntersectionHit) => {
-      if (activeTool === "line") {
-        handleLinePointInput({ kind: "intersection", hit });
+      const pointInput: PointInput = { kind: "intersection", hit };
+      const session = toolSessionRegistry[activeTool];
+      if (session && activeTool !== "select") {
+        handlePointInput(pointInput);
         return;
       }
 
-      if (activeTool === "circle") {
-        handleCirclePointInput({ kind: "intersection", hit });
-        return;
-      }
-
-      if (activeTool === "parallel") {
-        handleParallelPointInput({ kind: "intersection", hit });
-        return;
-      }
-
-      if (activeTool === "perpendicular") {
-        handlePerpendicularPointInput({ kind: "intersection", hit });
-        return;
-      }
-
-      if (activeTool === "midpoint") {
-        handleMidpointPointInput({ kind: "intersection", hit });
-        return;
-      }
-
-      const resolved = resolvePointInput(program, { kind: "intersection", hit });
+      const resolved = resolvePointInput(program, pointInput);
       if (!resolved.id) {
         return;
       }
@@ -499,16 +322,7 @@ export function useConstructionController({
       setSelectedIds(new Set([resolved.id]));
       setLastSelectedId(resolved.id);
     },
-    [
-      activeTool,
-      program,
-      updateProgram,
-      handleLinePointInput,
-      handleCirclePointInput,
-      handleParallelPointInput,
-      handlePerpendicularPointInput,
-      handleMidpointPointInput,
-    ],
+    [activeTool, program, updateProgram, handlePointInput],
   );
 
   const canDragPoint = useCallback(
