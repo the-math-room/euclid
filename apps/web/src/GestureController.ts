@@ -1,6 +1,6 @@
 import {
-  findIntersectionAtPosition,
   findItemAtPosition,
+  findSnapTargets,
   type IntersectionHit,
   type RenderItem,
   type RenderScene,
@@ -9,7 +9,6 @@ import type { ConstructionId, Point2, ScenePoint } from "@euclid/geometry";
 import {
   gesturePolicyForTool,
   type ActiveTool,
-  type ConstructionGestureTarget,
   type ConstructionToolGesturePolicy,
 } from "./construction/tools";
 
@@ -308,70 +307,46 @@ function handleConstructionPointerUp({
   onAddPoint: (sceneCoords: ScenePoint) => void;
   onAddIntersection: (hit: IntersectionHit) => void;
 }): void {
-  const releaseItem = findItemAtPosition(scene, sceneCoords, threshold);
-  const item = releaseItem ?? pointerDownItem;
+  const targets = findSnapTargets(scene, sceneCoords, threshold);
 
   for (const target of policy.pointerUpPriority) {
-    if (
-      handleGestureTarget(target, {
-        scene,
-        sceneCoords,
-        threshold,
-        item,
-        onSelect,
-        onAddPoint,
-        onAddIntersection,
-      })
-    ) {
+    if (target === "point") {
+      const pointTarget = targets.find((t) => t.kind === "point");
+      if (pointTarget) {
+        onSelect(pointTarget.item.id);
+        return;
+      }
+      if (pointerDownItem?.kind === "point") {
+        onSelect(pointerDownItem.id);
+        return;
+      }
+    }
+
+    if (target === "line") {
+      const lineTarget = targets.find((t) => t.kind === "line");
+      if (lineTarget) {
+        onSelect(lineTarget.item.id);
+        return;
+      }
+      if (pointerDownItem?.kind === "line") {
+        onSelect(pointerDownItem.id);
+        return;
+      }
+    }
+
+    if (target === "intersection") {
+      const intersectionTarget = targets.find((t) => t.kind === "intersection");
+      if (intersectionTarget) {
+        onAddIntersection(intersectionTarget.hit);
+        return;
+      }
+    }
+
+    if (target === "empty-point") {
+      onAddPoint(sceneCoords);
       return;
     }
   }
-}
-
-function handleGestureTarget(
-  target: ConstructionGestureTarget,
-  {
-    scene,
-    sceneCoords,
-    threshold,
-    item,
-    onSelect,
-    onAddPoint,
-    onAddIntersection,
-  }: {
-    scene: RenderScene;
-    sceneCoords: ScenePoint;
-    threshold: number;
-    item: RenderItem | undefined;
-    onSelect: (id: ConstructionId) => void;
-    onAddPoint: (sceneCoords: ScenePoint) => void;
-    onAddIntersection: (hit: IntersectionHit) => void;
-  },
-): boolean {
-  if (target === "point" && item?.kind === "point") {
-    onSelect(item.id);
-    return true;
-  }
-
-  if (target === "line" && item?.kind === "line") {
-    onSelect(item.id);
-    return true;
-  }
-
-  if (target === "intersection") {
-    const intersection = findIntersectionAtPosition(scene, sceneCoords, threshold);
-    if (intersection) {
-      onAddIntersection(intersection);
-      return true;
-    }
-  }
-
-  if (target === "empty-point") {
-    onAddPoint(sceneCoords);
-    return true;
-  }
-
-  return false;
 }
 
 function getHitThreshold(pointerType: string): number {

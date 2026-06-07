@@ -1,7 +1,7 @@
 export type { CanvasRendererOptions, CanvasRenderingContext2DLike } from "./canvasRenderer";
 export { drawSceneToCanvas } from "./canvasRenderer";
-export type { IntersectionHit } from "./interaction";
-export { findIntersectionAtPosition, findItemAtPosition } from "./interaction";
+export type { IntersectionHit, SnapTarget } from "./interaction";
+export { findIntersectionAtPosition, findItemAtPosition, findSnapTargets } from "./interaction";
 export type { LabelCandidateName, LabelPlacement, Rect } from "./labelLayout";
 export { layoutPointLabels } from "./labelLayout";
 export type { RenderGridLine, RenderItem, RenderLabel, RenderScene } from "./scene";

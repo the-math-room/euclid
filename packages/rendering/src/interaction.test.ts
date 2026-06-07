@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { toScenePoint } from "@euclid/geometry";
 import type { RenderScene } from "./scene";
-import { findIntersectionAtPosition, findItemAtPosition } from "./interaction";
+import { findIntersectionAtPosition, findItemAtPosition, findSnapTargets } from "./interaction";
 
 const p = (x: number, y: number) => toScenePoint({ x, y });
 
@@ -254,5 +254,55 @@ describe("interaction hit testing", () => {
         intersectionIndex: 1,
       }),
     );
+  });
+
+  describe("findSnapTargets", () => {
+    it("finds and sorts all snap targets by distance", () => {
+      const targets = findSnapTargets(mockScene, p(51, 51), 10);
+      const first = targets[0];
+      expect(first.kind).toBe("point");
+      if (first.kind === "point") {
+        expect(first.item.id).toBe("point-A");
+      }
+      expect(targets.length).toBe(1);
+    });
+
+    it("finds intersections and items together", () => {
+      const scene = {
+        size: { width: 100, height: 100 },
+        grid: [],
+        items: [
+          {
+            id: "line-a",
+            kind: "line",
+            from: { x: 10, y: 10 },
+            to: { x: 90, y: 90 },
+            supportLine: [
+              { x: 10, y: 10 },
+              { x: 90, y: 90 },
+            ],
+          },
+          {
+            id: "line-b",
+            kind: "line",
+            from: { x: 10, y: 90 },
+            to: { x: 90, y: 10 },
+            supportLine: [
+              { x: 10, y: 90 },
+              { x: 90, y: 10 },
+            ],
+          },
+        ],
+      } as unknown as RenderScene;
+
+      const targets = findSnapTargets(scene, p(52, 51), 8);
+      expect(targets.map((t) => t.kind)).toContain("intersection");
+      expect(targets.map((t) => t.kind)).toContain("line");
+      const first = targets[0];
+      expect(first.kind).toBe("line");
+      if (first.kind === "line") {
+        expect(first.item.id).toBe("line-a");
+      }
+    });
   });
 });

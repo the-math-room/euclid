@@ -50,6 +50,103 @@ export function distanceToSegment(p: Point2, a: Point2, b: Point2): number {
   return distance(p, projection);
 }
 
+export type SnapTarget =
+  | Readonly<{
+      kind: "point";
+      item: RenderItem & { kind: "point" };
+      position: ScenePoint;
+      distance: number;
+    }>
+  | Readonly<{
+      kind: "intersection";
+      hit: IntersectionHit;
+      position: ScenePoint;
+      distance: number;
+    }>
+  | Readonly<{
+      kind: "line";
+      item: RenderItem & { kind: "line" };
+      distance: number;
+    }>
+  | Readonly<{
+      kind: "circle";
+      item: RenderItem & { kind: "circle" };
+      distance: number;
+    }>;
+
+export function findSnapTargets(
+  scene: RenderScene,
+  position: ScenePoint,
+  threshold: number = 8,
+): readonly SnapTarget[] {
+  const targets: SnapTarget[] = [];
+
+  // 1. Find point targets
+  for (const item of scene.items) {
+    if (item.kind === "point") {
+      const dist = distanceToPointItem(position, item);
+      if (dist <= threshold) {
+        targets.push({
+          kind: "point",
+          item,
+          position: item.mark,
+          distance: dist,
+        });
+      }
+    }
+  }
+
+  // 2. Find intersection targets
+  const curves = scene.items.filter((item) => item.kind === "line" || item.kind === "circle");
+  for (let i = 0; i < curves.length; i++) {
+    for (let j = i + 1; j < curves.length; j++) {
+      const first = curves[i];
+      const second = curves[j];
+
+      const pts = getIntersections(first, second);
+      for (const pt of pts) {
+        const dist = distance(position, pt.position);
+        if (dist <= threshold) {
+          targets.push({
+            kind: "intersection",
+            hit: intersectionHitFor(first, second, pt),
+            position: pt.position,
+            distance: dist,
+          });
+        }
+      }
+    }
+  }
+
+  // 3. Find line and circle targets
+  for (const item of scene.items) {
+    if (item.kind === "line") {
+      const dist = distanceToSegment(position, item.from, item.to);
+      if (dist <= threshold) {
+        targets.push({
+          kind: "line",
+          item,
+          distance: dist,
+        });
+      }
+    } else if (item.kind === "circle") {
+      const distToCenter = distance(position, item.center);
+      const dist = Math.abs(distToCenter - item.radius);
+      if (dist <= threshold) {
+        targets.push({
+          kind: "circle",
+          item,
+          distance: dist,
+        });
+      }
+    }
+  }
+
+  // Sort targets by distance ascending
+  targets.sort((a, b) => a.distance - b.distance);
+  return targets;
+}
+
 /**
  * Finds the render item at the given screen position within a threshold.
  * Prioritizes points over other shapes (lines, circles) to make selecting points easier
@@ -60,48 +157,18 @@ export function findItemAtPosition(
   position: ScenePoint,
   threshold: number = 8,
 ): RenderItem | undefined {
-  // First, check for points within the threshold
-  let closestPoint: RenderItem | undefined = undefined;
-  let minPointDist = Infinity;
-
-  for (const item of scene.items) {
-    if (item.kind === "point") {
-      const dist = distanceToPointItem(position, item);
-      if (dist <= threshold && dist < minPointDist) {
-        minPointDist = dist;
-        closestPoint = item;
-      }
-    }
+  const targets = findSnapTargets(scene, position, threshold);
+  const pointTarget = targets.find((t): t is SnapTarget & { kind: "point" } => t.kind === "point");
+  if (pointTarget) {
+    return pointTarget.item;
   }
-
-  if (closestPoint) {
-    return closestPoint;
+  const shapeTarget = targets.find(
+    (t): t is SnapTarget & { kind: "line" | "circle" } => t.kind === "line" || t.kind === "circle",
+  );
+  if (shapeTarget) {
+    return shapeTarget.item;
   }
-
-  // Next, check for lines and circles
-  let closestShape: RenderItem | undefined = undefined;
-  let minShapeDist = Infinity;
-
-  for (const item of scene.items) {
-    if (item.kind === "point") {
-      continue;
-    }
-
-    let dist = Infinity;
-    if (item.kind === "line") {
-      dist = distanceToSegment(position, item.from, item.to);
-    } else if (item.kind === "circle") {
-      const distToCenter = distance(position, item.center);
-      dist = Math.abs(distToCenter - item.radius);
-    }
-
-    if (dist <= threshold && dist < minShapeDist) {
-      minShapeDist = dist;
-      closestShape = item;
-    }
-  }
-
-  return closestShape;
+  return undefined;
 }
 
 function distanceToPointItem(position: ScenePoint, item: RenderItem & { kind: "point" }): number {
@@ -166,28 +233,11 @@ export function findIntersectionAtPosition(
   position: ScenePoint,
   threshold: number = 8,
 ): IntersectionHit | undefined {
-  const curves = scene.items.filter((item) => item.kind === "line" || item.kind === "circle");
-  let closest: IntersectionHit | undefined;
-  let closestDistance = Infinity;
-
-  for (let i = 0; i < curves.length; i++) {
-    for (let j = i + 1; j < curves.length; j++) {
-      const first = curves[i];
-      const second = curves[j];
-
-      const pts = getIntersections(first, second);
-      for (const pt of pts) {
-        const hitDistance = distance(position, pt.position);
-        if (hitDistance <= threshold && hitDistance < closestDistance) {
-          closestDistance = hitDistance;
-
-          closest = intersectionHitFor(first, second, pt);
-        }
-      }
-    }
-  }
-
-  return closest;
+  const targets = findSnapTargets(scene, position, threshold);
+  const intersectionTarget = targets.find(
+    (t): t is SnapTarget & { kind: "intersection" } => t.kind === "intersection",
+  );
+  return intersectionTarget ? intersectionTarget.hit : undefined;
 }
 
 function intersectionHitFor(
