@@ -2,7 +2,7 @@
 
 ## Development Focus
 
-Day 2 focused on decoupling the monolithic layout into distinct packages, refining core geometry math, establishing a curriculum and assessment layer, and integrating new construction tools (parallel lines, perpendicular lines, and midpoints). 
+Day 2 focused on decoupling the monolithic layout into distinct packages, refining core geometry math, establishing a curriculum and assessment layer, and integrating new construction tools (parallel lines, perpendicular lines, and midpoints).
 
 The architecture is centered on a headless model: `@euclid/geometry` is the core package that works without rendering, DOM, or browser contexts. The Web Studio acts as an interpreter of this geometry state.
 
