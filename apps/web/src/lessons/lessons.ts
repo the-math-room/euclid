@@ -148,12 +148,49 @@ export const lessons: readonly EuclidLesson[] = [
       },
     },
     policy: {
-      allowedTools: ["select", "point", "line", "circle"],
+      allowedTools: ["select", "point", "line", "circle", "parallel"],
       lockedConstructions: [],
       allowDelete: true,
       pointDrag: "free-points",
       shapeDrag: "all",
     },
     goals: [],
+  },
+  {
+    schemaVersion: 1,
+    title: "4. Parallel Line",
+    description:
+      "Construct a line parallel to line AB that passes through point C using the Parallel Line tool.",
+    document: {
+      schemaVersion: 1,
+      title: "Parallel line starter",
+      program: {
+        constructions: [
+          { id: "A", kind: "free-point", label: "A", position: { x: -2.0, y: -0.5 } },
+          { id: "B", kind: "free-point", label: "B", position: { x: 2.0, y: -0.5 } },
+          { id: "line-ab", kind: "line-through", label: "AB", points: ["A", "B"] },
+          { id: "C", kind: "free-point", label: "C", position: { x: 0.0, y: 1.0 } },
+        ],
+      },
+    },
+    policy: {
+      allowedTools: ["select", "point", "line", "circle", "parallel"],
+      lockedConstructions: ["A", "B", "line-ab"],
+      allowDelete: true,
+      pointDrag: "free-points",
+      shapeDrag: "all",
+    },
+    goals: [
+      {
+        kind: "meaning",
+        id: "parallel-line",
+        description: "Construct the line parallel to AB passing through C",
+        expression: {
+          kind: "parallel-line",
+          line: "line-ab",
+          point: "C",
+        },
+      },
+    ],
   },
 ];

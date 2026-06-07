@@ -33,6 +33,13 @@ describe("assessment primitives", () => {
         label: "X",
         lines: ["line-ab", "line-cd"],
       },
+      {
+        id: "parallel",
+        kind: "parallel-line",
+        label: "Parallel",
+        line: "line-ab",
+        point: "C",
+      },
     ],
   };
 
@@ -63,6 +70,20 @@ describe("assessment primitives", () => {
       hasConstructionMeaning(evaluation, "intersection", {
         kind: "line-line-intersection",
         lines: ["line-cd", "line-ab"],
+      }),
+    ).toBe(false);
+    expect(
+      hasConstructionMeaning(evaluation, "parallel", {
+        kind: "parallel-line",
+        line: "line-ab",
+        point: "C",
+      }),
+    ).toBe(true);
+    expect(
+      hasConstructionMeaning(evaluation, "parallel", {
+        kind: "parallel-line",
+        line: "line-ab",
+        point: "D",
       }),
     ).toBe(false);
   });

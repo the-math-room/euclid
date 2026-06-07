@@ -309,6 +309,10 @@ function sameExpression(a: ConstructionExpression, b: ConstructionExpression): b
     );
   }
 
+  if (a.kind === "parallel-line" && b.kind === "parallel-line") {
+    return a.line === b.line && a.point === b.point;
+  }
+
   return false;
 }
 

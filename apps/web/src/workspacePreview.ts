@@ -1,10 +1,15 @@
 import { THEME, type RenderScene } from "@euclid/rendering";
 import type { ConstructionId, ScenePoint } from "@euclid/geometry";
 
-export type DraftPreview = Readonly<{
-  kind: "line" | "circle";
-  anchorId: ConstructionId;
-}>;
+export type DraftPreview =
+  | Readonly<{
+      kind: "line" | "circle";
+      anchorId: ConstructionId;
+    }>
+  | Readonly<{
+      kind: "parallel";
+      lineId: ConstructionId;
+    }>;
 
 export type PreviewPoint = Readonly<{
   x: number;
@@ -83,26 +88,57 @@ export function previewsForWorkspace({
   const previews: WorkspacePreview[] = [];
 
   if (pointerCoords && draftPreview) {
-    const anchorItem = scene.items.find((item) => item.id === draftPreview.anchorId && item.kind === "point");
+    if (draftPreview.kind === "parallel") {
+      const lineItem = scene.items.find((item) => item.id === draftPreview.lineId && item.kind === "line");
+      if (lineItem?.kind === "line") {
+        const [a, b] = lineItem.supportLine;
+        const dx = b.x - a.x;
+        const dy = b.y - a.y;
+        const len = Math.hypot(dx, dy);
+        if (len > 1e-9) {
+          const ux = dx / len;
+          const uy = dy / len;
+          const halfLength = 5000;
+          const from = {
+            x: pointerCoords.x - ux * halfLength,
+            y: pointerCoords.y - uy * halfLength,
+          } as ScenePoint;
+          const to = {
+            x: pointerCoords.x + ux * halfLength,
+            y: pointerCoords.y + uy * halfLength,
+          } as ScenePoint;
+          previews.push({
+            kind: "line",
+            from,
+            to,
+            style: THEME.preview.draftLine,
+          });
+        }
+      }
+    } else {
+      const anchorItem = scene.items.find(
+        (item) => item.id === draftPreview.anchorId && item.kind === "point",
+      );
 
-    if (anchorItem?.kind === "point") {
-      if (draftPreview.kind === "line") {
-        previews.push({
-          kind: "line",
-          from: anchorItem.mark,
-          to: pointerCoords,
-          style: THEME.preview.draftLine,
-        });
-      } else {
-        const dx = pointerCoords.x - anchorItem.mark.x;
-        const dy = pointerCoords.y - anchorItem.mark.y;
+      if (anchorItem?.kind === "point") {
+        if (draftPreview.kind === "line") {
+          previews.push({
+            kind: "line",
+            from: anchorItem.mark,
+            to: pointerCoords,
+            style: THEME.preview.draftLine,
+          });
+        } else {
+          const dx = pointerCoords.x - anchorItem.mark.x;
+          const dy = pointerCoords.y - anchorItem.mark.y;
 
-        previews.push({
-          kind: "circle",
-          center: anchorItem.mark,
-          radius: Math.hypot(dx, dy),
-          style: THEME.preview.draftCircle,
-        });
+          previews.push({
+            kind: "circle",
+            center: anchorItem.mark,
+            radius: Math.hypot(dx, dy),
+            style: THEME.preview.draftCircle,
+          });
+        }
       }
     }
   }

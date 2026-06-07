@@ -312,6 +312,24 @@ function decodeConstructionExpression(value: unknown, path: string): ExpressionD
     };
   }
 
+  if (value.kind === "parallel-line") {
+    if (typeof value.line !== "string") {
+      return expressionInvalid(`${path}.line must be a string.`);
+    }
+    if (typeof value.point !== "string") {
+      return expressionInvalid(`${path}.point must be a string.`);
+    }
+
+    return {
+      ok: true,
+      expression: {
+        kind: "parallel-line",
+        line: value.line,
+        point: value.point,
+      },
+    };
+  }
+
   return expressionInvalid(`${path}.kind is not a supported construction expression kind.`);
 }
 
@@ -435,7 +453,8 @@ function isConstructionKind(value: unknown): value is Construction["kind"] {
     value === "circle-three-points" ||
     value === "line-line-intersection" ||
     value === "line-circle-intersection" ||
-    value === "circle-circle-intersection"
+    value === "circle-circle-intersection" ||
+    value === "parallel-line"
   );
 }
 

@@ -418,4 +418,33 @@ describe("evaluateConstruction", () => {
       expect(x1.position.y).toBeCloseTo(Math.sqrt(0.75));
     }
   });
+
+  it("realizes parallel lines", () => {
+    const program: ConstructionProgram = {
+      constructions: [
+        { id: "A", kind: "free-point", label: "A", position: { x: 0, y: 0 } },
+        { id: "B", kind: "free-point", label: "B", position: { x: 2, y: 0 } },
+        { id: "line-ab", kind: "line-through", label: "AB", points: ["A", "B"] },
+        { id: "C", kind: "free-point", label: "C", position: { x: 0, y: 1 } },
+        {
+          id: "parallel-line",
+          kind: "parallel-line",
+          label: "Parallel",
+          line: "line-ab",
+          point: "C",
+        },
+      ],
+    };
+
+    const evaluation = evaluateConstruction(program);
+    expect(evaluation.diagnostics).toEqual([]);
+
+    const parallel = evaluation.primitives.find((p) => p.id === "parallel-line");
+    expect(parallel?.kind).toBe("line");
+    if (parallel && parallel.kind === "line") {
+      // The parallel line must go through C (0, 1) and C + (B - A) which is (2, 1)
+      expect(parallel.through[0]).toEqual({ x: 0, y: 1 });
+      expect(parallel.through[1]).toEqual({ x: 2, y: 1 });
+    }
+  });
 });

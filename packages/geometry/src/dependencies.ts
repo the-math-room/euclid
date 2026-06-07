@@ -29,6 +29,10 @@ export function dependencyIds(construction: Construction): readonly Construction
     return [construction.firstCircle, construction.secondCircle];
   }
 
+  if (construction.kind === "parallel-line") {
+    return [construction.line, construction.point];
+  }
+
   const _exhaustiveCheck: never = construction;
   return _exhaustiveCheck;
 }

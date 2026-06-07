@@ -13,6 +13,7 @@ import {
   addLineCircleIntersection,
   addCircleCircleIntersection,
   addLineThroughPoints,
+  addParallelLine,
   deleteConstructions,
   evaluateConstruction,
   generateNextPointLabel,
@@ -58,10 +59,15 @@ export type ConstructionController = Readonly<{
   canDragPoint: (id: ConstructionId) => boolean;
   handleBuildCircle: () => void;
   canBuildCircle: boolean;
-  draftPreview?: Readonly<{
-    kind: "line" | "circle";
-    anchorId: ConstructionId;
-  }>;
+  draftPreview?:
+    | Readonly<{
+        kind: "line" | "circle";
+        anchorId: ConstructionId;
+      }>
+    | Readonly<{
+        kind: "parallel";
+        lineId: ConstructionId;
+      }>;
 }>;
 
 export function useConstructionController({
@@ -88,6 +94,7 @@ export function useConstructionController({
   });
   const [lineDraftPointId, setLineDraftPointId] = useState<ConstructionId | undefined>();
   const [circleDraftPointId, setCircleDraftPointId] = useState<ConstructionId | undefined>();
+  const [parallelDraftLineId, setParallelDraftLineId] = useState<ConstructionId | undefined>();
   const dragStartProgram = useRef<ConstructionProgram | undefined>(undefined);
 
   const program = history.present;
@@ -108,6 +115,16 @@ export function useConstructionController({
     [evaluated.primitives],
   );
 
+  const realizedLineIds = useMemo(
+    () =>
+      new Set(
+        evaluated.primitives
+          .filter((primitive) => primitive.kind === "line")
+          .map((primitive) => primitive.id),
+      ),
+    [evaluated.primitives],
+  );
+
   const updateProgram = useCallback((nextProgram: { constructions: readonly Construction[] }) => {
     setHistory((prev) => pushState(prev, nextProgram));
   }, []);
@@ -123,6 +140,9 @@ export function useConstructionController({
       }
       if (tool !== "circle") {
         setCircleDraftPointId(undefined);
+      }
+      if (tool !== "parallel") {
+        setParallelDraftLineId(undefined);
       }
     },
     [policy],
@@ -146,6 +166,30 @@ export function useConstructionController({
         clearSelection(setSelectedIds, setLastSelectedId);
         setLineDraftPointId(undefined);
         setCircleDraftPointId(undefined);
+        setParallelDraftLineId(undefined);
+        return;
+      }
+
+      if (activeTool === "parallel") {
+        if (!parallelDraftLineId) {
+          if (!realizedLineIds.has(id)) {
+            return;
+          }
+          setParallelDraftLineId(id);
+          setSelectedIds(new Set([id]));
+          setLastSelectedId(id);
+          return;
+        }
+
+        if (!realizedPointIds.has(id)) {
+          return;
+        }
+
+        const result = addParallelLine(program, parallelDraftLineId, id);
+        updateProgram(result.program);
+        setParallelDraftLineId(undefined);
+        setSelectedIds(result.id ? new Set([result.id]) : new Set([id]));
+        setLastSelectedId(result.id ?? id);
         return;
       }
 
@@ -231,8 +275,10 @@ export function useConstructionController({
       lastSelectedId,
       lineDraftPointId,
       circleDraftPointId,
+      parallelDraftLineId,
       program,
       realizedPointIds,
+      realizedLineIds,
       updateProgram,
     ],
   );
@@ -305,6 +351,23 @@ export function useConstructionController({
         return;
       }
 
+      if (activeTool === "parallel") {
+        if (!parallelDraftLineId) {
+          return;
+        }
+
+        const programWithPoint = {
+          constructions: [...program.constructions, newPoint],
+        };
+        const result = addParallelLine(programWithPoint, parallelDraftLineId, newPoint.id);
+
+        updateProgram(result.program);
+        setParallelDraftLineId(undefined);
+        setSelectedIds(result.id ? new Set([result.id]) : new Set([newPoint.id]));
+        setLastSelectedId(result.id ?? newPoint.id);
+        return;
+      }
+
       updateProgram({
         constructions: [...program.constructions, newPoint],
       });
@@ -312,7 +375,15 @@ export function useConstructionController({
       setSelectedIds(new Set([newPoint.id]));
       setLastSelectedId(newPoint.id);
     },
-    [activeTool, lineDraftPointId, circleDraftPointId, program, screenToWorld, updateProgram],
+    [
+      activeTool,
+      lineDraftPointId,
+      circleDraftPointId,
+      parallelDraftLineId,
+      program,
+      screenToWorld,
+      updateProgram,
+    ],
   );
 
   const handleAddIntersection = useCallback(
@@ -375,11 +446,24 @@ export function useConstructionController({
         return;
       }
 
+      if (activeTool === "parallel") {
+        if (!parallelDraftLineId) {
+          return;
+        }
+
+        const parallelResult = addParallelLine(result.program, parallelDraftLineId, result.id);
+        updateProgram(parallelResult.program);
+        setParallelDraftLineId(undefined);
+        setSelectedIds(parallelResult.id ? new Set([parallelResult.id]) : new Set([result.id]));
+        setLastSelectedId(parallelResult.id ?? result.id);
+        return;
+      }
+
       updateProgram(result.program);
       setSelectedIds(new Set([result.id]));
       setLastSelectedId(result.id);
     },
-    [activeTool, lineDraftPointId, circleDraftPointId, program, updateProgram],
+    [activeTool, lineDraftPointId, circleDraftPointId, parallelDraftLineId, program, updateProgram],
   );
 
   const canDragPoint = useCallback(
@@ -546,8 +630,11 @@ export function useConstructionController({
     if (activeTool === "circle" && circleDraftPointId !== undefined) {
       return { kind: "circle" as const, anchorId: circleDraftPointId };
     }
+    if (activeTool === "parallel" && parallelDraftLineId !== undefined) {
+      return { kind: "parallel" as const, lineId: parallelDraftLineId };
+    }
     return undefined;
-  }, [activeTool, lineDraftPointId, circleDraftPointId]);
+  }, [activeTool, lineDraftPointId, circleDraftPointId, parallelDraftLineId]);
 
   return {
     program,

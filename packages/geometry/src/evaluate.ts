@@ -115,6 +115,18 @@ function meaningFor(construction: Construction): ConstructionMeaning {
     };
   }
 
+  if (construction.kind === "parallel-line") {
+    return {
+      id: construction.id,
+      label: construction.label,
+      expression: {
+        kind: "parallel-line",
+        line: construction.line,
+        point: construction.point,
+      },
+    };
+  }
+
   const _exhaustiveCheck: never = construction;
   return _exhaustiveCheck;
 }

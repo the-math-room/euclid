@@ -269,6 +269,34 @@ function realizeOne(
     };
   }
 
+  if (construction.kind === "parallel-line") {
+    const line = lineNamed(previous, construction.line);
+    const point = pointNamed(previous, construction.point);
+
+    if (!line || !point) {
+      return {
+        kind: "diagnostic",
+        message: `Parallel line ${construction.label} needs line and point dependencies.`,
+      };
+    }
+
+    const [a, b] = line.through;
+    const dx = b.x - a.x;
+    const dy = b.y - a.y;
+
+    const p2 = {
+      x: point.position.x + dx,
+      y: point.position.y + dy,
+    };
+
+    return {
+      id: construction.id,
+      kind: "line",
+      label: construction.label,
+      through: [point.position, p2],
+    };
+  }
+
   const _exhaustiveCheck: never = construction;
   return _exhaustiveCheck;
 }

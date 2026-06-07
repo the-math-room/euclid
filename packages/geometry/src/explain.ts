@@ -165,6 +165,10 @@ function explanationFor(construction: Construction): string {
     return `${construction.label} is intersection ${construction.intersectionIndex} of circles ${construction.firstCircle} and ${construction.secondCircle}.`;
   }
 
+  if (construction.kind === "parallel-line") {
+    return `${construction.label} is the line through ${construction.point} parallel to line ${construction.line}.`;
+  }
+
   const _exhaustiveCheck: never = construction;
   return _exhaustiveCheck;
 }

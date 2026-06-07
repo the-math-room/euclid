@@ -289,6 +289,40 @@ export function addCircleCircleIntersection(
   };
 }
 
+export function addParallelLine(
+  program: ConstructionProgram,
+  line: ConstructionId,
+  point: ConstructionId,
+): AddConstructionResult {
+  const existing = program.constructions.find(
+    (construction) =>
+      construction.kind === "parallel-line" && construction.line === line && construction.point === point,
+  );
+
+  if (existing) {
+    return unchanged(program, existing.id);
+  }
+
+  const id = uniqueConstructionId(program, `parallel-${slugFor(line)}-${slugFor(point)}`);
+
+  return {
+    program: {
+      constructions: [
+        ...program.constructions,
+        {
+          id,
+          kind: "parallel-line",
+          label: `Parallel(${line}, ${point})`,
+          line,
+          point,
+        },
+      ],
+    },
+    id,
+    changed: true,
+  };
+}
+
 function unchanged(program: ConstructionProgram, id?: ConstructionId): AddConstructionResult {
   return {
     program,
@@ -339,6 +373,8 @@ export function translateShape(
     pointsToTranslate.add(construction.points[0]);
     pointsToTranslate.add(construction.points[1]);
     pointsToTranslate.add(construction.points[2]);
+  } else if (construction.kind === "parallel-line") {
+    pointsToTranslate.add(construction.point);
   }
 
   if (pointsToTranslate.size === 0) {

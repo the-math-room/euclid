@@ -1,4 +1,4 @@
-import { Circle, MousePointer2, Ruler, Waypoints, Undo2, Redo2, Trash2, Sliders } from "lucide-react";
+import { Circle, MousePointer2, Ruler, Waypoints, Undo2, Redo2, Trash2, Sliders, Equal } from "lucide-react";
 import { evaluateConstruction } from "@euclid/geometry";
 import type { ConstructionProgram } from "@euclid/geometry";
 import { evaluateGoal } from "@euclid/assessment";
@@ -175,6 +175,15 @@ export function WorkspaceContainer({
                 disabled={!activeLesson.policy.allowedTools.includes("circle")}
               >
                 <Circle size={16} aria-hidden />
+              </button>
+              <button
+                type="button"
+                className={`tool-button ${construction.activeTool === "parallel" ? "active" : ""}`}
+                title="Parallel Line"
+                onClick={() => construction.setTool("parallel")}
+                disabled={!activeLesson.policy.allowedTools.includes("parallel")}
+              >
+                <Equal size={16} aria-hidden style={{ transform: "rotate(45deg)" }} />
               </button>
             </nav>
           </div>

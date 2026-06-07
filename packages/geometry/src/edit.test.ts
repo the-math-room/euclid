@@ -7,6 +7,7 @@ import {
   addLineCircleIntersection,
   addCircleCircleIntersection,
   addLineThroughPoints,
+  addParallelLine,
   moveFreePoint,
   translateShape,
 } from "./edit";
@@ -301,6 +302,37 @@ describe("construction edits", () => {
       kind: "line-line-intersection",
       label: "B",
       lines: ["l1", "l2"],
+    });
+  });
+
+  it("adds a parallel line and translates its defining point", () => {
+    const program: ConstructionProgram = {
+      constructions: [
+        { id: "A", kind: "free-point", label: "A", position: { x: 0, y: 0 } },
+        { id: "B", kind: "free-point", label: "B", position: { x: 2, y: 0 } },
+        { id: "line-ab", kind: "line-through", label: "AB", points: ["A", "B"] },
+        { id: "C", kind: "free-point", label: "C", position: { x: 0, y: 1 } },
+      ],
+    };
+
+    const result = addParallelLine(program, "line-ab", "C");
+    const updated = result.program;
+
+    expect(result).toMatchObject({ id: "parallel-line-ab-c", changed: true });
+    expect(updated.constructions.at(-1)).toEqual({
+      id: "parallel-line-ab-c",
+      kind: "parallel-line",
+      label: "Parallel(line-ab, C)",
+      line: "line-ab",
+      point: "C",
+    });
+
+    const translated = translateShape(updated, "parallel-line-ab-c", { x: 5, y: 5 });
+    expect(translated.constructions.find((c) => c.id === "C")).toEqual({
+      id: "C",
+      kind: "free-point",
+      label: "C",
+      position: { x: 5, y: 6 },
     });
   });
 });

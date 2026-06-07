@@ -67,6 +67,13 @@ export type Construction =
       firstCircle: ConstructionId;
       secondCircle: ConstructionId;
       intersectionIndex: 0 | 1;
+    }>
+  | Readonly<{
+      id: ConstructionId;
+      kind: "parallel-line";
+      label: string;
+      line: ConstructionId;
+      point: ConstructionId;
     }>;
 
 export type EvaluatedPrimitive =
@@ -122,6 +129,11 @@ export type ConstructionExpression =
       firstCircle: ConstructionId;
       secondCircle: ConstructionId;
       intersectionIndex: 0 | 1;
+    }>
+  | Readonly<{
+      kind: "parallel-line";
+      line: ConstructionId;
+      point: ConstructionId;
     }>;
 
 export type ConstructionMeaning = Readonly<{
