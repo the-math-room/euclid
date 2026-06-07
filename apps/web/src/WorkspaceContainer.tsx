@@ -249,7 +249,7 @@ export function WorkspaceContainer({
                 type="button"
                 className="tool-button"
                 onClick={construction.handleDeleteSelected}
-                disabled={construction.selectedIds.size === 0}
+                disabled={!construction.canDeleteSelected}
                 title="Delete Selected (Delete/Backspace)"
                 aria-label="Delete selected objects"
               >
@@ -305,6 +305,7 @@ export function WorkspaceContainer({
           selectedIds={construction.selectedIds}
           constructions={construction.program.constructions}
           onDelete={construction.handleDeleteSelected}
+          canDelete={construction.canDeleteSelected}
         />
       </aside>
 

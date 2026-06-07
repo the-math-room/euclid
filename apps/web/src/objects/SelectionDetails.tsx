@@ -5,10 +5,12 @@ export function SelectionDetails({
   selectedIds,
   constructions,
   onDelete,
+  canDelete,
 }: {
   selectedIds: ReadonlySet<ConstructionId>;
   constructions: readonly Construction[];
   onDelete: () => void;
+  canDelete: boolean;
 }) {
   const selectedConstructions = constructions.filter((c) => selectedIds.has(c.id));
 
@@ -28,6 +30,7 @@ export function SelectionDetails({
             type="button"
             className="delete-button"
             onClick={onDelete}
+            disabled={!canDelete}
             title="Delete selection (Delete / Backspace)"
             aria-label="Delete selection"
           >
