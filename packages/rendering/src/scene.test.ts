@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { evaluateConstruction, toWorldPoint, type ConstructionProgram } from "@euclid/geometry";
+import {
+  evaluateConstruction,
+  evaluateMeasurements,
+  toWorldPoint,
+  type ConstructionProgram,
+} from "@euclid/geometry";
 import { defaultScreenViewFor, sceneForEvaluation } from "./scene";
 import { moveCameraInScreen, rotateCamera, zoomCamera, type ScreenView, type ViewportSize } from "./viewport";
 
@@ -97,6 +102,35 @@ describe("sceneForEvaluation", () => {
     const line = scene.items.find((item) => item.id === "line-ab");
 
     expect(line).toEqual(expect.objectContaining({ kind: "line", shapeRole: "auxiliary" }));
+  });
+
+  it("adds evaluated measurement labels at segment midpoints", () => {
+    const measuredProgram: ConstructionProgram = {
+      constructions: [
+        { id: "A", kind: "free-point", label: "A", position: toWorldPoint({ x: 0, y: 0 }) },
+        { id: "B", kind: "free-point", label: "B", position: toWorldPoint({ x: 2, y: 0 }) },
+      ],
+      measurementSettings: {
+        variables: { x: 2 },
+      },
+      measurements: [{ id: "length-a-b", kind: "segment-length", from: "A", to: "B", length: "x" }],
+    };
+    const evaluation = evaluateConstruction(measuredProgram);
+    const measurementEvaluation = evaluateMeasurements(measuredProgram, evaluation);
+    const scene = sceneForEvaluation(evaluation, screenViewFor(evaluation, { width: 100, height: 100 }), {
+      measurementEvaluation,
+    });
+
+    const label = scene.items.find((item) => item.kind === "measurement-label");
+
+    expect(label).toEqual(
+      expect.objectContaining({
+        id: "length-a-b",
+        kind: "measurement-label",
+        text: "x",
+        status: "satisfied",
+      }),
+    );
   });
 
   it("marks constructed point render items separately from free points", () => {

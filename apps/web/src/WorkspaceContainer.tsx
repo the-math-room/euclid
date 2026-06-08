@@ -13,8 +13,13 @@ import {
   Sparkles,
   type LucideIcon,
 } from "lucide-react";
-import { evaluateConstruction } from "@euclid/geometry";
-import type { ConstructionProgram } from "@euclid/geometry";
+import { evaluateConstruction, evaluateMeasurements, formatMeasurementValue } from "@euclid/geometry";
+import type {
+  ConstructionId,
+  ConstructionProgram,
+  MeasurementEvaluation,
+  SegmentLengthAssertion,
+} from "@euclid/geometry";
 import { evaluateGoal, mapGoalIds, resolveGoalMapping } from "@euclid/assessment";
 import { defaultScreenViewFor, sceneForEvaluation } from "@euclid/rendering";
 import { useMemo, useState, useCallback } from "react";
@@ -71,6 +76,9 @@ export function WorkspaceContainer({
   setIsDrawerExpanded,
 }: WorkspaceContainerProps) {
   const [isAuthoringOpen, setIsAuthoringOpen] = useState(false);
+  const [measurementExpressionDraft, setMeasurementExpressionDraft] = useState("x");
+  const [measurementVariableDraft, setMeasurementVariableDraft] = useState("x");
+  const [measurementVariableValueDraft, setMeasurementVariableValueDraft] = useState("");
 
   const handleFileUpload = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -109,6 +117,11 @@ export function WorkspaceContainer({
     onProgramChange,
   });
 
+  const measurementEvaluation = useMemo(
+    () => evaluateMeasurements(construction.program, construction.evaluated),
+    [construction.program, construction.evaluated],
+  );
+
   const scene = useMemo(
     () =>
       sceneForEvaluation(
@@ -120,9 +133,17 @@ export function WorkspaceContainer({
         {
           fontSize: 18 * sizeScale,
           isTransitioning: camera.isTransitioning,
+          measurementEvaluation,
         },
       ),
-    [construction.evaluated, defaultView.viewport, camera.camera, sizeScale, camera.isTransitioning],
+    [
+      construction.evaluated,
+      defaultView.viewport,
+      camera.camera,
+      sizeScale,
+      camera.isTransitioning,
+      measurementEvaluation,
+    ],
   );
 
   const goalResults = useMemo(() => {
@@ -333,6 +354,28 @@ export function WorkspaceContainer({
         </div>
 
         <ViewControls camera={camera} sizeScale={sizeScale} onChangeSizeScale={setSizeScale} />
+        <MeasurementPanel
+          program={construction.program}
+          selectedIds={construction.selectedIds}
+          realizedPointIds={
+            new Set(
+              construction.evaluated.primitives
+                .filter((primitive) => primitive.kind === "point")
+                .map((primitive) => primitive.id),
+            )
+          }
+          measurementEvaluation={measurementEvaluation}
+          expressionDraft={measurementExpressionDraft}
+          onChangeExpressionDraft={setMeasurementExpressionDraft}
+          variableDraft={measurementVariableDraft}
+          onChangeVariableDraft={setMeasurementVariableDraft}
+          variableValueDraft={measurementVariableValueDraft}
+          onChangeVariableValueDraft={setMeasurementVariableValueDraft}
+          onSetUnitLength={construction.handleSetMeasurementUnitLength}
+          onSetVariableValue={construction.handleSetMeasurementVariableValue}
+          onUpsertSegmentMeasurement={construction.handleUpsertSegmentMeasurement}
+          onRemoveSegmentMeasurement={construction.handleRemoveSegmentMeasurement}
+        />
         <ObjectList
           constructions={construction.program.constructions}
           selectedIds={construction.selectedIds}
@@ -369,5 +412,157 @@ export function WorkspaceContainer({
         draftPreview={construction.draftPreview}
       />
     </>
+  );
+}
+
+function MeasurementPanel({
+  program,
+  selectedIds,
+  realizedPointIds,
+  measurementEvaluation,
+  expressionDraft,
+  onChangeExpressionDraft,
+  variableDraft,
+  onChangeVariableDraft,
+  variableValueDraft,
+  onChangeVariableValueDraft,
+  onSetUnitLength,
+  onSetVariableValue,
+  onUpsertSegmentMeasurement,
+  onRemoveSegmentMeasurement,
+}: {
+  program: ConstructionProgram;
+  selectedIds: ReadonlySet<ConstructionId>;
+  realizedPointIds: ReadonlySet<ConstructionId>;
+  measurementEvaluation: MeasurementEvaluation;
+  expressionDraft: string;
+  onChangeExpressionDraft: (value: string) => void;
+  variableDraft: string;
+  onChangeVariableDraft: (value: string) => void;
+  variableValueDraft: string;
+  onChangeVariableValueDraft: (value: string) => void;
+  onSetUnitLength: (unitLength: number | undefined) => void;
+  onSetVariableValue: (variable: string, value: number | undefined) => void;
+  onUpsertSegmentMeasurement: (
+    points: readonly [ConstructionId, ConstructionId],
+    length: number | string,
+  ) => void;
+  onRemoveSegmentMeasurement: (id: string) => void;
+}) {
+  const selectedPointIds = Array.from(selectedIds).filter((id) => realizedPointIds.has(id));
+  const canAttachMeasurement = selectedPointIds.length === 2 && expressionDraft.trim().length > 0;
+  const currentUnitLength = program.measurementSettings?.unitLength ?? 1;
+
+  const handleSetUnit = (value: string) => {
+    const parsed = Number(value);
+    onSetUnitLength(Number.isFinite(parsed) && parsed > 0 ? parsed : undefined);
+  };
+
+  const handleSetVariable = () => {
+    const parsed = Number(variableValueDraft);
+    onSetVariableValue(variableDraft, Number.isFinite(parsed) ? parsed : undefined);
+  };
+
+  const handleAttachMeasurement = () => {
+    if (!canAttachMeasurement) {
+      return;
+    }
+    onUpsertSegmentMeasurement(selectedPointIds as [ConstructionId, ConstructionId], expressionDraft.trim());
+  };
+
+  return (
+    <section className="measurement-panel" aria-label="Measurements">
+      <h2>Measurements</h2>
+      <label className="measurement-field">
+        <span>Unit</span>
+        <input
+          key={currentUnitLength}
+          type="number"
+          min="0.0001"
+          step="0.1"
+          defaultValue={currentUnitLength}
+          onBlur={(event) => handleSetUnit(event.currentTarget.value)}
+        />
+      </label>
+      <div className="measurement-row">
+        <label className="measurement-field variable-name-field">
+          <span>Variable</span>
+          <input value={variableDraft} onChange={(event) => onChangeVariableDraft(event.target.value)} />
+        </label>
+        <label className="measurement-field variable-value-field">
+          <span>Value</span>
+          <input
+            type="number"
+            step="0.1"
+            value={variableValueDraft}
+            onChange={(event) => onChangeVariableValueDraft(event.target.value)}
+          />
+        </label>
+        <button type="button" className="measurement-action" onClick={handleSetVariable}>
+          Set
+        </button>
+      </div>
+      <div className="measurement-row">
+        <label className="measurement-field measurement-expression-field">
+          <span>Segment</span>
+          <input value={expressionDraft} onChange={(event) => onChangeExpressionDraft(event.target.value)} />
+        </label>
+        <button
+          type="button"
+          className="measurement-action"
+          onClick={handleAttachMeasurement}
+          disabled={!canAttachMeasurement}
+        >
+          Add
+        </button>
+      </div>
+      <MeasurementList
+        measurements={program.measurements ?? []}
+        measurementEvaluation={measurementEvaluation}
+        onRemoveSegmentMeasurement={onRemoveSegmentMeasurement}
+      />
+    </section>
+  );
+}
+
+function MeasurementList({
+  measurements,
+  measurementEvaluation,
+  onRemoveSegmentMeasurement,
+}: {
+  measurements: readonly SegmentLengthAssertion[];
+  measurementEvaluation: MeasurementEvaluation;
+  onRemoveSegmentMeasurement: (id: string) => void;
+}) {
+  if (measurements.length === 0) {
+    return <p className="measurement-empty">No measurements</p>;
+  }
+
+  const evaluatedById = new Map(
+    measurementEvaluation.segments.map((segment) => [segment.assertion.id, segment]),
+  );
+
+  return (
+    <ol className="measurement-list">
+      {measurements.map((measurement) => {
+        const evaluated = evaluatedById.get(measurement.id);
+        return (
+          <li key={measurement.id} className={`measurement-item ${evaluated?.status ?? "unresolved"}`}>
+            <span>
+              {measurement.label ?? `${measurement.from}${measurement.to}`} = {measurement.length}
+            </span>
+            <code>{evaluated ? `${formatMeasurementValue(evaluated.actualUnitLength)}u` : "unrealized"}</code>
+            <button
+              type="button"
+              className="measurement-remove"
+              onClick={() => onRemoveSegmentMeasurement(measurement.id)}
+              aria-label={`Remove ${measurement.label ?? measurement.id}`}
+            >
+              x
+            </button>
+          </li>
+        );
+      })}
+    </ol>
   );
 }

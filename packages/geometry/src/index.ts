@@ -15,6 +15,7 @@ export {
   idTripleSchema,
   intersectionIndexSchema,
   measurementExpressionSchema,
+  measurementSettingsSchema,
   point2Schema,
   rawConstructionToConstruction,
   segmentLengthAssertionSchema,
@@ -27,7 +28,7 @@ export {
   dependencyIds,
   transitiveDependentsOf,
 } from "./dependencies";
-export type { AddConstructionResult } from "./edit";
+export type { AddConstructionResult, UpsertSegmentLengthAssertionResult } from "./edit";
 export {
   addCircleCircleIntersection,
   addCircleThreePoints,
@@ -40,8 +41,14 @@ export {
   addPerpendicularLine,
   addMidpoint,
   moveFreePoint,
+  removeSegmentLengthAssertion,
+  segmentLengthAssertion,
+  segmentLengthAssertionId,
   setConstructionShapeRole,
+  setMeasurementUnitLength,
+  setMeasurementVariableValue,
   translateShape,
+  upsertSegmentLengthAssertion,
 } from "./edit";
 export { evaluateConstruction } from "./evaluate";
 export type { ConstructionExplanation, ConstructionReference } from "./explain";
@@ -56,9 +63,17 @@ export type {
   MacroStepDefinition,
 } from "./macro";
 export { applyConstructionMacro } from "./macro";
-export type { LinearMeasurementExpression } from "./measurement";
+export type {
+  EvaluatedSegmentLengthAssertion,
+  LinearMeasurementExpression,
+  MeasurementDiagnostic,
+  MeasurementEvaluation,
+} from "./measurement";
 export {
+  evaluateMeasurements,
   evaluateLinearMeasurementExpression,
+  formatMeasurementExpression,
+  formatMeasurementValue,
   parseLinearMeasurementExpression,
   variablesInMeasurementExpressions,
 } from "./measurement";
@@ -76,6 +91,7 @@ export type {
   EvaluationDiagnostic,
   MeasurementExpression,
   MeasurementId,
+  MeasurementSettings,
   Point2,
   ScenePoint,
   SegmentLengthAssertion,

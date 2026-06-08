@@ -10,7 +10,7 @@ Read this when changing persisted document shape, document parsing, serializatio
 - Document schema version.
 - Public parse/serialize facade.
 - Zod-backed document and construction-program decoding.
-- Persistence of geometry-owned construction-program fields such as constructions and measurement assertions.
+- Persistence of geometry-owned construction-program fields such as constructions, measurement settings, and measurement assertions.
 - Seed document.
 - Pure undo/redo history wrapper.
 

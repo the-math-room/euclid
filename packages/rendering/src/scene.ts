@@ -1,5 +1,7 @@
 import {
+  formatMeasurementExpression,
   type Evaluation,
+  type MeasurementEvaluation,
   type Point2,
   type ScenePoint,
   type ShapeRole,
@@ -45,6 +47,13 @@ export type RenderItem =
       shapeRole?: ShapeRole;
       center: ScenePoint;
       radius: number;
+    }>
+  | Readonly<{
+      id: string;
+      kind: "measurement-label";
+      text: string;
+      anchor: ScenePoint;
+      status: "satisfied" | "unresolved" | "invalid" | "mismatch";
     }>;
 
 export type RenderLabel = Readonly<{
@@ -67,13 +76,18 @@ export function defaultScreenViewFor(evaluation: Evaluation, size: ViewportSize)
 export function sceneForEvaluation(
   evaluation: Evaluation,
   view: ScreenView,
-  options?: { fontSize?: number; isTransitioning?: boolean },
+  options?: {
+    fontSize?: number;
+    isTransitioning?: boolean;
+    measurementEvaluation?: MeasurementEvaluation;
+  },
 ): RenderScene {
   const frame = worldFrameFor(view);
   const fontSize = options?.fontSize ?? THEME.typography.fontSize;
 
   const circles: RenderItem[] = [];
   const lines: RenderItem[] = [];
+  const measurementLabels: RenderItem[] = [];
   const pointTargets: {
     id: string;
     pointRole: "free" | "constructed";
@@ -119,6 +133,18 @@ export function sceneForEvaluation(
     }
   }
 
+  for (const segment of options?.measurementEvaluation?.segments ?? []) {
+    const from = projectPoint(frame, segment.from);
+    const to = projectPoint(frame, segment.to);
+    measurementLabels.push({
+      id: segment.assertion.id,
+      kind: "measurement-label",
+      text: formatMeasurementExpression(segment.assertion.length),
+      anchor: segmentLabelAnchor(from, to, fontSize),
+      status: segment.status,
+    });
+  }
+
   const pointObstacles: RenderItem[] = pointTargets.map((target) => ({
     id: target.id,
     kind: "point",
@@ -143,8 +169,30 @@ export function sceneForEvaluation(
   return {
     size: view.viewport.size,
     grid: gridLinesForFrame(frame),
-    items: [...circles, ...lines, ...points],
+    items: [...circles, ...lines, ...measurementLabels, ...points],
   };
+}
+
+function segmentLabelAnchor(from: ScenePoint, to: ScenePoint, fontSize: number): ScenePoint {
+  const midpoint = {
+    x: (from.x + to.x) / 2,
+    y: (from.y + to.y) / 2,
+  };
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
+  const length = Math.hypot(dx, dy);
+  if (length <= SCENE_GEOMETRY_EPSILON) {
+    return toScenePoint({
+      x: midpoint.x,
+      y: midpoint.y - fontSize,
+    });
+  }
+
+  const offset = fontSize * 0.85;
+  return toScenePoint({
+    x: midpoint.x + (-dy / length) * offset,
+    y: midpoint.y + (dx / length) * offset,
+  });
 }
 
 function fallbackLabelFor(text: string, mark: ScenePoint, fontSize: number): RenderLabel {

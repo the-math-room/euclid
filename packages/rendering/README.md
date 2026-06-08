@@ -8,6 +8,7 @@ Read this when changing viewport math, render-scene construction, label placemen
 
 - 2D camera and viewport projection/unprojection.
 - Conversion from evaluated primitives to `RenderScene`.
+- Display-only scene items for evaluated measurement labels.
 - Scene-space grid, line extension, point roles, and label placement.
 - Screen-space hit testing and intersection hit discovery.
 - Canvas 2D drawing and standalone SVG string rendering.
@@ -39,6 +40,7 @@ Read this when changing viewport math, render-scene construction, label placemen
 - Label layout is part of scene construction, not a React concern.
 - Canvas and SVG output should share style resolution rather than drifting in separate defaults.
 - Shape roles such as auxiliary/primary are interpreted here as visual style, not as geometry semantics.
+- Measurement labels are interpreted from `@euclid/geometry` measurement evaluation; rendering must not parse measurement expressions or solve constraints.
 - Camera operations are algebraic camera updates, not SVG transform shortcuts.
 - Public exports in `src/index.ts` must be explicit and intentional.
 

@@ -428,6 +428,16 @@ function RenderItemView({
   onSelect: (modifiers?: { ctrlKey?: boolean; shiftKey?: boolean }) => void;
   sizeScale: number;
 }) {
+  if (item.kind === "measurement-label") {
+    return (
+      <g className={`measurement-label ${item.status}`} aria-hidden>
+        <text x={item.anchor.x} y={item.anchor.y} textAnchor="middle" dominantBaseline="middle">
+          {item.text}
+        </text>
+      </g>
+    );
+  }
+
   const roleClass =
     item.kind === "point" ? ` ${item.pointRole ?? "free"}` : ` ${item.shapeRole ?? "primary"}`;
   const className = selected

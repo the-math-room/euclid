@@ -11,6 +11,11 @@ export type ShapeRole = "primary" | "auxiliary";
 export type MeasurementId = string;
 export type MeasurementExpression = number | string;
 
+export type MeasurementSettings = Readonly<{
+  unitLength?: number;
+  variables?: Readonly<Record<string, number>>;
+}>;
+
 export function toWorldPoint(p: Point2): WorldPoint {
   return p as WorldPoint;
 }
@@ -21,6 +26,7 @@ export function toScenePoint(p: Point2): ScenePoint {
 
 export type ConstructionProgram = Readonly<{
   constructions: readonly Construction[];
+  measurementSettings?: MeasurementSettings;
   measurements?: readonly SegmentLengthAssertion[];
 }>;
 

@@ -32,6 +32,15 @@ export function renderSceneToSvgString(scene: RenderScene, options: SvgRendererO
 
   // Draw items
   for (const item of scene.items) {
+    if (item.kind === "measurement-label") {
+      parts.push(`  <g class="measurement-label ${item.status}" data-id="${escapeXmlAttribute(item.id)}">`);
+      parts.push(
+        `    <text x="${item.anchor.x}" y="${item.anchor.y}" text-anchor="middle" dominant-baseline="middle">${escapeXmlText(item.text)}</text>`,
+      );
+      parts.push("  </g>");
+      continue;
+    }
+
     const isSelected = selectedIds ? selectedIds.has(item.id) : item.id === selectedId;
     const baseClass =
       item.kind === "point"

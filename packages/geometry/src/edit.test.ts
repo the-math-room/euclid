@@ -12,8 +12,12 @@ import {
   addPerpendicularLine,
   addMidpoint,
   moveFreePoint,
+  segmentLengthAssertion,
   setConstructionShapeRole,
+  setMeasurementUnitLength,
+  setMeasurementVariableValue,
   translateShape,
+  upsertSegmentLengthAssertion,
 } from "./edit";
 import { toWorldPoint, type ConstructionProgram } from "./model";
 
@@ -126,6 +130,44 @@ describe("construction edits", () => {
       label: "AB",
       points: ["A", "B"],
     });
+  });
+
+  it("sets measurement unit length and variable values as program-level state", () => {
+    const program: ConstructionProgram = {
+      constructions: [],
+    };
+
+    const withUnit = setMeasurementUnitLength(program, 2);
+    const withVariable = setMeasurementVariableValue(withUnit, "x", 3);
+
+    expect(withVariable).toEqual({
+      constructions: [],
+      measurementSettings: {
+        unitLength: 2,
+        variables: { x: 3 },
+      },
+    });
+    expect(setMeasurementUnitLength(withVariable, 2)).toBe(withVariable);
+  });
+
+  it("upserts segment length assertions between point ids", () => {
+    const program: ConstructionProgram = {
+      constructions: [
+        { id: "A", kind: "free-point", label: "A", position: toWorldPoint({ x: 0, y: 0 }) },
+        { id: "B", kind: "free-point", label: "B", position: toWorldPoint({ x: 1, y: 0 }) },
+      ],
+    };
+
+    const created = upsertSegmentLengthAssertion(program, segmentLengthAssertion("A", "B", "x"));
+    const updated = upsertSegmentLengthAssertion(created.program, segmentLengthAssertion("B", "A", "2x"));
+
+    expect(created.changed).toBe(true);
+    expect(created.program.measurements).toEqual([
+      { id: "length-a-b", kind: "segment-length", from: "A", to: "B", length: "x", label: "AB" },
+    ]);
+    expect(updated.program.measurements).toEqual([
+      { id: "length-a-b", kind: "segment-length", from: "B", to: "A", length: "2x", label: "BA" },
+    ]);
   });
 
   it("does not add duplicate or self-dependent lines", () => {

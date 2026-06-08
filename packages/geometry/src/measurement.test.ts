@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
+  evaluateMeasurements,
   evaluateLinearMeasurementExpression,
   parseLinearMeasurementExpression,
   variablesInMeasurementExpressions,
 } from "./measurement";
+import { evaluateConstruction } from "./evaluate";
 import { toWorldPoint, type ConstructionProgram } from "./model";
 
 describe("measurement expressions", () => {
@@ -66,5 +68,54 @@ describe("measurement expressions", () => {
     };
 
     expect(program.measurements?.map((measurement) => measurement.length)).toEqual(["x + 3", "2x - 1"]);
+  });
+
+  it("evaluates segment measurements against unit length and variable values", () => {
+    const program: ConstructionProgram = {
+      constructions: [
+        { id: "A", kind: "free-point", label: "A", position: toWorldPoint({ x: 0, y: 0 }) },
+        { id: "B", kind: "free-point", label: "B", position: toWorldPoint({ x: 4, y: 0 }) },
+      ],
+      measurementSettings: {
+        unitLength: 2,
+        variables: { x: 2 },
+      },
+      measurements: [{ id: "length-a-b", kind: "segment-length", from: "A", to: "B", length: "x" }],
+    };
+
+    const result = evaluateMeasurements(program, evaluateConstruction(program));
+
+    expect(result.unitLength).toBe(2);
+    expect(result.segments).toHaveLength(1);
+    expect(result.segments[0]).toMatchObject({
+      actualWorldLength: 4,
+      actualUnitLength: 2,
+      expressionValue: 2,
+      status: "satisfied",
+    });
+    expect(result.diagnostics).toEqual([]);
+  });
+
+  it("reports unresolved variables before constraint solving exists", () => {
+    const program: ConstructionProgram = {
+      constructions: [
+        { id: "A", kind: "free-point", label: "A", position: toWorldPoint({ x: 0, y: 0 }) },
+        { id: "B", kind: "free-point", label: "B", position: toWorldPoint({ x: 4, y: 0 }) },
+      ],
+      measurements: [{ id: "length-a-b", kind: "segment-length", from: "A", to: "B", length: "x" }],
+    };
+
+    const result = evaluateMeasurements(program, evaluateConstruction(program));
+
+    expect(result.segments[0]).toMatchObject({
+      status: "unresolved",
+      variable: "x",
+    });
+    expect(result.diagnostics).toEqual([
+      expect.objectContaining({
+        measurementId: "length-a-b",
+        code: "measurement:unassigned-variable",
+      }),
+    ]);
   });
 });

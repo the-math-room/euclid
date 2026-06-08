@@ -12,12 +12,18 @@ import {
   deleteConstructions,
   evaluateConstruction,
   moveFreePoint,
+  removeSegmentLengthAssertion,
+  segmentLengthAssertion,
   setConstructionShapeRole,
+  setMeasurementUnitLength,
+  setMeasurementVariableValue,
   translateShape,
+  upsertSegmentLengthAssertion,
 } from "@euclid/geometry";
 import type {
   ConstructionId,
   ConstructionProgram,
+  MeasurementId,
   ScenePoint,
   ShapeRole,
   WorldPoint,
@@ -56,6 +62,13 @@ export type ConstructionController = Readonly<{
   handleRedo: () => void;
   handleDeleteSelected: () => void;
   handleSetShapeRole: (id: ConstructionId, shapeRole: ShapeRole) => void;
+  handleSetMeasurementUnitLength: (unitLength: number | undefined) => void;
+  handleSetMeasurementVariableValue: (variable: string, value: number | undefined) => void;
+  handleUpsertSegmentMeasurement: (
+    points: readonly [ConstructionId, ConstructionId],
+    length: number | string,
+  ) => void;
+  handleRemoveSegmentMeasurement: (id: MeasurementId) => void;
   handleAddPoint: (sceneCoords: ScenePoint) => void;
   handleAddIntersection: (hit: IntersectionHit) => void;
   handleBeginPointDrag: (id: ConstructionId) => void;
@@ -453,15 +466,66 @@ export function useConstructionController({
   const handleDeleteSelected = useCallback(() => {
     if (selectedIds.size === 0) return;
     if (deleteSelectionIds.size === 0) return;
+    const remainingMeasurements = (program.measurements ?? []).filter(
+      (measurement) => !deleteSelectionIds.has(measurement.from) && !deleteSelectionIds.has(measurement.to),
+    );
     updateProgram({
+      ...program,
       constructions: deleteConstructions(program.constructions, deleteSelectionIds),
+      ...(remainingMeasurements.length === 0
+        ? { measurements: undefined }
+        : { measurements: remainingMeasurements }),
     });
     clearSelection(setSelectedIds, setLastSelectedId);
-  }, [selectedIds.size, deleteSelectionIds, program.constructions, updateProgram]);
+  }, [selectedIds.size, deleteSelectionIds, program, updateProgram]);
 
   const handleSetShapeRole = useCallback((id: ConstructionId, shapeRole: ShapeRole) => {
     setHistory((prev) => {
       const nextProgram = setConstructionShapeRole(prev.present, id, shapeRole);
+      if (nextProgram === prev.present) {
+        return prev;
+      }
+      return pushState(prev, nextProgram);
+    });
+  }, []);
+
+  const handleSetMeasurementUnitLength = useCallback((unitLength: number | undefined) => {
+    setHistory((prev) => {
+      const nextProgram = setMeasurementUnitLength(prev.present, unitLength);
+      if (nextProgram === prev.present) {
+        return prev;
+      }
+      return pushState(prev, nextProgram);
+    });
+  }, []);
+
+  const handleSetMeasurementVariableValue = useCallback((variable: string, value: number | undefined) => {
+    setHistory((prev) => {
+      const nextProgram = setMeasurementVariableValue(prev.present, variable, value);
+      if (nextProgram === prev.present) {
+        return prev;
+      }
+      return pushState(prev, nextProgram);
+    });
+  }, []);
+
+  const handleUpsertSegmentMeasurement = useCallback(
+    (points: readonly [ConstructionId, ConstructionId], length: number | string) => {
+      const result = upsertSegmentLengthAssertion(
+        program,
+        segmentLengthAssertion(points[0], points[1], length),
+      );
+      if (!result.changed) {
+        return;
+      }
+      updateProgram(result.program);
+    },
+    [program, updateProgram],
+  );
+
+  const handleRemoveSegmentMeasurement = useCallback((id: MeasurementId) => {
+    setHistory((prev) => {
+      const nextProgram = removeSegmentLengthAssertion(prev.present, id);
       if (nextProgram === prev.present) {
         return prev;
       }
@@ -539,6 +603,10 @@ export function useConstructionController({
     handleRedo,
     handleDeleteSelected,
     handleSetShapeRole,
+    handleSetMeasurementUnitLength,
+    handleSetMeasurementVariableValue,
+    handleUpsertSegmentMeasurement,
+    handleRemoveSegmentMeasurement,
     handleAddPoint,
     handleAddIntersection,
     handleBeginPointDrag,

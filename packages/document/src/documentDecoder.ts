@@ -1,7 +1,9 @@
 import {
+  measurementSettingsSchema,
   segmentLengthAssertionSchema,
   type Construction,
   type ConstructionProgram,
+  type MeasurementSettings,
   type SegmentLengthAssertion,
 } from "@euclid/geometry";
 import { z } from "zod";
@@ -17,6 +19,7 @@ const documentEnvelopeSchema = z.object({
   title: z.string(),
   program: z.object({
     constructions: z.array(z.unknown()),
+    measurementSettings: z.unknown().optional(),
     measurements: z.array(z.unknown()).optional(),
   }),
 });
@@ -33,6 +36,10 @@ type ConstructionListDecodeResult =
 
 type SegmentLengthAssertionListDecodeResult =
   | Readonly<{ ok: true; value: readonly SegmentLengthAssertion[] }>
+  | Readonly<{ ok: false; diagnostic: string }>;
+
+type MeasurementSettingsDecodeResult =
+  | Readonly<{ ok: true; value: MeasurementSettings | undefined }>
   | Readonly<{ ok: false; diagnostic: string }>;
 
 export function decodeEuclidDocument(value: unknown): DocumentDecodeResult {
@@ -77,10 +84,19 @@ function decodeConstructionProgram(value: DocumentEnvelope["program"]): ProgramD
     };
   }
 
+  const measurementSettings = decodeMeasurementSettings(value.measurementSettings);
+  if (!measurementSettings.ok) {
+    return {
+      ok: false,
+      diagnostic: measurementSettings.diagnostic,
+    };
+  }
+
   return {
     ok: true,
     program: {
       constructions: constructions.value,
+      ...(measurementSettings.value === undefined ? {} : { measurementSettings: measurementSettings.value }),
       ...(value.measurements === undefined ? {} : { measurements: measurements.value }),
     },
   };
@@ -120,6 +136,25 @@ function decodeSegmentLengthAssertionList(value: readonly unknown[]): SegmentLen
   };
 }
 
+function decodeMeasurementSettings(value: unknown): MeasurementSettingsDecodeResult {
+  if (value === undefined) {
+    return { ok: true, value: undefined };
+  }
+
+  const decoded = measurementSettingsSchema.safeParse(value);
+  if (!decoded.success) {
+    return {
+      ok: false,
+      diagnostic: diagnosticForMeasurementSettingsError(decoded.error),
+    };
+  }
+
+  return {
+    ok: true,
+    value: decoded.data,
+  };
+}
+
 function diagnosticForDocumentError(error: z.ZodError): string {
   const issue = error.issues[0];
   if (!issue || issue.path.length === 0) {
@@ -145,11 +180,39 @@ function diagnosticForDocumentError(error: z.ZodError): string {
     return "Document program.measurements must be an array when present.";
   }
 
+  if (firstPath === "program" && secondPath === "measurementSettings") {
+    return "Document program.measurementSettings must be a JSON object when present.";
+  }
+
   if (firstPath === "program") {
     return "Document program must contain a constructions array.";
   }
 
   return "Document must be a JSON object.";
+}
+
+function diagnosticForMeasurementSettingsError(error: z.ZodError): string {
+  const issue = error.issues[0];
+  if (!issue) {
+    return "Document program.measurementSettings must be a JSON object when present.";
+  }
+
+  const issuePath = pathForIssue("Document program.measurementSettings", issue.path);
+  const field = issue.path.at(-1);
+
+  if (field === "unitLength") {
+    return `${issuePath} must be a positive finite number.`;
+  }
+
+  if (field === "variables") {
+    return `${issuePath} must be a JSON object when present.`;
+  }
+
+  if (typeof field === "string") {
+    return `${issuePath} must be a finite number.`;
+  }
+
+  return "Document program.measurementSettings must be a JSON object when present.";
 }
 
 function diagnosticForMeasurementError(error: z.ZodError, path: string): string {

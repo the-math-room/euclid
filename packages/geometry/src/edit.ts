@@ -2,7 +2,10 @@ import type {
   Construction,
   ConstructionId,
   ConstructionProgram,
+  MeasurementExpression,
+  MeasurementId,
   Point2,
+  SegmentLengthAssertion,
   ShapeRole,
   WorldPoint,
 } from "./model";
@@ -12,6 +15,12 @@ import { generateNextPointLabel } from "./names";
 export type AddConstructionResult = Readonly<{
   program: ConstructionProgram;
   id: ConstructionId | undefined;
+  changed: boolean;
+}>;
+
+export type UpsertSegmentLengthAssertionResult = Readonly<{
+  program: ConstructionProgram;
+  id: MeasurementId | undefined;
   changed: boolean;
 }>;
 
@@ -103,6 +112,120 @@ export function setConstructionShapeRole(
   return {
     ...program,
     constructions,
+  };
+}
+
+export function setMeasurementUnitLength(
+  program: ConstructionProgram,
+  unitLength: number | undefined,
+): ConstructionProgram {
+  const current = program.measurementSettings?.unitLength ?? 1;
+  if (unitLength === undefined || unitLength === 1) {
+    if (program.measurementSettings?.unitLength === undefined) {
+      return program;
+    }
+    return withMeasurementSettings(program, {
+      ...program.measurementSettings,
+      unitLength: undefined,
+    });
+  }
+
+  if (!Number.isFinite(unitLength) || unitLength <= 0 || current === unitLength) {
+    return program;
+  }
+
+  return withMeasurementSettings(program, {
+    ...program.measurementSettings,
+    unitLength,
+  });
+}
+
+export function setMeasurementVariableValue(
+  program: ConstructionProgram,
+  variable: string,
+  value: number | undefined,
+): ConstructionProgram {
+  const normalizedVariable = variable.trim();
+  if (!isMeasurementVariableName(normalizedVariable)) {
+    return program;
+  }
+
+  const variables = program.measurementSettings?.variables ?? {};
+  if (value === undefined) {
+    if (variables[normalizedVariable] === undefined) {
+      return program;
+    }
+    const nextVariables = Object.fromEntries(
+      Object.entries(variables).filter(([name]) => name !== normalizedVariable),
+    );
+    return withMeasurementSettings(program, {
+      ...program.measurementSettings,
+      variables: Object.keys(nextVariables).length === 0 ? undefined : nextVariables,
+    });
+  }
+
+  if (!Number.isFinite(value) || variables[normalizedVariable] === value) {
+    return program;
+  }
+
+  return withMeasurementSettings(program, {
+    ...program.measurementSettings,
+    variables: {
+      ...variables,
+      [normalizedVariable]: value,
+    },
+  });
+}
+
+export function upsertSegmentLengthAssertion(
+  program: ConstructionProgram,
+  assertion: SegmentLengthAssertion,
+): UpsertSegmentLengthAssertionResult {
+  if (assertion.from === assertion.to) {
+    return unchanged(program);
+  }
+
+  const existingIndex = (program.measurements ?? []).findIndex(
+    (measurement) =>
+      measurement.id === assertion.id ||
+      sameIdSet([measurement.from, measurement.to], [assertion.from, assertion.to]),
+  );
+  const measurements =
+    existingIndex === -1
+      ? [...(program.measurements ?? []), assertion]
+      : (program.measurements ?? []).map((measurement, index) =>
+          index === existingIndex ? { ...assertion, id: measurement.id } : measurement,
+        );
+  const existing = existingIndex === -1 ? undefined : (program.measurements ?? [])[existingIndex];
+
+  if (existing && sameSegmentLengthAssertion(existing, measurements[existingIndex])) {
+    return unchanged(program, existing.id);
+  }
+
+  const id = existing?.id ?? assertion.id;
+  return {
+    program: {
+      ...program,
+      measurements,
+    },
+    id,
+    changed: true,
+  };
+}
+
+export function removeSegmentLengthAssertion(
+  program: ConstructionProgram,
+  id: MeasurementId,
+): ConstructionProgram {
+  const measurements = program.measurements ?? [];
+  const nextMeasurements = measurements.filter((measurement) => measurement.id !== id);
+  if (nextMeasurements.length === measurements.length) {
+    return program;
+  }
+
+  return {
+    ...program,
+    measurements: nextMeasurements.length === 0 ? undefined : nextMeasurements,
   };
 }
 
@@ -477,6 +600,63 @@ function unchanged(program: ConstructionProgram, id?: ConstructionId): AddConstr
     program,
     id,
     changed: false,
+  };
+}
+
+function withMeasurementSettings(
+  program: ConstructionProgram,
+  settings: ConstructionProgram["measurementSettings"],
+): ConstructionProgram {
+  const variables = settings?.variables;
+  const nextSettings = {
+    ...(settings?.unitLength === undefined ? {} : { unitLength: settings.unitLength }),
+    ...(variables === undefined || Object.keys(variables).length === 0 ? {} : { variables }),
+  };
+
+  if (Object.keys(nextSettings).length === 0) {
+    return {
+      constructions: program.constructions,
+      ...(program.measurements === undefined ? {} : { measurements: program.measurements }),
+    };
+  }
+
+  return {
+    ...program,
+    measurementSettings: nextSettings,
+  };
+}
+
+function isMeasurementVariableName(value: string): boolean {
+  return /^[A-Za-z]\w*$/.test(value);
+}
+
+function sameSegmentLengthAssertion(a: SegmentLengthAssertion, b: SegmentLengthAssertion): boolean {
+  return (
+    a.id === b.id &&
+    a.kind === b.kind &&
+    a.from === b.from &&
+    a.to === b.to &&
+    a.length === b.length &&
+    a.label === b.label
+  );
+}
+
+export function segmentLengthAssertionId(from: ConstructionId, to: ConstructionId): MeasurementId {
+  return `length-${slugFor(from)}-${slugFor(to)}`;
+}
+
+export function segmentLengthAssertion(
+  from: ConstructionId,
+  to: ConstructionId,
+  length: MeasurementExpression,
+): SegmentLengthAssertion {
+  return {
+    id: segmentLengthAssertionId(from, to),
+    kind: "segment-length",
+    from,
+    to,
+    length,
+    label: `${from}${to}`,
   };
 }
 

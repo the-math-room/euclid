@@ -74,6 +74,19 @@ export function drawSceneToCanvas(
 
   // 3. Draw items in pre-sorted order (circles -> lines -> points)
   for (const item of scene.items) {
+    if (item.kind === "measurement-label") {
+      ctx.font = `760 ${15 * sizeScale}px ${THEME.typography.fontFamily}`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.lineJoin = "round";
+      ctx.strokeStyle = THEME.colors.measurementLabelStroke;
+      ctx.lineWidth = 4 * sizeScale;
+      ctx.strokeText(item.text, item.anchor.x, item.anchor.y);
+      ctx.fillStyle = measurementLabelFill(item.status);
+      ctx.fillText(item.text, item.anchor.x, item.anchor.y);
+      continue;
+    }
+
     const style = resolveItemStyle(item, { selectedId, selectedIds, hoveredId, sizeScale });
 
     if (style.kind === "shape") {
@@ -125,4 +138,14 @@ export function drawSceneToCanvas(
   }
 
   ctx.restore();
+}
+
+function measurementLabelFill(status: "satisfied" | "unresolved" | "invalid" | "mismatch"): string {
+  if (status === "mismatch" || status === "invalid") {
+    return THEME.colors.measurementMismatch;
+  }
+  if (status === "unresolved") {
+    return THEME.colors.measurementUnresolved;
+  }
+  return THEME.colors.measurementLabel;
 }

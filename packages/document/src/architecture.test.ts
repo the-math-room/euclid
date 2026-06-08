@@ -115,6 +115,10 @@ describe("document architecture", () => {
           { id: "A", kind: "free-point", label: "A", position: toWorldPoint({ x: 0, y: 0 }) },
           { id: "B", kind: "free-point", label: "B", position: toWorldPoint({ x: 1, y: 0 }) },
         ],
+        measurementSettings: {
+          unitLength: 2,
+          variables: { x: 4 },
+        },
         measurements: [
           {
             id: "length-a-b",
@@ -131,6 +135,25 @@ describe("document architecture", () => {
     expect(parseEuclidDocument(serializeEuclidDocument(document))).toEqual({
       ok: true,
       document,
+    });
+  });
+
+  it("rejects malformed measurement settings", () => {
+    expect(
+      parseEuclidDocument(
+        JSON.stringify({
+          ...seedDocument,
+          program: {
+            constructions: seedDocument.program.constructions,
+            measurementSettings: {
+              unitLength: 0,
+            },
+          },
+        }),
+      ),
+    ).toEqual({
+      ok: false,
+      diagnostics: ["Document program.measurementSettings.unitLength must be a positive finite number."],
     });
   });
 

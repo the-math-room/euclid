@@ -333,6 +333,140 @@ button {
   outline: none;
 }
 
+.measurement-panel {
+  display: grid;
+  gap: 10px;
+}
+
+.measurement-panel h2 {
+  margin: 0 0 2px;
+  color: #dfe8e4;
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.measurement-field {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.measurement-field span {
+  color: #aebdba;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.measurement-field input {
+  width: 100%;
+  min-height: 32px;
+  padding: 5px 8px;
+  color: #f6f2ec;
+  background: rgb(255 255 255 / 0.06);
+  border: 1px solid rgb(255 255 255 / 0.16);
+  border-radius: 6px;
+  font: inherit;
+}
+
+.measurement-field input:focus,
+.measurement-field input:hover {
+  border-color: #e3c057;
+  outline: none;
+}
+
+.measurement-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: end;
+}
+
+.measurement-row:has(.variable-name-field) {
+  grid-template-columns: minmax(44px, 0.5fr) minmax(70px, 1fr) auto;
+}
+
+.measurement-action {
+  min-width: 44px;
+  min-height: 32px;
+  padding: 0 10px;
+  color: #172026;
+  background: #e3c057;
+  border: 1px solid #e3c057;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.measurement-action:disabled {
+  color: #486164;
+  background: #28373b;
+  border-color: #384b4f;
+  cursor: not-allowed;
+}
+
+.measurement-empty {
+  margin: 0;
+  color: #aebdba;
+  font-size: 0.82rem;
+}
+
+.measurement-list {
+  display: grid;
+  gap: 6px;
+  margin: 2px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.measurement-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto 24px;
+  gap: 8px;
+  align-items: center;
+  min-height: 32px;
+  padding: 6px 0;
+  border-top: 1px solid rgb(255 255 255 / 0.08);
+  color: #f6f2ec;
+  font-size: 0.84rem;
+}
+
+.measurement-item span {
+  overflow-wrap: anywhere;
+}
+
+.measurement-item code {
+  color: #aebdba;
+  font-size: 0.72rem;
+}
+
+.measurement-item.mismatch span,
+.measurement-item.invalid span {
+  color: #fca5a5;
+}
+
+.measurement-item.unresolved span {
+  color: #c8d1cf;
+}
+
+.measurement-remove {
+  display: inline-grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  color: #aebdba;
+  background: transparent;
+  border: 1px solid rgb(255 255 255 / 0.15);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.measurement-remove:hover {
+  color: #ff5252;
+  border-color: #ff5252;
+}
+
 .workspace {
   min-width: 0;
   min-height: 100vh;
