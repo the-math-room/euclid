@@ -25,7 +25,10 @@ Functions in this package should be memoizable in theory.
 ## Key Files
 
 - `src/model.ts`: document model.
-- `src/codec.ts`: parse and serialize functions.
+- `src/codec.ts`: public parse and serialize facade.
+- `src/documentDecoder.ts`: document envelope and construction-program decoder.
+- `src/constructionDecoder.ts`: construction variant decoder.
+- `src/jsonDecoder.ts`: small JSON decoding primitives shared by document decoders.
 - `src/seed.ts`: seed document.
 - `src/index.ts`: public package entrypoint.
 

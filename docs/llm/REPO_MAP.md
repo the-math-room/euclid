@@ -53,6 +53,9 @@ Start here:
 - `packages/document/src/model.ts`
 - `packages/document/src/history.ts`
 - `packages/document/src/codec.ts`
+- `packages/document/src/documentDecoder.ts`
+- `packages/document/src/constructionDecoder.ts`
+- `packages/document/src/jsonDecoder.ts`
 - `packages/document/src/seed.ts`
 
 Run or update:
@@ -134,6 +137,8 @@ npm run check
 
 ## Journal (Most Recent First)
 
+- `docs/journal/2026-06-07-document-decoder-split.md` — split the document codec into facade, document decoder, construction decoder, and JSON decoder modules.
+- `docs/journal/2026-06-07-document-parse-boundary.md` — hardened `parseEuclidDocument` so persisted construction JSON is explicitly parsed into typed construction variants instead of cast.
 - `docs/journal/2026-06-07-coordinate-branding-completion.md` — completed world/scene coordinate branding in construction storage, realization, parsing boundaries, and fixtures.
 - `docs/journal/2026-06-07-rendering-style-consolidation-and-gesture-tests.md` — unified style resolution across Canvas/SVG and pure headless testing of GestureController.
 - `docs/journal/2026-06-07-architectural-precepts.md` — architectural precepts codifying design philosophy (denotational design, UI interpretation, branded types, and extensibility).

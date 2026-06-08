@@ -1,4 +1,4 @@
-import { toWorldPoint, type Construction, type ConstructionProgram } from "@euclid/geometry";
+import { decodeEuclidDocument } from "./documentDecoder";
 import type { EuclidDocument } from "./model";
 
 export type DocumentParseResult =
@@ -21,85 +21,16 @@ export function parseEuclidDocument(text: string): DocumentParseResult {
   try {
     parsed = JSON.parse(text);
   } catch {
-    return {
-      ok: false,
-      diagnostics: ["Document is not valid JSON."],
-    };
+    return invalid("Document is not valid JSON.");
   }
 
-  return decodeEuclidDocument(parsed);
-}
-
-function decodeEuclidDocument(value: unknown): DocumentParseResult {
-  if (!isRecord(value)) {
-    return invalid("Document must be a JSON object.");
-  }
-
-  if (value.schemaVersion !== 1) {
-    return invalid("Document schemaVersion must be 1.");
-  }
-
-  if (typeof value.title !== "string") {
-    return invalid("Document title must be a string.");
-  }
-
-  const program = decodeConstructionProgram(value.program);
-  if (!program.ok) {
-    return invalid(program.diagnostic);
-  }
-
-  return {
-    ok: true,
-    document: {
-      schemaVersion: 1,
-      title: value.title,
-      program: program.program,
-    },
-  };
-}
-
-type ProgramDecodeResult =
-  | Readonly<{ ok: true; program: ConstructionProgram }>
-  | Readonly<{ ok: false; diagnostic: string }>;
-
-function decodeConstructionProgram(value: unknown): ProgramDecodeResult {
-  if (!isRecord(value) || !Array.isArray(value.constructions)) {
-    return { ok: false, diagnostic: "Document program must contain a constructions array." };
-  }
-
-  const constructions: Construction[] = [];
-  for (const [index, construction] of value.constructions.entries()) {
-    if (isRecord(construction) && construction.kind === "free-point" && isRecord(construction.position)) {
-      if (typeof construction.position.x !== "number" || typeof construction.position.y !== "number") {
-        return {
-          ok: false,
-          diagnostic: `Document program.constructions[${index}].position must be a Point2 object.`,
-        };
+  const decoded = decodeEuclidDocument(parsed);
+  return decoded.ok
+    ? {
+        ok: true,
+        document: decoded.document,
       }
-
-      constructions.push({
-        ...construction,
-        position: toWorldPoint({
-          x: construction.position.x,
-          y: construction.position.y,
-        }),
-      } as Construction);
-      continue;
-    }
-
-    constructions.push(construction as Construction);
-  }
-
-  return {
-    ok: true,
-    program: {
-      constructions,
-    },
-  };
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
+    : invalid(decoded.diagnostic);
 }
 
 function invalid(message: string): DocumentParseResult {
