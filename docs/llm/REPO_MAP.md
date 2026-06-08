@@ -153,6 +153,12 @@ Start here:
 - `docs/how-to/add-a-third-party-macro-tool.md` — use when adding a data-backed third-party macro tool.
 - `docs/how-to/add-measurement-constraint-behavior.md` — use when changing authored measurements, point mobility, unit/variable evaluation, or constraint solving.
 
+## Roadmap
+
+Start here:
+
+- `docs/roadmap/future-features.md` — known feature backlog and design pressure around point mobility, derived dragging, measurements, constraints, snapping, and new construction meanings.
+
 ## Journal (Most Recent First)
 
 - `docs/journal/2026-06-08-measurement-constraints-and-local-solver.md` — added authored measurement constraints, fixed/free point mobility, unit calibration, endpoint solving, and the first local two-distance solver.
