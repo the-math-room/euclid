@@ -1,5 +1,5 @@
 import { Trash2 } from "lucide-react";
-import type { Construction, ConstructionId, ShapeRole } from "@euclid/geometry";
+import type { Construction, ConstructionId, PointMobility, ShapeRole } from "@euclid/geometry";
 
 export function SelectionDetails({
   selectedIds,
@@ -7,12 +7,14 @@ export function SelectionDetails({
   onDelete,
   canDelete,
   onSetShapeRole,
+  onSetFreePointMobility,
 }: {
   selectedIds: ReadonlySet<ConstructionId>;
   constructions: readonly Construction[];
   onDelete: () => void;
   canDelete: boolean;
   onSetShapeRole: (id: ConstructionId, shapeRole: ShapeRole) => void;
+  onSetFreePointMobility: (id: ConstructionId, mobility: PointMobility) => void;
 }) {
   const selectedConstructions = constructions.filter((c) => selectedIds.has(c.id));
 
@@ -43,7 +45,11 @@ export function SelectionDetails({
       {selectedConstructions.length === 0 ? (
         <p className="empty-selection">No object selected</p>
       ) : selectedConstructions.length === 1 ? (
-        <ConstructionDetails construction={selectedConstructions[0]} onSetShapeRole={onSetShapeRole} />
+        <ConstructionDetails
+          construction={selectedConstructions[0]}
+          onSetShapeRole={onSetShapeRole}
+          onSetFreePointMobility={onSetFreePointMobility}
+        />
       ) : (
         <div className="multi-selection-summary">
           <p className="multi-selection-count">
@@ -66,9 +72,11 @@ export function SelectionDetails({
 function ConstructionDetails({
   construction,
   onSetShapeRole,
+  onSetFreePointMobility,
 }: {
   construction: Construction;
   onSetShapeRole: (id: ConstructionId, shapeRole: ShapeRole) => void;
+  onSetFreePointMobility: (id: ConstructionId, mobility: PointMobility) => void;
 }) {
   return (
     <dl className="details-list">
@@ -80,6 +88,23 @@ function ConstructionDetails({
         <dt>Kind</dt>
         <dd>{construction.kind}</dd>
       </div>
+      {construction.kind === "free-point" && (
+        <div>
+          <dt>Mobility</dt>
+          <dd>
+            <select
+              className="shape-role-select"
+              value={construction.mobility ?? "free"}
+              onChange={(event) =>
+                onSetFreePointMobility(construction.id, event.target.value as PointMobility)
+              }
+            >
+              <option value="free">Free</option>
+              <option value="fixed">Fixed</option>
+            </select>
+          </dd>
+        </div>
+      )}
       <div>
         <dt>ID</dt>
         <dd>{construction.id}</dd>

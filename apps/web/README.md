@@ -9,7 +9,7 @@ Read this when changing React composition, workspace controls, browser event han
 - React components and browser entrypoint.
 - Application composition in `src/App.tsx` and `src/WorkspaceContainer.tsx`.
 - Construction controller wiring: history, selected ids, active tool, undo/redo, command callbacks.
-- Sidebar controls for authoring geometry-owned measurement settings and segment length assertions.
+- Sidebar controls for authoring geometry-owned measurement settings and segment length measurements.
 - DOM/SVG/Canvas presentation of render-scene data.
 - Browser effects: URL state, fetches for custom lesson loading, keyboard listeners, pointer listeners.
 - Gesture event adaptation and camera interaction state.
@@ -43,7 +43,9 @@ Read this when changing React composition, workspace controls, browser event han
 - Keep React as an interpreter. If a change needs new construction meaning, add it in `@euclid/geometry` first.
 - Do not construct authored geometry records directly in app command code. Use geometry edit helpers.
 - Measurement UI must call geometry edit helpers and consume geometry measurement evaluation; do not parse or validate measurement expressions in React.
-- Driving measurement intent is authored in the app, but solver behavior belongs in geometry. The app should show diagnostics rather than moving geometry itself.
+- Constraint measurement intent is authored in the app, but solver behavior belongs in geometry. The app should show diagnostics rather than moving geometry itself.
+- When the user applies a constraint measurement, delegate to geometry and display the returned message. Do not choose which endpoint moves in React.
+- Fixed/free point mobility is authored through geometry edit helpers. Dragging and measurement application must respect geometry state plus activity policy.
 - Third-party macro tools should be data interpreted by `@euclid/geometry` macro expansion, not app-side construction assembly.
 - To add a third-party macro tool, add one `*.ts` file under `src/construction/third-party-tools/` exporting a `ThirdPartyMacroTool`; do not edit the central registries.
 - Do not import geometry naming internals such as `generateNextPointLabel` into app code.

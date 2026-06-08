@@ -8,9 +8,10 @@ export type Point2 = Readonly<{
 export type WorldPoint = Point2 & { readonly __brand: "world" };
 export type ScenePoint = Point2 & { readonly __brand: "scene" };
 export type ShapeRole = "primary" | "auxiliary";
+export type PointMobility = "free" | "fixed";
 export type MeasurementId = string;
 export type MeasurementExpression = number | string;
-export type MeasurementIntent = "asserted" | "driving";
+export type MeasurementIntent = "check" | "constraint";
 
 export type MeasurementSettings = Readonly<{
   unitLength?: number;
@@ -28,10 +29,10 @@ export function toScenePoint(p: Point2): ScenePoint {
 export type ConstructionProgram = Readonly<{
   constructions: readonly Construction[];
   measurementSettings?: MeasurementSettings;
-  measurements?: readonly SegmentLengthAssertion[];
+  measurements?: readonly SegmentLengthMeasurement[];
 }>;
 
-export type SegmentLengthAssertion = Readonly<{
+export type SegmentLengthMeasurement = Readonly<{
   id: MeasurementId;
   kind: "segment-length";
   from: ConstructionId;
@@ -46,6 +47,7 @@ export type Construction =
       id: ConstructionId;
       kind: "free-point";
       label: string;
+      mobility?: PointMobility;
       position: WorldPoint;
     }>
   | Readonly<{

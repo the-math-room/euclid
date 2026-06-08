@@ -68,6 +68,15 @@ describe("activity policy", () => {
         },
       ),
     ).toBe(false);
+    expect(
+      canDragConstruction(policy, {
+        id: "B",
+        kind: "free-point",
+        label: "B",
+        mobility: "fixed",
+        position: toWorldPoint({ x: 0, y: 0 }),
+      }),
+    ).toBe(false);
   });
 
   it("allows shape dragging according to shape drag policy", () => {

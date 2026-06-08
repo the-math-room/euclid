@@ -17,9 +17,10 @@ import { evaluateConstruction, evaluateMeasurements, formatMeasurementValue } fr
 import type {
   ConstructionId,
   ConstructionProgram,
+  MeasurementConstraintBehavior,
   MeasurementEvaluation,
   MeasurementIntent,
-  SegmentLengthAssertion,
+  SegmentLengthMeasurement,
 } from "@euclid/geometry";
 import { evaluateGoal, mapGoalIds, resolveGoalMapping } from "@euclid/assessment";
 import { defaultScreenViewFor, sceneForEvaluation } from "@euclid/rendering";
@@ -78,7 +79,7 @@ export function WorkspaceContainer({
 }: WorkspaceContainerProps) {
   const [isAuthoringOpen, setIsAuthoringOpen] = useState(false);
   const [measurementExpressionDraft, setMeasurementExpressionDraft] = useState("x");
-  const [measurementIntentDraft, setMeasurementIntentDraft] = useState<MeasurementIntent>("asserted");
+  const [measurementIntentDraft, setMeasurementIntentDraft] = useState<MeasurementIntent>("check");
   const [measurementVariableDraft, setMeasurementVariableDraft] = useState("x");
   const [measurementVariableValueDraft, setMeasurementVariableValueDraft] = useState("");
 
@@ -379,6 +380,8 @@ export function WorkspaceContainer({
           onSetVariableValue={construction.handleSetMeasurementVariableValue}
           onUpsertSegmentMeasurement={construction.handleUpsertSegmentMeasurement}
           onRemoveSegmentMeasurement={construction.handleRemoveSegmentMeasurement}
+          onApplyMeasurementConstraint={construction.handleApplyMeasurementConstraint}
+          measurementActionMessages={construction.measurementActionMessages}
         />
         <ObjectList
           constructions={construction.program.constructions}
@@ -391,6 +394,7 @@ export function WorkspaceContainer({
           onDelete={construction.handleDeleteSelected}
           canDelete={construction.canDeleteSelected}
           onSetShapeRole={construction.handleSetShapeRole}
+          onSetFreePointMobility={construction.handleSetFreePointMobility}
         />
       </aside>
 
@@ -436,6 +440,8 @@ function MeasurementPanel({
   onSetVariableValue,
   onUpsertSegmentMeasurement,
   onRemoveSegmentMeasurement,
+  onApplyMeasurementConstraint,
+  measurementActionMessages,
 }: {
   program: ConstructionProgram;
   selectedIds: ReadonlySet<ConstructionId>;
@@ -457,6 +463,8 @@ function MeasurementPanel({
     intent: MeasurementIntent,
   ) => void;
   onRemoveSegmentMeasurement: (id: string) => void;
+  onApplyMeasurementConstraint: (id: string, behavior: MeasurementConstraintBehavior) => void;
+  measurementActionMessages: Readonly<Record<string, string>>;
 }) {
   const selectedPointIds = Array.from(selectedIds).filter((id) => realizedPointIds.has(id));
   const canAttachMeasurement = selectedPointIds.length === 2 && expressionDraft.trim().length > 0;
@@ -487,7 +495,7 @@ function MeasurementPanel({
     <section className="measurement-panel" aria-label="Measurements">
       <h2>Measurements</h2>
       <label className="measurement-field">
-        <span>Unit</span>
+        <span>Unit scale</span>
         <input
           key={currentUnitLength}
           type="number"
@@ -499,11 +507,11 @@ function MeasurementPanel({
       </label>
       <div className="measurement-row">
         <label className="measurement-field variable-name-field">
-          <span>Variable</span>
+          <span>Symbol</span>
           <input value={variableDraft} onChange={(event) => onChangeVariableDraft(event.target.value)} />
         </label>
         <label className="measurement-field variable-value-field">
-          <span>Value</span>
+          <span>Value in units</span>
           <input
             type="number"
             step="0.1"
@@ -517,7 +525,7 @@ function MeasurementPanel({
       </div>
       <div className="measurement-row">
         <label className="measurement-field measurement-expression-field">
-          <span>Segment</span>
+          <span>Expression</span>
           <input value={expressionDraft} onChange={(event) => onChangeExpressionDraft(event.target.value)} />
         </label>
         <label className="measurement-field measurement-intent-field">
@@ -526,8 +534,8 @@ function MeasurementPanel({
             value={intentDraft}
             onChange={(event) => onChangeIntentDraft(event.target.value as MeasurementIntent)}
           >
-            <option value="asserted">Assert</option>
-            <option value="driving">Drive</option>
+            <option value="check">Check only</option>
+            <option value="constraint">Constraint</option>
           </select>
         </label>
         <button
@@ -543,6 +551,8 @@ function MeasurementPanel({
         measurements={program.measurements ?? []}
         measurementEvaluation={measurementEvaluation}
         onRemoveSegmentMeasurement={onRemoveSegmentMeasurement}
+        onApplyMeasurementConstraint={onApplyMeasurementConstraint}
+        measurementActionMessages={measurementActionMessages}
       />
     </section>
   );
@@ -552,30 +562,37 @@ function MeasurementList({
   measurements,
   measurementEvaluation,
   onRemoveSegmentMeasurement,
+  onApplyMeasurementConstraint,
+  measurementActionMessages,
 }: {
-  measurements: readonly SegmentLengthAssertion[];
+  measurements: readonly SegmentLengthMeasurement[];
   measurementEvaluation: MeasurementEvaluation;
   onRemoveSegmentMeasurement: (id: string) => void;
+  onApplyMeasurementConstraint: (id: string, behavior: MeasurementConstraintBehavior) => void;
+  measurementActionMessages: Readonly<Record<string, string>>;
 }) {
   if (measurements.length === 0) {
     return <p className="measurement-empty">No measurements</p>;
   }
 
   const evaluatedById = new Map(
-    measurementEvaluation.segments.map((segment) => [segment.assertion.id, segment]),
+    measurementEvaluation.segments.map((segment) => [segment.measurement.id, segment]),
   );
 
   return (
     <ol className="measurement-list">
       {measurements.map((measurement) => {
         const evaluated = evaluatedById.get(measurement.id);
+        const actionMessage = measurementActionMessages[measurement.id];
         return (
           <li key={measurement.id} className={`measurement-item ${evaluated?.status ?? "unresolved"}`}>
             <span>
               {measurement.label ?? `${measurement.from}${measurement.to}`} = {measurement.length}
-              <small>{measurement.intent ?? "asserted"}</small>
+              <small>{measurement.intent ?? "check"}</small>
             </span>
-            <code>{evaluated ? `${formatMeasurementValue(evaluated.actualUnitLength)}u` : "unrealized"}</code>
+            <code>
+              {evaluated ? `${formatMeasurementValue(evaluated.actualUnitLength)} units` : "unrealized"}
+            </code>
             <button
               type="button"
               className="measurement-remove"
@@ -584,9 +601,26 @@ function MeasurementList({
             >
               x
             </button>
+            {(measurement.intent ?? "check") === "constraint" && (
+              <div className="measurement-apply-actions">
+                <button
+                  type="button"
+                  onClick={() => onApplyMeasurementConstraint(measurement.id, "calibrate-unit")}
+                >
+                  Calibrate unit
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onApplyMeasurementConstraint(measurement.id, "move-free-endpoint")}
+                >
+                  Move endpoint
+                </button>
+              </div>
+            )}
             {evaluated?.diagnostic && (
               <p className="measurement-diagnostic">{evaluated.diagnostic.message}</p>
             )}
+            {actionMessage && <p className="measurement-action-message">{actionMessage}</p>}
           </li>
         );
       })}

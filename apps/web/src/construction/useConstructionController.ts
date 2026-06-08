@@ -9,22 +9,26 @@ import {
 import {
   addCircleThreePoints,
   addCircleThroughPoints,
+  applyMeasurementConstraint,
   deleteConstructions,
   evaluateConstruction,
   moveFreePoint,
-  removeSegmentLengthAssertion,
-  segmentLengthAssertion,
+  removeSegmentLengthMeasurement,
+  segmentLengthMeasurement,
   setConstructionShapeRole,
+  setFreePointMobility,
   setMeasurementUnitLength,
   setMeasurementVariableValue,
   translateShape,
-  upsertSegmentLengthAssertion,
+  upsertSegmentLengthMeasurement,
 } from "@euclid/geometry";
 import type {
   ConstructionId,
   ConstructionProgram,
+  MeasurementConstraintBehavior,
   MeasurementId,
   MeasurementIntent,
+  PointMobility,
   ScenePoint,
   ShapeRole,
   WorldPoint,
@@ -63,6 +67,7 @@ export type ConstructionController = Readonly<{
   handleRedo: () => void;
   handleDeleteSelected: () => void;
   handleSetShapeRole: (id: ConstructionId, shapeRole: ShapeRole) => void;
+  handleSetFreePointMobility: (id: ConstructionId, mobility: PointMobility) => void;
   handleSetMeasurementUnitLength: (unitLength: number | undefined) => void;
   handleSetMeasurementVariableValue: (variable: string, value: number | undefined) => void;
   handleUpsertSegmentMeasurement: (
@@ -71,6 +76,8 @@ export type ConstructionController = Readonly<{
     intent: MeasurementIntent,
   ) => void;
   handleRemoveSegmentMeasurement: (id: MeasurementId) => void;
+  handleApplyMeasurementConstraint: (id: MeasurementId, behavior: MeasurementConstraintBehavior) => void;
+  measurementActionMessages: Readonly<Record<MeasurementId, string>>;
   handleAddPoint: (sceneCoords: ScenePoint) => void;
   handleAddIntersection: (hit: IntersectionHit) => void;
   handleBeginPointDrag: (id: ConstructionId) => void;
@@ -104,6 +111,9 @@ export function useConstructionController({
     return firstRegisteredTool(policy.allowedTools);
   });
   const [toolDraft, setToolDraft] = useState<ToolDraft>(emptyToolDraft);
+  const [measurementActionMessages, setMeasurementActionMessages] = useState<
+    Readonly<Record<MeasurementId, string>>
+  >({});
   const dragStartProgram = useRef<ConstructionProgram | undefined>(undefined);
 
   const program = history.present;
@@ -491,6 +501,16 @@ export function useConstructionController({
     });
   }, []);
 
+  const handleSetFreePointMobility = useCallback((id: ConstructionId, mobility: PointMobility) => {
+    setHistory((prev) => {
+      const nextProgram = setFreePointMobility(prev.present, id, mobility);
+      if (nextProgram === prev.present) {
+        return prev;
+      }
+      return pushState(prev, nextProgram);
+    });
+  }, []);
+
   const handleSetMeasurementUnitLength = useCallback((unitLength: number | undefined) => {
     setHistory((prev) => {
       const nextProgram = setMeasurementUnitLength(prev.present, unitLength);
@@ -517,9 +537,9 @@ export function useConstructionController({
       length: number | string,
       intent: MeasurementIntent,
     ) => {
-      const result = upsertSegmentLengthAssertion(
+      const result = upsertSegmentLengthMeasurement(
         program,
-        segmentLengthAssertion(points[0], points[1], length, intent),
+        segmentLengthMeasurement(points[0], points[1], length, intent),
       );
       if (!result.changed) {
         return;
@@ -531,13 +551,33 @@ export function useConstructionController({
 
   const handleRemoveSegmentMeasurement = useCallback((id: MeasurementId) => {
     setHistory((prev) => {
-      const nextProgram = removeSegmentLengthAssertion(prev.present, id);
+      const nextProgram = removeSegmentLengthMeasurement(prev.present, id);
       if (nextProgram === prev.present) {
         return prev;
       }
       return pushState(prev, nextProgram);
     });
+    setMeasurementActionMessages((messages) => {
+      const nextMessages = Object.fromEntries(Object.entries(messages).filter(([key]) => key !== id));
+      return nextMessages;
+    });
   }, []);
+
+  const handleApplyMeasurementConstraint = useCallback(
+    (id: MeasurementId, behavior: MeasurementConstraintBehavior) => {
+      const result = applyMeasurementConstraint(program, evaluated, id, behavior, {
+        canMoveConstruction: (construction) => canDragConstruction(policy, construction),
+      });
+      setMeasurementActionMessages((messages) => ({
+        ...messages,
+        [id]: result.message,
+      }));
+      if (result.ok && result.changed) {
+        updateProgram(result.program);
+      }
+    },
+    [program, evaluated, policy, updateProgram],
+  );
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -609,10 +649,13 @@ export function useConstructionController({
     handleRedo,
     handleDeleteSelected,
     handleSetShapeRole,
+    handleSetFreePointMobility,
     handleSetMeasurementUnitLength,
     handleSetMeasurementVariableValue,
     handleUpsertSegmentMeasurement,
     handleRemoveSegmentMeasurement,
+    handleApplyMeasurementConstraint,
+    measurementActionMessages,
     handleAddPoint,
     handleAddIntersection,
     handleBeginPointDrag,

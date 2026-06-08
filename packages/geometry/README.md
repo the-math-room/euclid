@@ -7,7 +7,8 @@ Read this before changing any construction semantics.
 ## Owns
 
 - `Construction`, `ConstructionProgram`, construction expressions, evaluated primitives, diagnostics.
-- Measurement settings, authored segment length assertions, assertion/driving intent, algebraic measurement expressions, and their pure evaluation.
+- Measurement settings, authored segment length measurements, check/constraint intent, algebraic measurement expressions, and their pure evaluation.
+- Free-point mobility (`free`/`fixed`) as authored geometry state.
 - Branded world/scene coordinate types and constructors.
 - Shared construction schemas for JSON/content boundaries.
 - Dependency extraction and dependency graph evaluation.
@@ -28,7 +29,7 @@ Read this before changing any construction semantics.
 
 - `src/model.ts`: construction ADT, expressions, primitives, diagnostics, branded coordinates.
 - `src/constructionSchemas.ts`: Zod schemas for construction syntax at content boundaries.
-- `src/measurement.ts`: measurement-expression parsing, unit/variable evaluation, and diagnostics for authored segment length assertions.
+- `src/measurement.ts`: measurement-expression parsing, unit/variable evaluation, and diagnostics for authored segment length measurements.
 - `src/dependencies.ts`: dependency ids, graph, transitive dependents, deletion.
 - `src/evaluate.ts`: graph planning and exact meaning.
 - `src/realize.ts`: approximate realization and realization diagnostics.
@@ -45,8 +46,10 @@ Read this before changing any construction semantics.
 - Evaluation must use explicit dependency graph planning; source order is not semantic order.
 - Add construction variants as discriminated-union cases, then update dependencies, meaning, realization, explanation, schemas, edits, and tests together.
 - `shapeRole` is authored presentation intent for line/circle-producing constructions. Keep it on construction syntax and realized primitives; do not put it in exact construction expressions.
-- Segment length assertions and measurement settings are authored geometric state. Keep their data shape and evaluation in geometry; assessment, rendering, and label layout may interpret evaluated results but should not own them.
-- `intent: "driving"` records that a future solver may use the measurement as a constraint. Until solver behavior exists, driving measurements still only evaluate and report diagnostics.
+- `mobility` is authored state on free points. Fixed points remain points in the construction graph, but movement edits and constraint measurement application must treat them as immovable.
+- Segment length measurements and measurement settings are authored geometric state. Keep their data shape and evaluation in geometry; assessment, rendering, and label layout may interpret evaluated results but should not own them.
+- `intent: "constraint"` records that a future solver may use the measurement as a constraint. Until solver behavior exists, constraint measurements still only evaluate and report diagnostics.
+- Constraint measurements can be applied by explicit behavior only: either calibrate the unit scale while keeping points fixed, or keep the unit scale and move exactly one movable free endpoint. If zero or two endpoints can move, return an error instead of guessing.
 - Zod is allowed in `constructionSchemas.ts`; do not import it into evaluation, realization, or edit modules.
 - Construction-adding edits return `{ program, id, changed }`.
 - Edits that rebuild a `ConstructionProgram` must preserve program-level metadata such as measurements.

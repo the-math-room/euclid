@@ -2,15 +2,19 @@ import type {
   Construction,
   ConstructionId,
   ConstructionProgram,
+  Evaluation,
   MeasurementExpression,
   MeasurementId,
   MeasurementIntent,
   Point2,
-  SegmentLengthAssertion,
+  PointMobility,
+  SegmentLengthMeasurement,
   ShapeRole,
   WorldPoint,
 } from "./model";
 import { toWorldPoint } from "./model";
+import { evaluateMeasurements } from "./measurement";
+import type { EvaluatedSegmentLengthMeasurement } from "./measurement";
 import { generateNextPointLabel } from "./names";
 
 export type AddConstructionResult = Readonly<{
@@ -19,10 +23,37 @@ export type AddConstructionResult = Readonly<{
   changed: boolean;
 }>;
 
-export type UpsertSegmentLengthAssertionResult = Readonly<{
+export type UpsertSegmentLengthMeasurementResult = Readonly<{
   program: ConstructionProgram;
   id: MeasurementId | undefined;
   changed: boolean;
+}>;
+
+export type MeasurementConstraintBehavior = "calibrate-unit" | "move-free-endpoint";
+
+export type ApplyMeasurementConstraintResult =
+  | Readonly<{
+      ok: true;
+      program: ConstructionProgram;
+      changed: boolean;
+      message: string;
+    }>
+  | Readonly<{
+      ok: false;
+      program: ConstructionProgram;
+      code:
+        | "measurement:not-found"
+        | "measurement:not-constraint"
+        | "measurement:not-evaluable"
+        | "measurement:no-movable-endpoint"
+        | "measurement:ambiguous-movable-endpoint"
+        | "measurement:missing-endpoint"
+        | "measurement:coincident-endpoints";
+      message: string;
+    }>;
+
+export type MeasurementConstraintOptions = Readonly<{
+  canMoveConstruction?: (construction: Construction) => boolean;
 }>;
 
 export function addFreePoint(program: ConstructionProgram, position: WorldPoint): AddConstructionResult {
@@ -54,6 +85,10 @@ export function moveFreePoint(
   let changed = false;
   const constructions = program.constructions.map((construction): Construction => {
     if (construction.id !== id || construction.kind !== "free-point") {
+      return construction;
+    }
+
+    if ((construction.mobility ?? "free") === "fixed") {
       return construction;
     }
 
@@ -103,6 +138,44 @@ export function setConstructionShapeRole(
     return {
       ...construction,
       shapeRole,
+    };
+  });
+
+  if (!changed) {
+    return program;
+  }
+
+  return {
+    ...program,
+    constructions,
+  };
+}
+
+export function setFreePointMobility(
+  program: ConstructionProgram,
+  id: ConstructionId,
+  mobility: PointMobility,
+): ConstructionProgram {
+  let changed = false;
+  const constructions = program.constructions.map((construction): Construction => {
+    if (construction.id !== id || construction.kind !== "free-point") {
+      return construction;
+    }
+
+    if ((construction.mobility ?? "free") === mobility) {
+      return construction;
+    }
+
+    changed = true;
+    if (mobility === "free") {
+      const next = { ...construction };
+      delete next.mobility;
+      return next;
+    }
+
+    return {
+      ...construction,
+      mobility,
     };
   });
 
@@ -178,32 +251,32 @@ export function setMeasurementVariableValue(
   });
 }
 
-export function upsertSegmentLengthAssertion(
+export function upsertSegmentLengthMeasurement(
   program: ConstructionProgram,
-  assertion: SegmentLengthAssertion,
-): UpsertSegmentLengthAssertionResult {
-  if (assertion.from === assertion.to) {
+  nextMeasurement: SegmentLengthMeasurement,
+): UpsertSegmentLengthMeasurementResult {
+  if (nextMeasurement.from === nextMeasurement.to) {
     return unchanged(program);
   }
 
   const existingIndex = (program.measurements ?? []).findIndex(
     (measurement) =>
-      measurement.id === assertion.id ||
-      sameIdSet([measurement.from, measurement.to], [assertion.from, assertion.to]),
+      measurement.id === nextMeasurement.id ||
+      sameIdSet([measurement.from, measurement.to], [nextMeasurement.from, nextMeasurement.to]),
   );
   const measurements =
     existingIndex === -1
-      ? [...(program.measurements ?? []), assertion]
+      ? [...(program.measurements ?? []), nextMeasurement]
       : (program.measurements ?? []).map((measurement, index) =>
-          index === existingIndex ? { ...assertion, id: measurement.id } : measurement,
+          index === existingIndex ? { ...nextMeasurement, id: measurement.id } : measurement,
         );
   const existing = existingIndex === -1 ? undefined : (program.measurements ?? [])[existingIndex];
 
-  if (existing && sameSegmentLengthAssertion(existing, measurements[existingIndex])) {
+  if (existing && sameSegmentLengthMeasurement(existing, measurements[existingIndex])) {
     return unchanged(program, existing.id);
   }
 
-  const id = existing?.id ?? assertion.id;
+  const id = existing?.id ?? nextMeasurement.id;
   return {
     program: {
       ...program,
@@ -214,7 +287,7 @@ export function upsertSegmentLengthAssertion(
   };
 }
 
-export function removeSegmentLengthAssertion(
+export function removeSegmentLengthMeasurement(
   program: ConstructionProgram,
   id: MeasurementId,
 ): ConstructionProgram {
@@ -228,6 +301,52 @@ export function removeSegmentLengthAssertion(
     ...program,
     measurements: nextMeasurements.length === 0 ? undefined : nextMeasurements,
   };
+}
+
+export function applyMeasurementConstraint(
+  program: ConstructionProgram,
+  evaluation: Evaluation,
+  id: MeasurementId,
+  behavior: MeasurementConstraintBehavior,
+  options: MeasurementConstraintOptions = {},
+): ApplyMeasurementConstraintResult {
+  const measurement = (program.measurements ?? []).find((candidate) => candidate.id === id);
+  if (!measurement) {
+    return applyMeasurementConstraintFailure(program, "measurement:not-found", "Measurement was not found.");
+  }
+
+  if ((measurement.intent ?? "check") !== "constraint") {
+    return applyMeasurementConstraintFailure(
+      program,
+      "measurement:not-constraint",
+      "Only constraint measurements can be applied.",
+    );
+  }
+
+  const measurementEvaluation = evaluateMeasurements(program, evaluation);
+  const segment = measurementEvaluation.segments.find((candidate) => candidate.measurement.id === id);
+  if (!segment || segment.expressionValue === undefined || segment.expressionValue <= 0) {
+    const diagnostic = measurementEvaluation.diagnostics.find((candidate) => candidate.measurementId === id);
+    return applyMeasurementConstraintFailure(
+      program,
+      "measurement:not-evaluable",
+      diagnostic?.message ??
+        "Measurement must evaluate to a positive target length before it can be applied.",
+    );
+  }
+
+  if (behavior === "calibrate-unit") {
+    const unitLength = segment.actualWorldLength / segment.expressionValue;
+    const nextProgram = setMeasurementUnitLength(program, unitLength);
+    return {
+      ok: true,
+      program: nextProgram,
+      changed: nextProgram !== program,
+      message: `Unit scale calibrated to ${formatAppliedNumber(unitLength)} world units per measurement unit.`,
+    };
+  }
+
+  return applyMeasurementConstraintByMovingFreeEndpoint(program, segment, options);
 }
 
 export function addLineThroughPoints(
@@ -604,6 +723,111 @@ function unchanged(program: ConstructionProgram, id?: ConstructionId): AddConstr
   };
 }
 
+function applyMeasurementConstraintByMovingFreeEndpoint(
+  program: ConstructionProgram,
+  segment: EvaluatedSegmentLengthMeasurement,
+  options: MeasurementConstraintOptions,
+): ApplyMeasurementConstraintResult {
+  const fromConstruction = constructionById(program, segment.measurement.from);
+  const toConstruction = constructionById(program, segment.measurement.to);
+  if (!fromConstruction || !toConstruction) {
+    return applyMeasurementConstraintFailure(
+      program,
+      "measurement:missing-endpoint",
+      "Measurement endpoint construction was not found.",
+    );
+  }
+
+  const fromMovable = canMoveEndpoint(fromConstruction, options);
+  const toMovable = canMoveEndpoint(toConstruction, options);
+  if (fromMovable && toMovable) {
+    return applyMeasurementConstraintFailure(
+      program,
+      "measurement:ambiguous-movable-endpoint",
+      "Both segment endpoints can move. Select a measurement with exactly one movable free point.",
+    );
+  }
+
+  if (!fromMovable && !toMovable) {
+    return applyMeasurementConstraintFailure(
+      program,
+      "measurement:no-movable-endpoint",
+      "Neither segment endpoint can move. A constraint measurement needs exactly one movable free point.",
+    );
+  }
+
+  if (segment.expressionValue === undefined) {
+    return applyMeasurementConstraintFailure(
+      program,
+      "measurement:not-evaluable",
+      "Measurement must evaluate to a positive target length before it can be applied.",
+    );
+  }
+
+  const movingId = fromMovable ? segment.measurement.from : segment.measurement.to;
+  const fixedPoint = fromMovable ? segment.to : segment.from;
+  const movingPoint = fromMovable ? segment.from : segment.to;
+  const currentLength = Math.hypot(movingPoint.x - fixedPoint.x, movingPoint.y - fixedPoint.y);
+  if (currentLength === 0) {
+    return applyMeasurementConstraintFailure(
+      program,
+      "measurement:coincident-endpoints",
+      "Coincident endpoints do not define a direction for moving the free point.",
+    );
+  }
+
+  const effectiveUnitLength = segment.actualWorldLength / segment.actualUnitLength;
+  const targetWorldLength = segment.expressionValue * effectiveUnitLength;
+  const nextPosition = toWorldPoint({
+    x: fixedPoint.x + ((movingPoint.x - fixedPoint.x) / currentLength) * targetWorldLength,
+    y: fixedPoint.y + ((movingPoint.y - fixedPoint.y) / currentLength) * targetWorldLength,
+  });
+  const nextProgram = moveFreePoint(program, movingId, nextPosition);
+
+  return {
+    ok: true,
+    program: nextProgram,
+    changed: nextProgram !== program,
+    message: `Moved ${movingId} to satisfy the constraint measurement.`,
+  };
+}
+
+function canMoveEndpoint(construction: Construction, options: MeasurementConstraintOptions): boolean {
+  if (construction.kind !== "free-point") {
+    return false;
+  }
+
+  if ((construction.mobility ?? "free") === "fixed") {
+    return false;
+  }
+
+  return options.canMoveConstruction?.(construction) ?? true;
+}
+
+function constructionById(program: ConstructionProgram, id: ConstructionId): Construction | undefined {
+  return program.constructions.find((construction) => construction.id === id);
+}
+
+function applyMeasurementConstraintFailure(
+  program: ConstructionProgram,
+  code: Extract<ApplyMeasurementConstraintResult, { ok: false }>["code"],
+  message: string,
+): ApplyMeasurementConstraintResult {
+  return {
+    ok: false,
+    program,
+    code,
+    message,
+  };
+}
+
+function formatAppliedNumber(value: number): string {
+  if (Number.isInteger(value)) {
+    return String(value);
+  }
+  return Number(value.toFixed(4)).toString();
+}
+
 function withMeasurementSettings(
   program: ConstructionProgram,
   settings: ConstructionProgram["measurementSettings"],
@@ -631,35 +855,35 @@ function isMeasurementVariableName(value: string): boolean {
   return /^[A-Za-z]\w*$/.test(value);
 }
 
-function sameSegmentLengthAssertion(a: SegmentLengthAssertion, b: SegmentLengthAssertion): boolean {
+function sameSegmentLengthMeasurement(a: SegmentLengthMeasurement, b: SegmentLengthMeasurement): boolean {
   return (
     a.id === b.id &&
     a.kind === b.kind &&
     a.from === b.from &&
     a.to === b.to &&
     a.length === b.length &&
-    (a.intent ?? "asserted") === (b.intent ?? "asserted") &&
+    (a.intent ?? "check") === (b.intent ?? "check") &&
     a.label === b.label
   );
 }
 
-export function segmentLengthAssertionId(from: ConstructionId, to: ConstructionId): MeasurementId {
+export function segmentLengthMeasurementId(from: ConstructionId, to: ConstructionId): MeasurementId {
   return `length-${slugFor(from)}-${slugFor(to)}`;
 }
 
-export function segmentLengthAssertion(
+export function segmentLengthMeasurement(
   from: ConstructionId,
   to: ConstructionId,
   length: MeasurementExpression,
-  intent: MeasurementIntent = "asserted",
-): SegmentLengthAssertion {
+  intent: MeasurementIntent = "check",
+): SegmentLengthMeasurement {
   return {
-    id: segmentLengthAssertionId(from, to),
+    id: segmentLengthMeasurementId(from, to),
     kind: "segment-length",
     from,
     to,
     length,
-    ...(intent === "asserted" ? {} : { intent }),
+    ...(intent === "check" ? {} : { intent }),
     label: `${from}${to}`,
   };
 }
@@ -702,7 +926,7 @@ export function translateShape(
 
   let changed = false;
   const constructions = program.constructions.map((c): Construction => {
-    if (c.kind === "free-point" && pointsToTranslate.has(c.id)) {
+    if (c.kind === "free-point" && (c.mobility ?? "free") !== "fixed" && pointsToTranslate.has(c.id)) {
       changed = true;
       return {
         ...c,

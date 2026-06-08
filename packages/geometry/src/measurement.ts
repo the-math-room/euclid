@@ -3,7 +3,7 @@ import type {
   ConstructionProgram,
   Evaluation,
   MeasurementExpression,
-  SegmentLengthAssertion,
+  SegmentLengthMeasurement,
   WorldPoint,
 } from "./model";
 
@@ -28,9 +28,9 @@ export type MeasurementDiagnostic = Readonly<{
   message: string;
 }>;
 
-export type EvaluatedSegmentLengthAssertion = Readonly<{
-  assertion: SegmentLengthAssertion;
-  intent: "asserted" | "driving";
+export type EvaluatedSegmentLengthMeasurement = Readonly<{
+  measurement: SegmentLengthMeasurement;
+  intent: "check" | "constraint";
   from: WorldPoint;
   to: WorldPoint;
   actualWorldLength: number;
@@ -45,7 +45,7 @@ export type EvaluatedSegmentLengthAssertion = Readonly<{
 export type MeasurementEvaluation = Readonly<{
   unitLength: number;
   variables: Readonly<Record<string, number>>;
-  segments: readonly EvaluatedSegmentLengthAssertion[];
+  segments: readonly EvaluatedSegmentLengthMeasurement[];
   diagnostics: readonly MeasurementDiagnostic[];
 }>;
 
@@ -57,7 +57,7 @@ export function evaluateMeasurements(
   const unitLength = resolvedUnitLength(program.measurementSettings?.unitLength);
   const variables = program.measurementSettings?.variables ?? {};
   const diagnostics: MeasurementDiagnostic[] = [];
-  const segments: EvaluatedSegmentLengthAssertion[] = [];
+  const segments: EvaluatedSegmentLengthMeasurement[] = [];
 
   if (unitLength === undefined) {
     diagnostics.push({
@@ -70,13 +70,13 @@ export function evaluateMeasurements(
   const effectiveUnitLength = unitLength ?? defaultUnitLength;
   const tolerance = options?.tolerance ?? defaultMeasurementTolerance;
 
-  for (const assertion of program.measurements ?? []) {
-    const intent = assertion.intent ?? "asserted";
-    const from = points.get(assertion.from);
-    const to = points.get(assertion.to);
+  for (const measurement of program.measurements ?? []) {
+    const intent = measurement.intent ?? "check";
+    const from = points.get(measurement.from);
+    const to = points.get(measurement.to);
     if (!from || !to) {
       diagnostics.push({
-        measurementId: assertion.id,
+        measurementId: measurement.id,
         code: "measurement:unrealized-endpoint",
         message: "Measurement endpoints must be realized points.",
       });
@@ -85,16 +85,16 @@ export function evaluateMeasurements(
 
     const actualWorldLength = distance(from, to);
     const actualUnitLength = actualWorldLength / effectiveUnitLength;
-    const expression = parseLinearMeasurementExpression(assertion.length);
+    const expression = parseLinearMeasurementExpression(measurement.length);
     if (!expression) {
       const diagnostic = {
-        measurementId: assertion.id,
+        measurementId: measurement.id,
         code: "measurement:invalid-expression" as const,
         message: "Measurement length must be a finite number or one-variable linear expression.",
       };
       diagnostics.push(diagnostic);
       segments.push({
-        assertion,
+        measurement,
         intent,
         from,
         to,
@@ -109,13 +109,13 @@ export function evaluateMeasurements(
     const variableValue = expression.variable === undefined ? 0 : variables[expression.variable];
     if (variableValue === undefined) {
       const diagnostic = {
-        measurementId: assertion.id,
+        measurementId: measurement.id,
         code: "measurement:unassigned-variable" as const,
         message: `Variable ${expression.variable} needs a value before this measurement can be checked.`,
       };
       diagnostics.push(diagnostic);
       segments.push({
-        assertion,
+        measurement,
         intent,
         from,
         to,
@@ -132,13 +132,13 @@ export function evaluateMeasurements(
     const expressionValue = evaluateLinearMeasurementExpression(expression, variableValue);
     if (expressionValue <= 0) {
       const diagnostic = {
-        measurementId: assertion.id,
+        measurementId: measurement.id,
         code: "measurement:non-positive-expression" as const,
         message: "Measurement expressions must evaluate to a positive length.",
       };
       diagnostics.push(diagnostic);
       segments.push({
-        assertion,
+        measurement,
         intent,
         from,
         to,
@@ -156,13 +156,13 @@ export function evaluateMeasurements(
     const delta = Math.abs(actualUnitLength - expressionValue);
     if (delta > tolerance) {
       const diagnostic = {
-        measurementId: assertion.id,
+        measurementId: measurement.id,
         code: "measurement:length-mismatch" as const,
         message: `Measured segment is ${formatMeasurementValue(actualUnitLength)} units, but the expression evaluates to ${formatMeasurementValue(expressionValue)}.`,
       };
       diagnostics.push(diagnostic);
       segments.push({
-        assertion,
+        measurement,
         intent,
         from,
         to,
@@ -178,7 +178,7 @@ export function evaluateMeasurements(
     }
 
     segments.push({
-      assertion,
+      measurement,
       intent,
       from,
       to,

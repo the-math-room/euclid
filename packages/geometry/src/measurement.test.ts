@@ -54,7 +54,7 @@ describe("measurement expressions", () => {
     expect(variablesInMeasurementExpressions(["x + 1", 2, "3y - 4"])).toEqual(["x", "y"]);
   });
 
-  it("lets construction programs carry authored segment length assertions", () => {
+  it("lets construction programs carry authored segment length measurements", () => {
     const program: ConstructionProgram = {
       constructions: [
         { id: "A", kind: "free-point", label: "A", position: toWorldPoint({ x: 0, y: 0 }) },
@@ -92,7 +92,7 @@ describe("measurement expressions", () => {
       actualUnitLength: 2,
       expressionValue: 2,
       status: "satisfied",
-      intent: "asserted",
+      intent: "check",
     });
     expect(result.diagnostics).toEqual([]);
   });
@@ -120,7 +120,7 @@ describe("measurement expressions", () => {
     ]);
   });
 
-  it("carries driving intent without solving constraints", () => {
+  it("carries constraint intent without solving constraints", () => {
     const program: ConstructionProgram = {
       constructions: [
         { id: "A", kind: "free-point", label: "A", position: toWorldPoint({ x: 0, y: 0 }) },
@@ -133,7 +133,7 @@ describe("measurement expressions", () => {
           from: "A",
           to: "B",
           length: 2,
-          intent: "driving",
+          intent: "constraint",
         },
       ],
     };
@@ -141,7 +141,7 @@ describe("measurement expressions", () => {
     const result = evaluateMeasurements(program, evaluateConstruction(program));
 
     expect(result.segments[0]).toMatchObject({
-      intent: "driving",
+      intent: "constraint",
       status: "mismatch",
     });
     expect(result.diagnostics[0]).toMatchObject({

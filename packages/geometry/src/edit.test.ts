@@ -11,13 +11,15 @@ import {
   addParallelLine,
   addPerpendicularLine,
   addMidpoint,
+  applyMeasurementConstraint,
   moveFreePoint,
-  segmentLengthAssertion,
+  segmentLengthMeasurement,
   setConstructionShapeRole,
+  setFreePointMobility,
   setMeasurementUnitLength,
   setMeasurementVariableValue,
   translateShape,
-  upsertSegmentLengthAssertion,
+  upsertSegmentLengthMeasurement,
 } from "./edit";
 import { toWorldPoint, type ConstructionProgram } from "./model";
 
@@ -75,6 +77,30 @@ describe("construction edits", () => {
     };
 
     expect(moveFreePoint(program, "line-ab", toWorldPoint({ x: 2, y: 0 }))).toBe(program);
+  });
+
+  it("sets free point mobility and prevents fixed points from moving", () => {
+    const program: ConstructionProgram = {
+      constructions: [{ id: "A", kind: "free-point", label: "A", position: toWorldPoint({ x: 0, y: 0 }) }],
+    };
+
+    const fixed = setFreePointMobility(program, "A", "fixed");
+    expect(fixed.constructions[0]).toEqual({
+      id: "A",
+      kind: "free-point",
+      label: "A",
+      mobility: "fixed",
+      position: toWorldPoint({ x: 0, y: 0 }),
+    });
+    expect(moveFreePoint(fixed, "A", toWorldPoint({ x: 1, y: 1 }))).toBe(fixed);
+
+    const free = setFreePointMobility(fixed, "A", "free");
+    expect(free.constructions[0]).toEqual({
+      id: "A",
+      kind: "free-point",
+      label: "A",
+      position: toWorldPoint({ x: 0, y: 0 }),
+    });
   });
 
   it("adds a line through two points with a stable dependency-based id", () => {
@@ -150,7 +176,7 @@ describe("construction edits", () => {
     expect(setMeasurementUnitLength(withVariable, 2)).toBe(withVariable);
   });
 
-  it("upserts segment length assertions between point ids", () => {
+  it("upserts segment length measurements between point ids", () => {
     const program: ConstructionProgram = {
       constructions: [
         { id: "A", kind: "free-point", label: "A", position: toWorldPoint({ x: 0, y: 0 }) },
@@ -158,10 +184,10 @@ describe("construction edits", () => {
       ],
     };
 
-    const created = upsertSegmentLengthAssertion(program, segmentLengthAssertion("A", "B", "x"));
-    const updated = upsertSegmentLengthAssertion(
+    const created = upsertSegmentLengthMeasurement(program, segmentLengthMeasurement("A", "B", "x"));
+    const updated = upsertSegmentLengthMeasurement(
       created.program,
-      segmentLengthAssertion("B", "A", "2x", "driving"),
+      segmentLengthMeasurement("B", "A", "2x", "constraint"),
     );
 
     expect(created.changed).toBe(true);
@@ -175,10 +201,131 @@ describe("construction edits", () => {
         from: "B",
         to: "A",
         length: "2x",
-        intent: "driving",
+        intent: "constraint",
         label: "BA",
       },
     ]);
+  });
+
+  it("applies a constraint segment measurement by redefining the unit", () => {
+    const program: ConstructionProgram = {
+      constructions: [
+        { id: "A", kind: "free-point", label: "A", position: toWorldPoint({ x: 0, y: 0 }) },
+        { id: "B", kind: "midpoint", label: "B", points: ["A", "C"] },
+        { id: "C", kind: "free-point", label: "C", position: toWorldPoint({ x: 6, y: 0 }) },
+      ],
+      measurements: [segmentLengthMeasurement("A", "B", 2, "constraint")],
+    };
+
+    const result = applyMeasurementConstraint(
+      program,
+      evaluateConstruction(program),
+      "length-a-b",
+      "calibrate-unit",
+    );
+
+    expect(result).toMatchObject({ ok: true, changed: true });
+    if (result.ok) {
+      expect(result.program.measurementSettings?.unitLength).toBe(1.5);
+      expect(result.program.constructions).toBe(program.constructions);
+    }
+  });
+
+  it("applies a constraint segment measurement by moving exactly one movable free endpoint", () => {
+    const program: ConstructionProgram = {
+      constructions: [
+        { id: "A", kind: "midpoint", label: "A", points: ["B", "C"] },
+        { id: "B", kind: "free-point", label: "B", position: toWorldPoint({ x: 0, y: 0 }) },
+        { id: "C", kind: "free-point", label: "C", position: toWorldPoint({ x: 4, y: 0 }) },
+      ],
+      measurements: [segmentLengthMeasurement("A", "B", 3, "constraint")],
+    };
+
+    const result = applyMeasurementConstraint(
+      program,
+      evaluateConstruction(program),
+      "length-a-b",
+      "move-free-endpoint",
+      {
+        canMoveConstruction: (construction) => construction.id === "B",
+      },
+    );
+
+    expect(result).toMatchObject({ ok: true, changed: true });
+    if (result.ok) {
+      const moved = result.program.constructions.find((construction) => construction.id === "B");
+      expect(moved).toEqual({
+        id: "B",
+        kind: "free-point",
+        label: "B",
+        position: toWorldPoint({ x: -1, y: 0 }),
+      });
+    }
+  });
+
+  it("refuses to move a constraint segment when both endpoints can move", () => {
+    const program: ConstructionProgram = {
+      constructions: [
+        { id: "A", kind: "free-point", label: "A", position: toWorldPoint({ x: 0, y: 0 }) },
+        { id: "B", kind: "free-point", label: "B", position: toWorldPoint({ x: 4, y: 0 }) },
+      ],
+      measurements: [segmentLengthMeasurement("A", "B", 3, "constraint")],
+    };
+
+    expect(
+      applyMeasurementConstraint(program, evaluateConstruction(program), "length-a-b", "move-free-endpoint"),
+    ).toMatchObject({
+      ok: false,
+      code: "measurement:ambiguous-movable-endpoint",
+    });
+  });
+
+  it("refuses to move a constraint segment when neither endpoint can move", () => {
+    const program: ConstructionProgram = {
+      constructions: [
+        { id: "A", kind: "free-point", label: "A", position: toWorldPoint({ x: 0, y: 0 }) },
+        { id: "B", kind: "free-point", label: "B", position: toWorldPoint({ x: 4, y: 0 }) },
+      ],
+      measurements: [segmentLengthMeasurement("A", "B", 3, "constraint")],
+    };
+
+    expect(
+      applyMeasurementConstraint(program, evaluateConstruction(program), "length-a-b", "move-free-endpoint", {
+        canMoveConstruction: () => false,
+      }),
+    ).toMatchObject({
+      ok: false,
+      code: "measurement:no-movable-endpoint",
+    });
+  });
+
+  it("treats fixed free points as immovable for constraint segment measurements", () => {
+    const program: ConstructionProgram = {
+      constructions: [
+        {
+          id: "A",
+          kind: "free-point",
+          label: "A",
+          mobility: "fixed",
+          position: toWorldPoint({ x: 0, y: 0 }),
+        },
+        {
+          id: "B",
+          kind: "free-point",
+          label: "B",
+          mobility: "fixed",
+          position: toWorldPoint({ x: 4, y: 0 }),
+        },
+      ],
+      measurements: [segmentLengthMeasurement("A", "B", 3, "constraint")],
+    };
+
+    expect(
+      applyMeasurementConstraint(program, evaluateConstruction(program), "length-a-b", "move-free-endpoint"),
+    ).toMatchObject({
+      ok: false,
+      code: "measurement:no-movable-endpoint",
+    });
   });
 
   it("does not add duplicate or self-dependent lines", () => {

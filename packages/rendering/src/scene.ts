@@ -137,9 +137,9 @@ export function sceneForEvaluation(
     const from = projectPoint(frame, segment.from);
     const to = projectPoint(frame, segment.to);
     measurementLabels.push({
-      id: segment.assertion.id,
+      id: segment.measurement.id,
       kind: "measurement-label",
-      text: formatMeasurementExpression(segment.assertion.length),
+      text: formatMeasurementExpression(segment.measurement.length),
       anchor: segmentLabelAnchor(from, to, fontSize),
       status: segment.status,
     });

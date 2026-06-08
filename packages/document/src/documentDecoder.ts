@@ -1,10 +1,10 @@
 import {
   measurementSettingsSchema,
-  segmentLengthAssertionSchema,
+  segmentLengthMeasurementSchema,
   type Construction,
   type ConstructionProgram,
   type MeasurementSettings,
-  type SegmentLengthAssertion,
+  type SegmentLengthMeasurement,
 } from "@euclid/geometry";
 import { z } from "zod";
 import { decodeConstruction } from "./constructionDecoder";
@@ -34,8 +34,8 @@ type ConstructionListDecodeResult =
   | Readonly<{ ok: true; value: readonly Construction[] }>
   | Readonly<{ ok: false; diagnostic: string }>;
 
-type SegmentLengthAssertionListDecodeResult =
-  | Readonly<{ ok: true; value: readonly SegmentLengthAssertion[] }>
+type SegmentLengthMeasurementListDecodeResult =
+  | Readonly<{ ok: true; value: readonly SegmentLengthMeasurement[] }>
   | Readonly<{ ok: false; diagnostic: string }>;
 
 type MeasurementSettingsDecodeResult =
@@ -76,7 +76,7 @@ function decodeConstructionProgram(value: DocumentEnvelope["program"]): ProgramD
     };
   }
 
-  const measurements = decodeSegmentLengthAssertionList(value.measurements ?? []);
+  const measurements = decodeSegmentLengthMeasurementList(value.measurements ?? []);
   if (!measurements.ok) {
     return {
       ok: false,
@@ -118,10 +118,12 @@ function decodeConstructionList(value: readonly unknown[]): ConstructionListDeco
   };
 }
 
-function decodeSegmentLengthAssertionList(value: readonly unknown[]): SegmentLengthAssertionListDecodeResult {
-  const measurements: SegmentLengthAssertion[] = [];
+function decodeSegmentLengthMeasurementList(
+  value: readonly unknown[],
+): SegmentLengthMeasurementListDecodeResult {
+  const measurements: SegmentLengthMeasurement[] = [];
   for (const [index, measurement] of value.entries()) {
-    const decoded = segmentLengthAssertionSchema.safeParse(measurement);
+    const decoded = segmentLengthMeasurementSchema.safeParse(measurement);
     if (!decoded.success) {
       return measurementListInvalid(
         diagnosticForMeasurementError(decoded.error, `Document program.measurements[${index}]`),
@@ -218,7 +220,7 @@ function diagnosticForMeasurementSettingsError(error: z.ZodError): string {
 function diagnosticForMeasurementError(error: z.ZodError, path: string): string {
   const issue = error.issues[0];
   if (!issue) {
-    return `${path} must be a segment length assertion.`;
+    return `${path} must be a segment length measurement.`;
   }
 
   const issuePath = pathForIssue(path, issue.path);
@@ -233,7 +235,7 @@ function diagnosticForMeasurementError(error: z.ZodError, path: string): string 
   }
 
   if (field === "intent") {
-    return `${issuePath} must be asserted or driving.`;
+    return `${issuePath} must be check or constraint.`;
   }
 
   if (field === "label") {
@@ -244,7 +246,7 @@ function diagnosticForMeasurementError(error: z.ZodError, path: string): string 
     return `${issuePath} must be a string.`;
   }
 
-  return `${path} must be a segment length assertion.`;
+  return `${path} must be a segment length measurement.`;
 }
 
 function pathForIssue(root: string, issuePath: readonly PropertyKey[]): string {
@@ -267,7 +269,7 @@ function constructionListInvalid(diagnostic: string): ConstructionListDecodeResu
   };
 }
 
-function measurementListInvalid(diagnostic: string): SegmentLengthAssertionListDecodeResult {
+function measurementListInvalid(diagnostic: string): SegmentLengthMeasurementListDecodeResult {
   return {
     ok: false,
     diagnostic,

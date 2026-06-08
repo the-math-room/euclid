@@ -3,7 +3,7 @@ import {
   toWorldPoint,
   type Construction,
   type MeasurementSettings,
-  type SegmentLengthAssertion,
+  type SegmentLengthMeasurement,
 } from "./model";
 
 export const constructionKinds = [
@@ -26,15 +26,16 @@ export const point2Schema = z.object({
   x: z.number(),
   y: z.number(),
 });
+export const pointMobilitySchema = z.union([z.literal("free"), z.literal("fixed")]);
 export const shapeRoleSchema = z.union([z.literal("primary"), z.literal("auxiliary")]);
 export const measurementExpressionSchema = z.union([z.number().finite(), z.string()]);
-export const measurementIntentSchema = z.union([z.literal("asserted"), z.literal("driving")]);
+export const measurementIntentSchema = z.union([z.literal("check"), z.literal("constraint")]);
 export const measurementSettingsSchema = z.object({
   unitLength: z.number().finite().positive().optional(),
   variables: z.record(z.string(), z.number().finite()).optional(),
 }) satisfies z.ZodType<MeasurementSettings>;
 
-export const segmentLengthAssertionSchema = z.object({
+export const segmentLengthMeasurementSchema = z.object({
   id: z.string(),
   kind: z.literal("segment-length"),
   from: z.string(),
@@ -42,7 +43,7 @@ export const segmentLengthAssertionSchema = z.object({
   length: measurementExpressionSchema,
   intent: measurementIntentSchema.optional(),
   label: z.string().optional(),
-}) satisfies z.ZodType<SegmentLengthAssertion>;
+}) satisfies z.ZodType<SegmentLengthMeasurement>;
 
 export const freePointExpressionSchema = z.object({
   kind: z.literal("free-point"),
@@ -116,6 +117,7 @@ export const constructionExpressionSchema = z.discriminatedUnion("kind", [
 export const freePointConstructionSchema = freePointExpressionSchema.extend({
   id: z.string(),
   label: z.string(),
+  mobility: pointMobilitySchema.optional(),
   position: point2Schema,
 });
 
@@ -162,6 +164,7 @@ export function rawConstructionToConstruction(construction: RawConstruction): Co
         id: construction.id,
         kind: "free-point",
         label: construction.label,
+        ...(construction.mobility === undefined ? {} : { mobility: construction.mobility }),
         position: toWorldPoint(construction.position),
       };
     case "line-through":

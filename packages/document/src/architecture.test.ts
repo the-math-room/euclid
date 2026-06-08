@@ -106,7 +106,30 @@ describe("document architecture", () => {
     });
   });
 
-  it("parses authored segment length assertions in the construction program", () => {
+  it("parses optional fixed mobility on free points", () => {
+    const document: EuclidDocument = {
+      schemaVersion: 1,
+      title: "Fixed point",
+      program: {
+        constructions: [
+          {
+            id: "A",
+            kind: "free-point",
+            label: "A",
+            mobility: "fixed",
+            position: toWorldPoint({ x: 0, y: 0 }),
+          },
+        ],
+      },
+    };
+
+    expect(parseEuclidDocument(serializeEuclidDocument(document))).toEqual({
+      ok: true,
+      document,
+    });
+  });
+
+  it("parses authored segment length measurements in the construction program", () => {
     const document: EuclidDocument = {
       schemaVersion: 1,
       title: "Measured segment",
@@ -126,7 +149,7 @@ describe("document architecture", () => {
             from: "A",
             to: "B",
             length: "2x + 1",
-            intent: "driving",
+            intent: "constraint",
             label: "AB",
           },
         ],
@@ -158,7 +181,7 @@ describe("document architecture", () => {
     });
   });
 
-  it("rejects malformed segment length assertion intent", () => {
+  it("rejects malformed segment length measurement intent", () => {
     expect(
       parseEuclidDocument(
         JSON.stringify({
@@ -180,11 +203,11 @@ describe("document architecture", () => {
       ),
     ).toEqual({
       ok: false,
-      diagnostics: ["Document program.measurements[0].intent must be asserted or driving."],
+      diagnostics: ["Document program.measurements[0].intent must be check or constraint."],
     });
   });
 
-  it("rejects malformed segment length assertions", () => {
+  it("rejects malformed segment length measurements", () => {
     expect(
       parseEuclidDocument(
         JSON.stringify({
@@ -297,6 +320,30 @@ describe("document architecture", () => {
     ).toEqual({
       ok: false,
       diagnostics: ["Document program.constructions[0].intersectionIndex must be 0 or 1."],
+    });
+  });
+
+  it("rejects malformed free-point mobility", () => {
+    expect(
+      parseEuclidDocument(
+        JSON.stringify({
+          ...seedDocument,
+          program: {
+            constructions: [
+              {
+                id: "A",
+                kind: "free-point",
+                label: "A",
+                mobility: "pinned",
+                position: { x: 0, y: 0 },
+              },
+            ],
+          },
+        }),
+      ),
+    ).toEqual({
+      ok: false,
+      diagnostics: ["Document program.constructions[0].mobility must be free or fixed."],
     });
   });
 });

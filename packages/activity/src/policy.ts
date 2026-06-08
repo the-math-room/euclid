@@ -72,6 +72,10 @@ export function canDragConstruction(policy: ActivityPolicy, construction: Constr
   }
 
   if (construction.kind === "free-point") {
+    if ((construction.mobility ?? "free") === "fixed") {
+      return false;
+    }
+
     return policy.pointDrag === "free-points" || policy.pointDrag === "all";
   }
 

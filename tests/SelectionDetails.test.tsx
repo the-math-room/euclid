@@ -40,6 +40,7 @@ describe("SelectionDetails Component", () => {
           onDelete={vi.fn()}
           canDelete={true}
           onSetShapeRole={vi.fn()}
+          onSetFreePointMobility={vi.fn()}
         />,
       );
     });
@@ -73,6 +74,7 @@ describe("SelectionDetails Component", () => {
           onDelete={vi.fn()}
           canDelete={false}
           onSetShapeRole={vi.fn()}
+          onSetFreePointMobility={vi.fn()}
         />,
       );
     });
@@ -105,6 +107,7 @@ describe("SelectionDetails Component", () => {
           onDelete={vi.fn()}
           canDelete={true}
           onSetShapeRole={onSetShapeRole}
+          onSetFreePointMobility={vi.fn()}
         />,
       );
     });
@@ -119,6 +122,48 @@ describe("SelectionDetails Component", () => {
     });
 
     expect(onSetShapeRole).toHaveBeenCalledWith("line-ab", "auxiliary");
+
+    await act(async () => {
+      root?.unmount();
+    });
+  });
+
+  it("lets selected free points change mobility", async () => {
+    const onSetFreePointMobility = vi.fn();
+    const constructions: readonly Construction[] = [
+      {
+        id: "A",
+        kind: "free-point",
+        label: "A",
+        position: toWorldPoint({ x: 0, y: 0 }),
+      },
+    ];
+
+    let root: Root | undefined;
+    await act(async () => {
+      root = createRoot(container);
+      root.render(
+        <SelectionDetails
+          selectedIds={new Set(["A"])}
+          constructions={constructions}
+          onDelete={vi.fn()}
+          canDelete={true}
+          onSetShapeRole={vi.fn()}
+          onSetFreePointMobility={onSetFreePointMobility}
+        />,
+      );
+    });
+
+    const select = container.querySelector<HTMLSelectElement>(".shape-role-select");
+    expect(select?.value).toBe("free");
+
+    await act(async () => {
+      if (!select) return;
+      select.value = "fixed";
+      select.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+
+    expect(onSetFreePointMobility).toHaveBeenCalledWith("A", "fixed");
 
     await act(async () => {
       root?.unmount();

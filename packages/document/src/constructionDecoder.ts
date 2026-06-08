@@ -42,6 +42,10 @@ function diagnosticForConstructionError(error: z.ZodError, value: unknown, path:
     return `${path}.position must be a Point2 object.`;
   }
 
+  if (field === "mobility") {
+    return `${path}.mobility must be free or fixed.`;
+  }
+
   if (field === "points") {
     return `${path}.points must be an array of ${pointsTupleLength(value)} strings.`;
   }

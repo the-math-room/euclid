@@ -18,8 +18,9 @@ export {
   measurementIntentSchema,
   measurementSettingsSchema,
   point2Schema,
+  pointMobilitySchema,
   rawConstructionToConstruction,
-  segmentLengthAssertionSchema,
+  segmentLengthMeasurementSchema,
   shapeRoleSchema,
 } from "./constructionSchemas";
 export type { RawConstruction, RawConstructionExpression } from "./constructionSchemas";
@@ -29,7 +30,12 @@ export {
   dependencyIds,
   transitiveDependentsOf,
 } from "./dependencies";
-export type { AddConstructionResult, UpsertSegmentLengthAssertionResult } from "./edit";
+export type { AddConstructionResult, UpsertSegmentLengthMeasurementResult } from "./edit";
+export type {
+  ApplyMeasurementConstraintResult,
+  MeasurementConstraintBehavior,
+  MeasurementConstraintOptions,
+} from "./edit";
 export {
   addCircleCircleIntersection,
   addCircleThreePoints,
@@ -41,15 +47,17 @@ export {
   addParallelLine,
   addPerpendicularLine,
   addMidpoint,
+  applyMeasurementConstraint,
   moveFreePoint,
-  removeSegmentLengthAssertion,
-  segmentLengthAssertion,
-  segmentLengthAssertionId,
+  removeSegmentLengthMeasurement,
+  segmentLengthMeasurement,
+  segmentLengthMeasurementId,
   setConstructionShapeRole,
+  setFreePointMobility,
   setMeasurementUnitLength,
   setMeasurementVariableValue,
   translateShape,
-  upsertSegmentLengthAssertion,
+  upsertSegmentLengthMeasurement,
 } from "./edit";
 export { evaluateConstruction } from "./evaluate";
 export type { ConstructionExplanation, ConstructionReference } from "./explain";
@@ -65,7 +73,7 @@ export type {
 } from "./macro";
 export { applyConstructionMacro } from "./macro";
 export type {
-  EvaluatedSegmentLengthAssertion,
+  EvaluatedSegmentLengthMeasurement,
   LinearMeasurementExpression,
   MeasurementDiagnostic,
   MeasurementEvaluation,
@@ -95,8 +103,9 @@ export type {
   MeasurementIntent,
   MeasurementSettings,
   Point2,
+  PointMobility,
   ScenePoint,
-  SegmentLengthAssertion,
+  SegmentLengthMeasurement,
   ShapeRole,
   WorldPoint,
 } from "./model";

@@ -15,7 +15,7 @@ Read this when changing goal specs, goal parsing, goal-id resolution, or assessm
 ## Does Not Own
 
 - Construction syntax, meaning, editing, or approximate realization.
-- Authored measurement assertions and measurement-expression syntax.
+- Authored measurements and measurement-expression syntax.
 - Rendering, projection, SVG, Canvas, DOM, React, or browser interaction.
 - Lesson composition.
 
