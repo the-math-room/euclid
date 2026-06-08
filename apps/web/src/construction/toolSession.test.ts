@@ -7,7 +7,8 @@ import {
   type ToolDraft,
   type ToolSessionContext,
 } from "./toolSession";
-import type { ConstructionProgram } from "@euclid/geometry";
+import { toWorldPoint, type ConstructionProgram } from "@euclid/geometry";
+import { thirdPartyMacroToolIds } from "./thirdPartyToolRegistry";
 
 function assertDefined<T>(val: T | undefined | null): T {
   if (val === undefined || val === null) {
@@ -27,6 +28,17 @@ describe("tool session helpers", () => {
     expect(clearDraftUnlessTool(draft, "line")).toBe(emptyToolDraft);
   });
 
+  it("keeps macro drafts only for their owning tool", () => {
+    const toolId = assertDefined(thirdPartyMacroToolIds[0]);
+    const draft: ToolDraft = {
+      kind: "macro",
+      toolId,
+      pointInputIds: ["A"],
+    };
+    expect(clearDraftUnlessTool(draft, toolId)).toBe(draft);
+    expect(clearDraftUnlessTool(draft, "line")).toBe(emptyToolDraft);
+  });
+
   it("does not expose an empty draft as a preview", () => {
     expect(draftPreviewFor(emptyToolDraft)).toBeUndefined();
   });
@@ -34,6 +46,16 @@ describe("tool session helpers", () => {
   it("exposes active construction drafts as previews", () => {
     const draft: ToolDraft = { kind: "perpendicular", lineId: "line-1" };
     expect(draftPreviewFor(draft)).toEqual(draft);
+  });
+
+  it("does not expose macro drafts as geometry previews", () => {
+    const toolId = assertDefined(thirdPartyMacroToolIds[0]);
+    const draft: ToolDraft = {
+      kind: "macro",
+      toolId,
+      pointInputIds: ["A", "B"],
+    };
+    expect(draftPreviewFor(draft)).toBeUndefined();
   });
 });
 
@@ -141,5 +163,50 @@ describe("toolSessionRegistry", () => {
     expect(r2.nextDraft).toEqual(emptyToolDraft);
     expect(r2.program.constructions).toHaveLength(1);
     expect(r2.program.constructions[0].kind).toBe("midpoint");
+  });
+
+  it("handles a discovered third-party macro flow", () => {
+    const toolId = assertDefined(thirdPartyMacroToolIds[0]);
+    const macroProgram: ConstructionProgram = {
+      constructions: [
+        { id: "A", kind: "free-point", label: "A", position: toWorldPoint({ x: 0, y: 0 }) },
+        { id: "B", kind: "free-point", label: "B", position: toWorldPoint({ x: 1, y: 0 }) },
+      ],
+    };
+    const context: ToolSessionContext = {
+      program: macroProgram,
+      realizedPointIds: new Set(["A", "B"]),
+      realizedLineIds: new Set(),
+      realizedCircleIds: new Set(),
+    };
+    const session = toolSessionRegistry[toolId];
+
+    const r1 = assertDefined(session.onPointInput(context, emptyToolDraft, "A"));
+    expect(r1.nextDraft).toEqual({
+      kind: "macro",
+      toolId,
+      pointInputIds: ["A"],
+    });
+
+    const r2 = assertDefined(session.onPointInput(context, r1.nextDraft, "B"));
+    expect(r2.nextDraft).toEqual({
+      kind: "macro",
+      toolId,
+      pointInputIds: ["A", "B"],
+    });
+
+    const r3 = assertDefined(
+      session.onWorldPointInput?.(context, r2.nextDraft, toWorldPoint({ x: 0.5, y: 1 })),
+    );
+    expect(r3.nextDraft).toEqual(emptyToolDraft);
+    expect(r3.program.constructions.slice(2).map((construction) => construction.kind)).toEqual([
+      "circle-through",
+      "circle-through",
+      "circle-circle-intersection",
+      "line-through",
+      "line-through",
+      "line-through",
+    ]);
+    expect(r3.selectedIds.size).toBeGreaterThan(0);
   });
 });

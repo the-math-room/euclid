@@ -1,19 +1,12 @@
-import type { BuiltInActivityTool } from "@euclid/activity";
-
-export type ToolIconName = "select" | "point" | "line" | "circle" | "parallel" | "perpendicular" | "midpoint";
-
-export type ConstructionGestureTarget = "intersection" | "point" | "line" | "empty-point";
-
-export type ConstructionToolGesturePolicy = Readonly<{
-  pointerUpPriority: readonly ConstructionGestureTarget[];
-}>;
-
-export type ConstructionToolDescriptor = Readonly<{
-  id: BuiltInActivityTool;
-  label: string;
-  icon: ToolIconName;
-  gesturePolicy?: ConstructionToolGesturePolicy;
-}>;
+import type { ActivityTool } from "@euclid/activity";
+import { thirdPartyMacroToolDescriptors } from "./thirdPartyToolRegistry";
+export type {
+  ConstructionGestureTarget,
+  ConstructionToolDescriptor,
+  ConstructionToolGesturePolicy,
+  ToolIconName,
+} from "./toolTypes";
+import type { ConstructionToolDescriptor, ConstructionToolGesturePolicy } from "./toolTypes";
 
 const selectToolDescriptor = {
   id: "select",
@@ -75,7 +68,7 @@ const midpointToolDescriptor = {
   },
 } satisfies ConstructionToolDescriptor;
 
-export const constructionToolDescriptors: readonly ConstructionToolDescriptor[] = [
+const builtInConstructionToolDescriptors: readonly ConstructionToolDescriptor[] = [
   selectToolDescriptor,
   pointToolDescriptor,
   lineToolDescriptor,
@@ -85,19 +78,25 @@ export const constructionToolDescriptors: readonly ConstructionToolDescriptor[] 
   midpointToolDescriptor,
 ] as const;
 
+export const constructionToolDescriptors: readonly ConstructionToolDescriptor[] = [
+  ...builtInConstructionToolDescriptors,
+  ...thirdPartyMacroToolDescriptors,
+];
+
 export const activeTools = constructionToolDescriptors.map((tool) => tool.id);
 
-export type ActiveTool = BuiltInActivityTool;
+export type ActiveTool = ActivityTool;
 
 export const defaultConstructionToolGesturePolicy: ConstructionToolGesturePolicy = {
   pointerUpPriority: ["point", "line", "intersection", "empty-point"],
 };
 
-export const constructionToolGesturePolicies = Object.fromEntries(
-  constructionToolDescriptors.flatMap((tool) =>
-    tool.gesturePolicy === undefined ? [] : [[tool.id, tool.gesturePolicy]],
-  ),
-) as Record<Exclude<ActiveTool, "select">, ConstructionToolGesturePolicy>;
+export const constructionToolGesturePolicies: Readonly<Record<string, ConstructionToolGesturePolicy>> =
+  Object.fromEntries(
+    constructionToolDescriptors.flatMap((tool) =>
+      tool.gesturePolicy === undefined ? [] : [[tool.id, tool.gesturePolicy]],
+    ),
+  );
 
 export function isRegisteredActiveTool(tool: string): tool is ActiveTool {
   return constructionToolDescriptors.some((descriptor) => descriptor.id === tool);

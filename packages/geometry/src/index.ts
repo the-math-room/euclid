@@ -45,6 +45,16 @@ export { evaluateConstruction } from "./evaluate";
 export type { ConstructionExplanation, ConstructionReference } from "./explain";
 export { explainConstruction, traceDependencies, traceDependents } from "./explain";
 export type {
+  ConstructionMacroDefinition,
+  ConstructionMacroInputs,
+  ConstructionMacroResult,
+  MacroInputDefinition,
+  MacroIntersectionIndex,
+  MacroReference,
+  MacroStepDefinition,
+} from "./macro";
+export { applyConstructionMacro } from "./macro";
+export type {
   Construction,
   ConstructionExpression,
   ConstructionId,

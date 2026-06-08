@@ -6,12 +6,20 @@ import {
   firstRegisteredTool,
   gesturePolicyForTool,
 } from "./tools";
+import { thirdPartyMacroToolIds } from "./thirdPartyToolRegistry";
 
 describe("construction tool gesture policies", () => {
   it("declares pointer-up behavior for every construction tool", () => {
     const constructionTools = activeTools.filter((tool) => tool !== "select");
 
     expect(Object.keys(constructionToolGesturePolicies).sort()).toEqual([...constructionTools].sort());
+  });
+
+  it("discovers third-party macro tools from the tools directory", () => {
+    expect(thirdPartyMacroToolIds.length).toBeGreaterThan(0);
+    for (const toolId of thirdPartyMacroToolIds) {
+      expect(activeTools).toContain(toolId);
+    }
   });
 
   it("keeps fallback point creation last in every construction policy", () => {

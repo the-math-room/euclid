@@ -32,6 +32,7 @@ Read this before changing any construction semantics.
 - `src/realize.ts`: approximate realization and realization diagnostics.
 - `src/approx.ts`: numeric geometry helpers.
 - `src/edit.ts`: pure edit commands such as add/move/translate construction operations.
+- `src/macro.ts`: data-driven macro expansion into ordinary construction records.
 - `src/explain.ts`: provenance and headless inspection.
 - `src/names.ts`: point label generation.
 - `src/index.ts`: explicit public entrypoint.
@@ -45,6 +46,7 @@ Read this before changing any construction semantics.
 - Zod is allowed in `constructionSchemas.ts`; do not import it into evaluation, realization, or edit modules.
 - Construction-adding edits return `{ program, id, changed }`.
 - No-op edits should preserve the original program reference.
+- Macro expansion may assemble authored construction records, but macros must expand to ordinary construction variants rather than adding hidden geometry semantics.
 - Use `toWorldPoint` and `toScenePoint` at boundaries. Raw branded casts belong only inside their constructors.
 - Public exports in `src/index.ts` must be explicit and intentional.
 

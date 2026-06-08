@@ -10,6 +10,7 @@ import {
   Equal,
   BetweenHorizonalEnd,
   Milestone,
+  Sparkles,
   type LucideIcon,
 } from "lucide-react";
 import { evaluateConstruction } from "@euclid/geometry";
@@ -37,6 +38,7 @@ const toolbarIcons = {
   parallel: Equal,
   perpendicular: BetweenHorizonalEnd,
   midpoint: Milestone,
+  macro: Sparkles,
 } satisfies Record<ToolIconName, LucideIcon>;
 
 export type WorkspaceContainerProps = Readonly<{

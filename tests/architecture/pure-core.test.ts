@@ -5,6 +5,7 @@ import {
   layerRoots,
   moduleMutableStateViolationsIn,
   packageProductionSourceFiles,
+  sourceFilesIn,
 } from "./sourceAnalysis";
 
 const pureAppAdapterFiles = [
@@ -13,9 +14,12 @@ const pureAppAdapterFiles = [
   resolve(layerRoots.app, "workspaceCoordinates.ts"),
   resolve(layerRoots.app, "construction/deleteSelection.ts"),
   resolve(layerRoots.app, "construction/pointInput.ts"),
+  resolve(layerRoots.app, "construction/thirdPartyToolRegistry.ts"),
   resolve(layerRoots.app, "construction/tools.ts"),
+  resolve(layerRoots.app, "construction/toolTypes.ts"),
   resolve(layerRoots.app, "construction/toolSession.ts"),
   resolve(layerRoots.app, "lessons/authoring.ts"),
+  ...sourceFilesIn(resolve(layerRoots.app, "construction/third-party-tools")),
 ] as const;
 
 describe("architecture pure core", () => {

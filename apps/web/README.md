@@ -27,6 +27,8 @@ Read this when changing React composition, workspace controls, browser event han
 - `src/WorkspaceContainer.tsx`: top-level workspace assembly.
 - `src/construction/useConstructionController.ts`: construction history, selection, active tool, command wiring.
 - `src/construction/pointInput.ts`: resolves UI point input into geometry edit commands.
+- `src/construction/third-party-tools/*.ts`: data-backed third-party macro tool definitions.
+- `src/construction/thirdPartyToolRegistry.ts`: auto-discovers third-party macro tool files.
 - `src/construction/toolSession.ts`: multi-step tool sessions.
 - `src/construction/tools.ts`: registered built-in tools and gesture policies.
 - `src/GestureController.ts`: pure pointer/touch state machine.
@@ -39,6 +41,8 @@ Read this when changing React composition, workspace controls, browser event han
 
 - Keep React as an interpreter. If a change needs new construction meaning, add it in `@euclid/geometry` first.
 - Do not construct authored geometry records directly in app command code. Use geometry edit helpers.
+- Third-party macro tools should be data interpreted by `@euclid/geometry` macro expansion, not app-side construction assembly.
+- To add a third-party macro tool, add one `*.ts` file under `src/construction/third-party-tools/` exporting a `ThirdPartyMacroTool`; do not edit the central registries.
 - Do not import geometry naming internals such as `generateNextPointLabel` into app code.
 - Keep `GestureController.ts`, `workspacePreview.ts`, `workspaceCoordinates.ts`, construction tool/session helpers, and lesson authoring helpers ambient-free; they are pure app adapters.
 - Browser effects belong in shell hooks/components, not package layers or pure app adapters.

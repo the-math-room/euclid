@@ -278,8 +278,27 @@ export function useConstructionController({
 
   const handleAddPoint = useCallback(
     (sceneCoords: ScenePoint) => {
-      const pointInput: PointInput = { kind: "free-point", position: screenToWorld(sceneCoords) };
       const session = toolSessionRegistry[activeTool];
+      const worldPosition = screenToWorld(sceneCoords);
+
+      if (session && activeTool !== "select" && session.onWorldPointInput) {
+        const context = {
+          program,
+          realizedPointIds,
+          realizedLineIds,
+          realizedCircleIds,
+        };
+        const result = session.onWorldPointInput(context, toolDraft, worldPosition);
+        if (result) {
+          updateProgram(result.program);
+          setToolDraft(result.nextDraft);
+          setSelectedIds(result.selectedIds);
+          setLastSelectedId(result.lastSelectedId);
+          return;
+        }
+      }
+
+      const pointInput: PointInput = { kind: "free-point", position: worldPosition };
       if (session && activeTool !== "select") {
         handlePointInput(pointInput);
         return;
@@ -293,7 +312,17 @@ export function useConstructionController({
       setSelectedIds(new Set([resolved.id]));
       setLastSelectedId(resolved.id);
     },
-    [activeTool, program, screenToWorld, updateProgram, handlePointInput],
+    [
+      activeTool,
+      program,
+      realizedPointIds,
+      realizedLineIds,
+      realizedCircleIds,
+      toolDraft,
+      screenToWorld,
+      updateProgram,
+      handlePointInput,
+    ],
   );
 
   const handleAddIntersection = useCallback(

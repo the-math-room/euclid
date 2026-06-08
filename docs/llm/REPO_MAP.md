@@ -40,6 +40,7 @@ Start here:
 - `packages/geometry/src/realize.ts`
 - `packages/geometry/src/approx.ts`
 - `packages/geometry/src/edit.ts`
+- `packages/geometry/src/macro.ts`
 - `packages/geometry/src/names.ts`
 
 Run or update:
@@ -99,6 +100,10 @@ Start here:
 - `apps/web/README.md`
 - `apps/web/src/App.tsx`
 - `apps/web/src/construction/useConstructionController.ts`
+- `apps/web/src/construction/third-party-tools/*.ts`
+- `apps/web/src/construction/thirdPartyToolRegistry.ts`
+- `apps/web/src/construction/toolSession.ts`
+- `apps/web/src/construction/tools.ts`
 - `apps/web/src/WorkspaceView.tsx`
 - `apps/web/src/workspacePreview.ts`
 - `apps/web/src/WorkspaceContainer.tsx`
@@ -144,9 +149,11 @@ Start here:
 
 - `docs/how-to/add-a-construction.md` — use when adding a new construction meaning.
 - `docs/how-to/add-authored-shape-presentation.md` — use when adding user-authored visual intent to existing shape constructions.
+- `docs/how-to/add-a-third-party-macro-tool.md` — use when adding a data-backed third-party macro tool.
 
 ## Journal (Most Recent First)
 
+- `docs/journal/2026-06-08-third-party-macro-tools.md` — added data-backed third-party macro tools with directory discovery, equilateral reference tool, and a scrubbed core extension path.
 - `docs/journal/2026-06-08-authored-shape-presentation-and-selection-routing.md` — added primary/auxiliary shape roles as authored presentation intent and fixed select-mode session routing.
 - `docs/journal/2026-06-08-executable-architecture-and-readme-routing.md` — converted recent boundary principles into split architecture tests and refocused READMEs for LLM attention routing.
 - `docs/journal/2026-06-08-construction-edit-boundary-and-branded-fixtures.md` — moved free-point construction into the geometry edit boundary and cleaned branded coordinate fixture casts.

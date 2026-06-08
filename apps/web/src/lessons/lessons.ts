@@ -1,6 +1,7 @@
 import { openActivityPolicy } from "@euclid/activity";
 import { toWorldPoint } from "@euclid/geometry";
 import type { EuclidLesson } from "@euclid/lesson";
+import { activeTools } from "../construction/tools";
 
 export const lessons: readonly EuclidLesson[] = [
   {
@@ -117,7 +118,10 @@ export const lessons: readonly EuclidLesson[] = [
         ],
       },
     },
-    policy: openActivityPolicy,
+    policy: {
+      ...openActivityPolicy,
+      allowedTools: activeTools,
+    },
     goals: [],
   },
   {

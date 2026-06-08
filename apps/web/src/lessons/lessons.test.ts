@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { openActivityPolicy } from "@euclid/activity";
 import { lessons } from "./lessons";
+import { activeTools } from "../construction/tools";
 
 describe("lesson examples", () => {
   it("allows deleting user-created work while locking line-intersection starter points", () => {
@@ -15,7 +16,7 @@ describe("lesson examples", () => {
 
     expect(freeDraw).toBeDefined();
     expect(freeDraw?.goals).toEqual([]);
-    expect(freeDraw?.policy).toBe(openActivityPolicy);
-    expect(freeDraw?.policy.allowedTools).toEqual(openActivityPolicy.allowedTools);
+    expect(freeDraw?.policy).not.toBe(openActivityPolicy);
+    expect(freeDraw?.policy.allowedTools).toEqual(activeTools);
   });
 });

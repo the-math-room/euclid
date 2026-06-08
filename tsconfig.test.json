@@ -3,7 +3,7 @@
   "compilerOptions": {
     "lib": ["DOM", "DOM.Iterable", "ES2022"],
     "jsx": "react-jsx",
-    "types": ["node", "vitest"]
+    "types": ["node", "vitest", "vite/client"]
   },
   "include": ["packages/**/*.test.ts", "packages/**/*.test.tsx", "tests/**/*.test.ts", "tests/**/*.test.tsx"]
 }
