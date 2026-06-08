@@ -6,6 +6,7 @@ import {
   lineCircleIntersections,
   circleCircleIntersections,
 } from "./approx";
+import { REALIZATION_EPSILON } from "./tolerance";
 
 export type Realization = Readonly<{
   primitives: readonly EvaluatedPrimitive[];
@@ -152,7 +153,7 @@ function realizeCircleThreePoints(
 
   const d = 2 * (ap.x * (bp.y - cp.y) + bp.x * (cp.y - ap.y) + cp.x * (ap.y - bp.y));
 
-  if (Math.abs(d) < 1e-9) {
+  if (Math.abs(d) < REALIZATION_EPSILON) {
     return diagnostic(`Circle ${construction.label} cannot be circumscribed through collinear points.`);
   }
 

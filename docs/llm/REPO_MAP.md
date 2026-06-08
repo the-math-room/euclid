@@ -137,6 +137,7 @@ npm run check
 
 ## Journal (Most Recent First)
 
+- `docs/journal/2026-06-07-security-meta-and-tolerances.md` — hardened production CSP meta output, added referrer meta, and replaced bare epsilon literals with semantic tolerance constants.
 - `docs/journal/2026-06-07-boundary-composition-and-fixtures.md` — added object-level content decoders for package composition and typed rendering test fixtures.
 - `docs/journal/2026-06-07-geometry-algebraic-interpreters.md` — refactored geometry construction interpreters toward exhaustive native TypeScript ADT folds.
 - `docs/journal/2026-06-07-shared-construction-schemas.md` — moved canonical construction Zod schemas into geometry for reuse by document and assessment parsers.

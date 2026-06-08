@@ -30,8 +30,10 @@ export type AssessmentTolerance = Readonly<{
   epsilon: number;
 }>;
 
+export const DEFAULT_ASSESSMENT_EPSILON = 1e-6;
+
 const defaultTolerance: AssessmentTolerance = {
-  epsilon: 1e-6,
+  epsilon: DEFAULT_ASSESSMENT_EPSILON,
 };
 
 export function assessAll(

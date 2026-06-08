@@ -61,3 +61,4 @@ export { toScenePoint, toWorldPoint } from "./model";
 export { generateNextPointLabel } from "./names";
 export type { Realization } from "./realize";
 export { realizeConstructions } from "./realize";
+export { REALIZATION_EPSILON } from "./tolerance";

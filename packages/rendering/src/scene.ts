@@ -1,6 +1,7 @@
 import { type Evaluation, type Point2, type ScenePoint, toScenePoint, toWorldPoint } from "@euclid/geometry";
 import { layoutPointLabels, type LabelCandidateName, type Rect } from "./labelLayout";
 import { THEME } from "./theme";
+import { SCENE_GEOMETRY_EPSILON } from "./tolerance";
 import { fitCameraFor, projectPoint, type ScreenView, type ViewportSize, worldFrameFor } from "./viewport";
 
 export type RenderScene = Readonly<{
@@ -250,12 +251,11 @@ function addIntersection(
   minY: number,
   maxY: number,
 ): void {
-  const epsilon = 1e-9;
   if (
-    point.x < minX - epsilon ||
-    point.x > maxX + epsilon ||
-    point.y < minY - epsilon ||
-    point.y > maxY + epsilon
+    point.x < minX - SCENE_GEOMETRY_EPSILON ||
+    point.x > maxX + SCENE_GEOMETRY_EPSILON ||
+    point.y < minY - SCENE_GEOMETRY_EPSILON ||
+    point.y > maxY + SCENE_GEOMETRY_EPSILON
   ) {
     return;
   }
@@ -265,7 +265,7 @@ function addIntersection(
     y: clamp(point.y, minY, maxY),
   };
 
-  if (points.some((existing) => distance(existing, clamped) < epsilon)) {
+  if (points.some((existing) => distance(existing, clamped) < SCENE_GEOMETRY_EPSILON)) {
     return;
   }
 

@@ -5,6 +5,7 @@ export type {
   AssessmentTolerance,
 } from "./assessment";
 export {
+  DEFAULT_ASSESSMENT_EPSILON,
   assessAll,
   assessAny,
   arePrimitivesEquivalent,

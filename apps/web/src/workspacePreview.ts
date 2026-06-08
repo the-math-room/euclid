@@ -1,5 +1,6 @@
 import { THEME, type RenderScene } from "@euclid/rendering";
 import type { ConstructionId, ScenePoint } from "@euclid/geometry";
+import { PREVIEW_DIRECTION_EPSILON } from "./tolerance";
 
 export type DraftPreview =
   | Readonly<{
@@ -99,7 +100,7 @@ export function previewsForWorkspace({
         const rawDx = b.x - a.x;
         const rawDy = b.y - a.y;
         const len = Math.hypot(rawDx, rawDy);
-        if (len > 1e-9) {
+        if (len > PREVIEW_DIRECTION_EPSILON) {
           // parallel: same direction; perpendicular: rotate 90°
           const ux = draftPreview.kind === "perpendicular" ? -rawDy / len : rawDx / len;
           const uy = draftPreview.kind === "perpendicular" ? rawDx / len : rawDy / len;

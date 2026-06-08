@@ -1,0 +1,2 @@
+export const SCENE_GEOMETRY_EPSILON = 1e-9;
+export const LABEL_LAYOUT_SCORE_EPSILON = 1e-9;

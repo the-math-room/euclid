@@ -1,0 +1,1 @@
+export const PREVIEW_DIRECTION_EPSILON = 1e-9;

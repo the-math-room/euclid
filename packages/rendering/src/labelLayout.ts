@@ -1,6 +1,7 @@
 import { type Point2, toScenePoint } from "@euclid/geometry";
 import type { RenderItem, RenderLabel } from "./scene";
 import { THEME } from "./theme";
+import { LABEL_LAYOUT_SCORE_EPSILON, SCENE_GEOMETRY_EPSILON } from "./tolerance";
 
 export type LabelCandidateName = "ne" | "e" | "se" | "s" | "sw" | "w" | "nw" | "n";
 
@@ -313,7 +314,7 @@ function optimizeCandidateSelection(
         const next = replaceAt(selected, targetIndex, candidateIndex);
         const nextScore = scoreSelection(candidateSets, next, closePairs);
 
-        if (nextScore + 1e-9 < (bestMove?.score ?? currentScore)) {
+        if (nextScore + LABEL_LAYOUT_SCORE_EPSILON < (bestMove?.score ?? currentScore)) {
           bestMove = {
             targetIndex,
             candidateIndex,
@@ -446,7 +447,7 @@ function lineIntersectsRect(p1: Point2, p2: Point2, rect: Rect): boolean {
 
   for (const corner of corners) {
     const val = a * corner.x + b * corner.y + c;
-    if (Math.abs(val) < 1e-9) {
+    if (Math.abs(val) < SCENE_GEOMETRY_EPSILON) {
       return true;
     }
     if (val > 0) {
