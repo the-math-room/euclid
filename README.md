@@ -1,38 +1,53 @@
 # Euclid
 
-Euclid is a TypeScript geometry app for Euclidean constructions.
+Euclid is a TypeScript Euclidean construction project built around a denotational core.
 
-The project starts from a denotational design stance inspired by Conal Elliott: define what constructions mean first, then keep rendering, editing, persistence, and interaction as separate interpretations of that meaning.
+This README is for quick orientation. For agent routing, start with:
 
-## Start
+- `docs/llm/AGENT_GUIDE.md`
+- `docs/llm/REPO_MAP.md`
+- `docs/architecture/denotational-design.md`
+- `docs/architecture/layers.md`
+
+## Core Commitment
+
+Construction meaning lives in `packages/geometry/src`. Other layers interpret that meaning:
+
+- document parses and stores it
+- activity constrains allowed actions
+- assessment evaluates goals over it
+- rendering projects it into scene data
+- React presents and wires it
+
+Do not let UI, persistence, rendering, or assessment become the owner of construction semantics.
+
+## Attention Map
+
+- `packages/geometry/src`: construction model, dependency graph, exact meaning, approximate realization, pure edits.
+- `packages/document/src`: versioned document data, document parsing, serialization, history wrappers.
+- `packages/activity/src`: headless policy for tools, deletion, locking, and dragging.
+- `packages/assessment/src`: reference assessment predicates and serializable goal evaluation.
+- `packages/lesson/src`: headless lesson shell composing document, policy, and goals.
+- `packages/rendering/src`: viewport math, scene construction, label layout, hit testing, Canvas/SVG rendering helpers.
+- `apps/web/src`: React shell, browser effects, controller wiring, gestures, workspace UI.
+- `tests/architecture`: executable architecture rules.
+- `examples`: portable fixtures and headless SDK examples.
+
+## Repo-Wide Rules
+
+- Use package entrypoints such as `@euclid/geometry`; avoid cross-package deep imports.
+- Keep package production code pure and browser-free.
+- Keep Zod at content/schema parse boundaries.
+- Use `toWorldPoint` and `toScenePoint` at coordinate boundaries; do not raw-cast branded coordinates outside their constructors.
+- Add construction semantics in geometry first, then wire interpreters.
+- Do not add wildcard exports to package entrypoints.
+
+## Verification
+
+For code changes, run:
 
 ```bash
-npm install
-npm run dev
+npm run check
 ```
 
-## Design Commitments
-
-- Construction data is plain, typed, serializable TypeScript.
-- The geometry core is deterministic and side-effect free.
-- UI code interprets render scenes; it does not define geometric truth.
-- Rendering code converts evaluated geometry into presentation-ready scene data without depending on React.
-- Package-layer functions should be memoizable in theory; browser effects belong in the web app shell.
-- New features should begin by naming the domain meaning before choosing widgets, storage, or drawing code.
-- Documentation is written for both humans and LLM coding agents.
-
-## Project Map
-
-- `packages/geometry/src`: domain model, dependency graph, construction evaluation, and pure edit commands.
-- `packages/activity/src`: headless activity policy for controlled learning experiences.
-- `packages/assessment/src`: reference assessment predicates over construction programs and evaluations.
-- `packages/document/src`: versioned document data, seed documents, and pure history wrappers.
-- `packages/lesson/src`: headless lesson composition of documents, activity policies, and assessment goals.
-- `packages/rendering/src`: viewport projection, renderable scene descriptions, label layout, and screen-space hit testing.
-- `apps/web/src`: React composition, SVG/Canvas surfaces, gesture interpretation, and browser entry point.
-- `tests/architecture`: repository boundary tests.
-- `examples`: headless SDK examples, lesson fixtures, and assessment goal fixtures.
-- `docs/llm`: agent-oriented project guidance.
-- `docs/architecture`: design notes for the geometry model.
-
-Cross-layer imports use package-style aliases: `@euclid/geometry`, `@euclid/activity`, `@euclid/assessment`, `@euclid/document`, `@euclid/lesson`, and `@euclid/rendering`.
+For documentation-only changes, run Prettier on touched docs.

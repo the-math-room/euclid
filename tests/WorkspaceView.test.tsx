@@ -2,8 +2,8 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import { toWorldPoint, type ConstructionId, type ScenePoint } from "@euclid/geometry";
-import type { RenderItem } from "@euclid/rendering";
+import { toScenePoint, toWorldPoint, type ConstructionId } from "@euclid/geometry";
+import type { RenderScene } from "@euclid/rendering";
 import { WorkspaceView } from "../apps/web/src/WorkspaceView";
 
 // Configure JSDOM environment for React 19 testing support
@@ -27,10 +27,10 @@ class MockResizeObserver {
 
 globalThis.ResizeObserver = MockResizeObserver as unknown as typeof ResizeObserver;
 
-const mockScene = {
+const mockScene: RenderScene = {
   size: { width: 920, height: 620 },
-  grid: [] as { id: string; from: ScenePoint; to: ScenePoint }[],
-  items: [] as RenderItem[],
+  grid: [],
+  items: [],
 };
 
 const defaultProps = {
@@ -125,13 +125,13 @@ describe("WorkspaceView Integration", () => {
     const onSelectMock = vi.fn();
     const sceneWithPoints = {
       size: { width: 920, height: 620 },
-      grid: [] as { id: string; from: ScenePoint; to: ScenePoint }[],
+      grid: [],
       items: [
         {
           id: "point-a",
           kind: "point" as const,
-          mark: { x: 100, y: 100 } as ScenePoint,
-          label: { text: "A", anchor: { x: 110, y: 90 } as ScenePoint },
+          mark: toScenePoint({ x: 100, y: 100 }),
+          label: { text: "A", anchor: toScenePoint({ x: 110, y: 90 }) },
         },
       ],
     };
@@ -200,14 +200,14 @@ describe("WorkspaceView Integration", () => {
     let root: Root | null = null;
     const testScene = {
       size: { width: 900, height: 600 },
-      grid: [] as { id: string; from: ScenePoint; to: ScenePoint }[],
+      grid: [],
       items: [
         {
           id: "point-a",
           kind: "point" as const,
           pointRole: "free" as const,
-          mark: { x: 100, y: 100 } as ScenePoint,
-          label: { text: "A", anchor: { x: 110, y: 90 } as ScenePoint },
+          mark: toScenePoint({ x: 100, y: 100 }),
+          label: { text: "A", anchor: toScenePoint({ x: 110, y: 90 }) },
         },
       ],
     };
@@ -234,14 +234,14 @@ describe("WorkspaceView Integration", () => {
     let root: Root | null = null;
     const testScene = {
       size: { width: 900, height: 600 },
-      grid: [] as { id: string; from: ScenePoint; to: ScenePoint }[],
+      grid: [],
       items: [
         {
           id: "point-a",
           kind: "point" as const,
           pointRole: "free" as const,
-          mark: { x: 100, y: 100 } as ScenePoint,
-          label: { text: "A", anchor: { x: 110, y: 90 } as ScenePoint },
+          mark: toScenePoint({ x: 100, y: 100 }),
+          label: { text: "A", anchor: toScenePoint({ x: 110, y: 90 }) },
         },
       ],
     };
@@ -290,25 +290,25 @@ describe("WorkspaceView Integration", () => {
     // Let's place a point P also at (100, 100).
     const sceneWithIntersection = {
       size: { width: 920, height: 620 },
-      grid: [] as { id: string; from: ScenePoint; to: ScenePoint }[],
+      grid: [],
       items: [
         {
           id: "point-p",
           kind: "point" as const,
-          mark: { x: 100, y: 100 } as ScenePoint,
-          label: { text: "P", anchor: { x: 110, y: 90 } as ScenePoint },
+          mark: toScenePoint({ x: 100, y: 100 }),
+          label: { text: "P", anchor: toScenePoint({ x: 110, y: 90 }) },
         },
         {
           id: "line-ab",
           kind: "line" as const,
-          from: { x: 0, y: 100 } as ScenePoint,
-          to: { x: 200, y: 100 } as ScenePoint,
-          supportLine: [{ x: 0, y: 100 } as ScenePoint, { x: 200, y: 100 } as ScenePoint] as const,
+          from: toScenePoint({ x: 0, y: 100 }),
+          to: toScenePoint({ x: 200, y: 100 }),
+          supportLine: [toScenePoint({ x: 0, y: 100 }), toScenePoint({ x: 200, y: 100 })] as const,
         },
         {
           id: "circle-o",
           kind: "circle" as const,
-          center: { x: 100, y: 150 } as ScenePoint,
+          center: toScenePoint({ x: 100, y: 150 }),
           radius: 50, // center (100, 150), radius 50 means it passes through (100, 100)
         },
       ],
@@ -382,14 +382,14 @@ describe("WorkspaceView Integration", () => {
     const onAddPointMock = vi.fn();
     const sceneWithPoint = {
       size: { width: 920, height: 620 },
-      grid: [] as { id: string; from: ScenePoint; to: ScenePoint }[],
+      grid: [],
       items: [
         {
           id: "point-a",
           kind: "point" as const,
           pointRole: "free" as const,
-          mark: { x: 100, y: 100 } as ScenePoint,
-          label: { text: "A", anchor: { x: 110, y: 90 } as ScenePoint },
+          mark: toScenePoint({ x: 100, y: 100 }),
+          label: { text: "A", anchor: toScenePoint({ x: 110, y: 90 }) },
         },
       ],
     };
@@ -469,26 +469,26 @@ describe("WorkspaceView Integration", () => {
     const onAddPointMock = vi.fn();
     const sceneWithIntersectionPoint = {
       size: { width: 920, height: 620 },
-      grid: [] as { id: string; from: ScenePoint; to: ScenePoint }[],
+      grid: [],
       items: [
         {
           id: "point-b",
           kind: "point" as const,
           pointRole: "free" as const,
-          mark: { x: 100, y: 100 } as ScenePoint,
-          label: { text: "B", anchor: { x: 110, y: 90 } as ScenePoint },
+          mark: toScenePoint({ x: 100, y: 100 }),
+          label: { text: "B", anchor: toScenePoint({ x: 110, y: 90 }) },
         },
         {
           id: "line-ab",
           kind: "line" as const,
-          from: { x: 0, y: 100 } as ScenePoint,
-          to: { x: 200, y: 100 } as ScenePoint,
-          supportLine: [{ x: 0, y: 100 } as ScenePoint, { x: 200, y: 100 } as ScenePoint] as const,
+          from: toScenePoint({ x: 0, y: 100 }),
+          to: toScenePoint({ x: 200, y: 100 }),
+          supportLine: [toScenePoint({ x: 0, y: 100 }), toScenePoint({ x: 200, y: 100 })] as const,
         },
         {
           id: "circle-o",
           kind: "circle" as const,
-          center: { x: 100, y: 150 } as ScenePoint,
+          center: toScenePoint({ x: 100, y: 150 }),
           radius: 50,
         },
       ],
@@ -561,14 +561,14 @@ describe("WorkspaceView Integration", () => {
     const onAddPointMock = vi.fn();
     const sceneWithLine = {
       size: { width: 920, height: 620 },
-      grid: [] as { id: string; from: ScenePoint; to: ScenePoint }[],
+      grid: [],
       items: [
         {
           id: "line-ab",
           kind: "line" as const,
-          from: { x: 50, y: 100 } as ScenePoint,
-          to: { x: 250, y: 100 } as ScenePoint,
-          supportLine: [{ x: 50, y: 100 } as ScenePoint, { x: 250, y: 100 } as ScenePoint] as const,
+          from: toScenePoint({ x: 50, y: 100 }),
+          to: toScenePoint({ x: 250, y: 100 }),
+          supportLine: [toScenePoint({ x: 50, y: 100 }), toScenePoint({ x: 250, y: 100 })] as const,
         },
       ],
     };
@@ -657,21 +657,21 @@ describe("WorkspaceView Integration", () => {
     const onEndPointDragMock = vi.fn();
     const sceneWithPoints = {
       size: { width: 920, height: 620 },
-      grid: [] as { id: string; from: ScenePoint; to: ScenePoint }[],
+      grid: [],
       items: [
         {
           id: "point-a",
           kind: "point" as const,
           pointRole: "free" as const,
-          mark: { x: 100, y: 100 } as ScenePoint,
-          label: { text: "A", anchor: { x: 110, y: 90 } as ScenePoint },
+          mark: toScenePoint({ x: 100, y: 100 }),
+          label: { text: "A", anchor: toScenePoint({ x: 110, y: 90 }) },
         },
         {
           id: "point-b",
           kind: "point" as const,
           pointRole: "free" as const,
-          mark: { x: 200, y: 100 } as ScenePoint,
-          label: { text: "B", anchor: { x: 210, y: 90 } as ScenePoint },
+          mark: toScenePoint({ x: 200, y: 100 }),
+          label: { text: "B", anchor: toScenePoint({ x: 210, y: 90 }) },
         },
       ],
     };

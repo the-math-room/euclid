@@ -1,22 +1,22 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { GestureController, type GestureCallbacks } from "./GestureController";
 import type { RenderScene } from "@euclid/rendering";
-import type { ScenePoint } from "@euclid/geometry";
+import { toScenePoint } from "@euclid/geometry";
 
 const mockPoint = {
   id: "pt-A",
   kind: "point" as const,
   pointRole: "free" as const,
-  mark: { x: 100, y: 100 } as ScenePoint,
-  label: { text: "A", anchor: { x: 110, y: 90 } as ScenePoint },
+  mark: toScenePoint({ x: 100, y: 100 }),
+  label: { text: "A", anchor: toScenePoint({ x: 110, y: 90 }) },
 };
 
 const mockLine = {
   id: "ln-B",
   kind: "line" as const,
-  from: { x: 10, y: 10 } as ScenePoint,
-  to: { x: 90, y: 90 } as ScenePoint,
-  supportLine: [{ x: 10, y: 10 } as ScenePoint, { x: 90, y: 90 } as ScenePoint] as const,
+  from: toScenePoint({ x: 10, y: 10 }),
+  to: toScenePoint({ x: 90, y: 90 }),
+  supportLine: [toScenePoint({ x: 10, y: 10 }), toScenePoint({ x: 90, y: 90 })] as const,
 };
 
 const mockScene: RenderScene = {
@@ -44,7 +44,7 @@ describe("GestureController", () => {
       canDragPoint: vi.fn(() => true),
       onPointerMoveCoords: vi.fn(),
       onPointerDownStateChange: vi.fn(),
-    } as unknown as GestureCallbacks;
+    };
 
     controller = new GestureController(callbacks);
   });
@@ -55,7 +55,7 @@ describe("GestureController", () => {
       pointerType: "mouse",
       clientX: 100,
       clientY: 100,
-      sceneCoords: { x: 100, y: 100 } as ScenePoint,
+      sceneCoords: toScenePoint({ x: 100, y: 100 }),
       scene: mockScene,
       activeTool: "select",
       ctrlKey: false,
@@ -69,7 +69,7 @@ describe("GestureController", () => {
     controller.handlePointerUp({
       pointerId: 1,
       pointerType: "mouse",
-      sceneCoords: { x: 100, y: 100 } as ScenePoint,
+      sceneCoords: toScenePoint({ x: 100, y: 100 }),
       scene: mockScene,
       activeTool: "select",
       ctrlKey: false,
@@ -86,7 +86,7 @@ describe("GestureController", () => {
       pointerType: "mouse",
       clientX: 500,
       clientY: 500,
-      sceneCoords: { x: 500, y: 500 } as ScenePoint,
+      sceneCoords: toScenePoint({ x: 500, y: 500 }),
       scene: mockScene,
       activeTool: "select",
       ctrlKey: false,
@@ -97,7 +97,7 @@ describe("GestureController", () => {
     controller.handlePointerUp({
       pointerId: 1,
       pointerType: "mouse",
-      sceneCoords: { x: 500, y: 500 } as ScenePoint,
+      sceneCoords: toScenePoint({ x: 500, y: 500 }),
       scene: mockScene,
       activeTool: "select",
       ctrlKey: false,
@@ -113,7 +113,7 @@ describe("GestureController", () => {
       pointerType: "mouse",
       clientX: 500,
       clientY: 500,
-      sceneCoords: { x: 500, y: 500 } as ScenePoint,
+      sceneCoords: toScenePoint({ x: 500, y: 500 }),
       scene: mockScene,
       activeTool: "select",
       ctrlKey: false,
@@ -126,7 +126,7 @@ describe("GestureController", () => {
       pointerId: 1,
       clientX: 510,
       clientY: 510,
-      sceneCoords: { x: 510, y: 510 } as ScenePoint,
+      sceneCoords: toScenePoint({ x: 510, y: 510 }),
       panScale: 1,
       activeTool: "select",
     });
@@ -137,7 +137,7 @@ describe("GestureController", () => {
     controller.handlePointerUp({
       pointerId: 1,
       pointerType: "mouse",
-      sceneCoords: { x: 510, y: 510 } as ScenePoint,
+      sceneCoords: toScenePoint({ x: 510, y: 510 }),
       scene: mockScene,
       activeTool: "select",
       ctrlKey: false,
@@ -154,7 +154,7 @@ describe("GestureController", () => {
       pointerType: "mouse",
       clientX: 100,
       clientY: 100,
-      sceneCoords: { x: 100, y: 100 } as ScenePoint,
+      sceneCoords: toScenePoint({ x: 100, y: 100 }),
       scene: mockScene,
       activeTool: "select",
       ctrlKey: false,
@@ -168,7 +168,7 @@ describe("GestureController", () => {
       pointerId: 1,
       clientX: 110,
       clientY: 110,
-      sceneCoords: { x: 110, y: 110 } as ScenePoint,
+      sceneCoords: toScenePoint({ x: 110, y: 110 }),
       panScale: 1,
       activeTool: "select",
     });
@@ -178,7 +178,7 @@ describe("GestureController", () => {
     controller.handlePointerUp({
       pointerId: 1,
       pointerType: "mouse",
-      sceneCoords: { x: 110, y: 110 } as ScenePoint,
+      sceneCoords: toScenePoint({ x: 110, y: 110 }),
       scene: mockScene,
       activeTool: "select",
       ctrlKey: false,
@@ -194,7 +194,7 @@ describe("GestureController", () => {
       pointerType: "mouse",
       clientX: 50,
       clientY: 50,
-      sceneCoords: { x: 50, y: 50 } as ScenePoint,
+      sceneCoords: toScenePoint({ x: 50, y: 50 }),
       scene: mockScene,
       activeTool: "select",
       ctrlKey: false,
@@ -208,7 +208,7 @@ describe("GestureController", () => {
       pointerId: 1,
       clientX: 60,
       clientY: 60,
-      sceneCoords: { x: 60, y: 60 } as ScenePoint,
+      sceneCoords: toScenePoint({ x: 60, y: 60 }),
       panScale: 1,
       activeTool: "select",
     });
@@ -218,7 +218,7 @@ describe("GestureController", () => {
     controller.handlePointerUp({
       pointerId: 1,
       pointerType: "mouse",
-      sceneCoords: { x: 60, y: 60 } as ScenePoint,
+      sceneCoords: toScenePoint({ x: 60, y: 60 }),
       scene: mockScene,
       activeTool: "select",
       ctrlKey: false,
@@ -235,7 +235,7 @@ describe("GestureController", () => {
       pointerType: "touch",
       clientX: 100,
       clientY: 100,
-      sceneCoords: { x: 100, y: 100 } as ScenePoint,
+      sceneCoords: toScenePoint({ x: 100, y: 100 }),
       scene: mockScene,
       activeTool: "select",
       ctrlKey: false,
@@ -249,7 +249,7 @@ describe("GestureController", () => {
       pointerType: "touch",
       clientX: 200,
       clientY: 100,
-      sceneCoords: { x: 200, y: 100 } as ScenePoint,
+      sceneCoords: toScenePoint({ x: 200, y: 100 }),
       scene: mockScene,
       activeTool: "select",
       ctrlKey: false,
@@ -264,7 +264,7 @@ describe("GestureController", () => {
       pointerId: 2,
       clientX: 300,
       clientY: 100,
-      sceneCoords: { x: 300, y: 100 } as ScenePoint,
+      sceneCoords: toScenePoint({ x: 300, y: 100 }),
       panScale: 1,
       activeTool: "select",
     });
@@ -279,7 +279,7 @@ describe("GestureController", () => {
       pointerType: "mouse",
       clientX: 100,
       clientY: 100,
-      sceneCoords: { x: 100, y: 100 } as ScenePoint,
+      sceneCoords: toScenePoint({ x: 100, y: 100 }),
       scene: mockScene,
       activeTool: "select",
       ctrlKey: false,

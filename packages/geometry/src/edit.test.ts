@@ -6,6 +6,7 @@ import {
   addLineLineIntersection,
   addLineCircleIntersection,
   addCircleCircleIntersection,
+  addFreePoint,
   addLineThroughPoints,
   addParallelLine,
   addPerpendicularLine,
@@ -16,6 +17,25 @@ import {
 import { toWorldPoint, type ConstructionProgram } from "./model";
 
 describe("construction edits", () => {
+  it("adds a free point with the next generated point label", () => {
+    const program: ConstructionProgram = {
+      constructions: [{ id: "A", kind: "free-point", label: "A", position: toWorldPoint({ x: 0, y: 0 }) }],
+    };
+
+    const result = addFreePoint(program, toWorldPoint({ x: 1, y: 2 }));
+
+    expect(result).toEqual({
+      program: {
+        constructions: [
+          { id: "A", kind: "free-point", label: "A", position: toWorldPoint({ x: 0, y: 0 }) },
+          { id: "B", kind: "free-point", label: "B", position: toWorldPoint({ x: 1, y: 2 }) },
+        ],
+      },
+      id: "B",
+      changed: true,
+    });
+  });
+
   it("moves free points and lets dependent constructions re-evaluate", () => {
     const initial: ConstructionProgram = {
       constructions: [

@@ -29,6 +29,7 @@ export {
   addCircleCircleIntersection,
   addCircleThreePoints,
   addCircleThroughPoints,
+  addFreePoint,
   addLineCircleIntersection,
   addLineLineIntersection,
   addLineThroughPoints,

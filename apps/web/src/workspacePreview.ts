@@ -1,5 +1,5 @@
 import { THEME, type RenderScene } from "@euclid/rendering";
-import type { ConstructionId, ScenePoint } from "@euclid/geometry";
+import { toScenePoint, type ConstructionId, type ScenePoint } from "@euclid/geometry";
 import { PREVIEW_DIRECTION_EPSILON } from "./tolerance";
 
 export type DraftPreview =
@@ -105,14 +105,14 @@ export function previewsForWorkspace({
           const ux = draftPreview.kind === "perpendicular" ? -rawDy / len : rawDx / len;
           const uy = draftPreview.kind === "perpendicular" ? rawDx / len : rawDy / len;
           const halfLength = 5000;
-          const from = {
+          const from = toScenePoint({
             x: pointerCoords.x - ux * halfLength,
             y: pointerCoords.y - uy * halfLength,
-          } as ScenePoint;
-          const to = {
+          });
+          const to = toScenePoint({
             x: pointerCoords.x + ux * halfLength,
             y: pointerCoords.y + uy * halfLength,
-          } as ScenePoint;
+          });
           previews.push({
             kind: "line",
             from,
@@ -138,7 +138,7 @@ export function previewsForWorkspace({
         const midY = (anchorItem.mark.y + pointerCoords.y) / 2;
         previews.push({
           kind: "point",
-          center: { x: midX, y: midY } as ScenePoint,
+          center: toScenePoint({ x: midX, y: midY }),
           style: THEME.preview.freePoint,
         });
       }
@@ -175,7 +175,7 @@ export function previewsForWorkspace({
 
     previews.push({
       kind: "point",
-      center: { x: previewPoint.x, y: previewPoint.y } as ScenePoint,
+      center: toScenePoint({ x: previewPoint.x, y: previewPoint.y }),
       style: {
         ...style,
         radius: style.radius * sizeScale,

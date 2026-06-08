@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { resolvePointInput } from "./pointInput";
-import type { ConstructionProgram, ScenePoint, WorldPoint } from "@euclid/geometry";
+import { toScenePoint, toWorldPoint, type ConstructionProgram } from "@euclid/geometry";
 
 describe("point input resolution", () => {
   it("resolves an existing point without changing the program", () => {
@@ -58,10 +58,10 @@ describe("point input resolution", () => {
   });
 });
 
-function worldPoint(x: number, y: number): WorldPoint {
-  return { x, y } as WorldPoint;
+function worldPoint(x: number, y: number) {
+  return toWorldPoint({ x, y });
 }
 
-function scenePoint(x: number, y: number): ScenePoint {
-  return { x, y } as ScenePoint;
+function scenePoint(x: number, y: number) {
+  return toScenePoint({ x, y });
 }

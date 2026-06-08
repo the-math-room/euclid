@@ -1,71 +1,41 @@
 # Lesson Package
 
-Owns the headless composition format for learning activities.
+Purpose: headless curriculum shell that composes a starter document, activity policy, and assessment goals.
+
+Read this when changing lesson JSON shape, lesson parsing, lesson serialization, or composition of document/policy/goals.
 
 ## Owns
 
-- `EuclidLesson` as a serializable activity shell.
-- Stable lesson identity for host persistence.
-- Composition of a starter document, activity policy, and assessment goals.
-- Parse and serialize boundaries for lesson JSON.
+- `EuclidLesson` serializable model.
+- Stable lesson identity.
+- Zod-backed lesson JSON parse/serialize boundary.
+- Composition of document decoder, activity policy grammar, and assessment goal decoder.
 
-Functions in this package should be memoizable in theory.
+## Does Not Own
 
-## Must Not Own
+- Construction syntax, meaning, editing, or evaluation.
+- Assessment predicate implementations.
+- Rendering, projection, SVG, Canvas, DOM, React, or browser interaction.
+- Host/LMS/runtime metadata.
 
-- Construction syntax or meaning.
-- Construction editing.
-- Reference assessment predicate implementations.
-- Rendering, projection, SVG, Canvas, or DOM.
-- React, browser state, or user interaction.
-
-## Allowed Imports
-
-- `@euclid/document`.
-- `@euclid/activity`.
-- `@euclid/assessment`.
-- Local lesson modules.
-
-## Key Files
+## Start Here
 
 - `src/model.ts`: lesson model.
-- `src/codec.ts`: Zod-backed parse and serialize boundary for lesson JSON.
-- `src/index.ts`: public package entrypoint.
+- `src/codec.ts`: Zod-backed lesson parse/serialize boundary and composition of lower-level decoders.
+- `src/index.ts`: explicit public entrypoint.
+- `../../examples/lessons/basic-line-intersection.lesson.json`: portable fixture.
 
-## Public API
+## Local Rules
 
-The package entrypoint uses explicit named exports. Treat these groups as the intentional lesson surface:
+- Stay a composition layer. Depend on document, activity, and assessment packages; do not define their semantics here.
+- Preserve custom extension tool ids in policy content even when the reference web app cannot execute them yet.
+- Use object decoders when composing already-parsed nested content. Avoid JSON string round trips between packages.
+- `EuclidLesson.id` is stable curriculum identity; hosts should persist learner state by id.
+- Do not expand lesson core for host-specific runtime data; prefer host wrappers.
+- Public exports in `src/index.ts` must be explicit and intentional.
 
-- Lesson model: `EuclidLesson`.
-- Codec boundary: `LessonParseResult`, `parseEuclidLesson`, `serializeEuclidLesson`.
+## Tests
 
-Do not add wildcard exports to `src/index.ts`. New public exports should be named intentionally.
-
-## Design Intent
-
-Lessons are product-level curriculum data, but still headless. They describe the initial construction document, allowed learner actions, and goals a host can evaluate.
-
-This package should stay a composition layer. It may depend on document, activity, and assessment packages, but lower-level packages should not depend on it.
-
-`EuclidLesson.id` is stable curriculum identity. Hosts should persist learner state by lesson id rather than by array order or display title.
-
-## Example
-
-See [`../../examples/lessons/basic-line-intersection.lesson.json`](../../examples/lessons/basic-line-intersection.lesson.json) for a portable lesson fixture.
-
-The fixture demonstrates the intended host flow:
-
-1. Parse a lesson with `parseEuclidLesson`.
-2. Use `lesson.document` as the starter construction document.
-3. Interpret `lesson.policy` in the host UI or activity runtime.
-4. Evaluate `lesson.goals` against a learner construction program with `@euclid/assessment`.
-
-The lesson package does not perform geometry evaluation or goal evaluation itself. It defines the serializable curriculum shell.
-
-## Verification Command
-
-Always run the validation suite before finishing:
-
-```bash
-npm run check
-```
+- Lesson codec behavior: `src/codec.test.ts`.
+- Fixture behavior: `tests/examples/lessonFixture.test.ts`.
+- Full verification for code changes: `npm run check`.

@@ -1,60 +1,38 @@
 # Activity Package
 
-Owns headless activity policy for controlled learning experiences.
+Purpose: headless policy over what actions a learner may take.
+
+Read this when changing tool availability, locking, deletion, or drag permissions.
 
 ## Owns
 
-- Tool availability policy.
-- Locked construction policy.
-- Delete permission policy.
-- Point and shape drag permission policy.
-- Small reference policy helpers.
+- Activity policy model.
+- Built-in reference tool ids.
+- Generic extension tool id validation.
+- Helpers for allowed tools, locked constructions, deletion, and dragging.
 
-Functions in this package should be memoizable in theory.
+## Does Not Own
 
-## Must Not Own
+- Construction syntax, meaning, editing, or evaluation.
+- Assessment goals or goal predicates.
+- Rendering, projection, hit testing, SVG, Canvas, DOM, React, or browser interaction.
 
-- Construction syntax or meaning.
-- Construction editing.
-- Assessment goals or predicates.
-- Rendering, projection, SVG, Canvas, or DOM.
-- React, browser state, or user interaction.
+## Start Here
 
-## Allowed Imports
+- `src/policy.ts`: policy types, built-in tool tuple, reference policies, permission helpers.
+- `src/index.ts`: explicit public entrypoint.
 
-- `@euclid/geometry`.
-- Local activity modules.
+## Local Rules
 
-## Key Files
+- `ActivityTool` is a generic non-empty string so host/custom tool ids can pass through policy.
+- `BuiltInActivityTool` is the current reference implementation's known tool set.
+- Use `isActivityTool` at JSON/plugin boundaries for generic ids.
+- Use `isBuiltInActivityTool` only when code needs to know whether the reference web app can interpret a tool.
+- Keep this package headless and pure.
+- Public exports in `src/index.ts` must be explicit and intentional.
 
-- `src/policy.ts`: activity policy model and helpers.
-- `src/index.ts`: public package entrypoint.
+## Tests
 
-## Public API
-
-The package entrypoint uses explicit named exports. Treat these groups as the intentional activity surface:
-
-- Policy model: `ActivityPolicy`, `ActivityTool`, `BuiltInActivityTool`, `DragPolicy`.
-- Built-in tool source of truth: `activityTools`, `isBuiltInActivityTool`.
-- Reference policies: `openActivityPolicy`, `readOnlyActivityPolicy`.
-- Policy helpers: `canUseTool`, `allowedToolsInOrder`, `isConstructionLocked`, `canDeleteConstruction`, `canDragConstruction`.
-
-`ActivityTool` is any non-empty string tool id so host products and future user-defined tools can flow through lesson policy without changing this package. `BuiltInActivityTool` is derived from the exported `activityTools` tuple. The `openActivityPolicy` enables all built-in tools from that tuple. Curriculum-specific policies restrict the set by listing only the tools relevant to the activity.
-
-Use `isActivityTool` at JSON or plugin boundaries when validating generic tool ids. Use `isBuiltInActivityTool` only when code specifically needs to know whether the current reference implementation can interpret the tool.
-
-Do not add wildcard exports to `src/index.ts`. New public exports should be named intentionally.
-
-## Design Intent
-
-Activity policy is an interpretation layer over geometry and app capabilities. It lets curriculum authors and host products describe what a learner may do without coupling that policy to React controls or browser event handling.
-
-The web app may later interpret this package, but the package itself stays headless.
-
-## Verification Command
-
-Always run the validation suite before finishing:
-
-```bash
-npm run check
-```
+- Policy behavior: `src/policy.test.ts`.
+- Architecture guards: `tests/architecture/*.test.ts`.
+- Full verification for code changes: `npm run check`.

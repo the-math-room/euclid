@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { toWorldPoint, type EvaluatedPrimitive, type WorldPoint } from "@euclid/geometry";
+import { toWorldPoint, type EvaluatedPrimitive } from "@euclid/geometry";
 import {
   fitCameraFor,
   moveCameraInScreen,
@@ -12,7 +12,7 @@ import {
 } from "./viewport";
 
 const camera: ViewCamera = {
-  center: { x: 1, y: 2 } as WorldPoint,
+  center: toWorldPoint({ x: 1, y: 2 }),
   rotation: { turns: 0 },
   scale: 10,
   screenOffset: { x: 3, y: 4 },
@@ -30,7 +30,7 @@ describe("camera operations", () => {
   it("keeps the visible scene center as the rotation pivot after panning", () => {
     const viewport = { size: { width: 100, height: 100 } };
     const initial: ViewCamera = {
-      center: { x: 0, y: 0 } as WorldPoint,
+      center: toWorldPoint({ x: 0, y: 0 }),
       rotation: { turns: 0 },
       scale: 10,
       screenOffset: { x: 0, y: 0 },
@@ -80,7 +80,7 @@ describe("camera operations", () => {
     ];
 
     expect(fitCameraFor(primitives, { size: { width: 100, height: 100 } })).toEqual({
-      center: { x: 2, y: 1 } as WorldPoint,
+      center: toWorldPoint({ x: 2, y: 1 }),
       rotation: { turns: 0 },
       scale: 18,
       screenOffset: { x: 0, y: 0 },
@@ -91,14 +91,14 @@ describe("camera operations", () => {
     const frame = worldFrameFor({
       viewport: { size: { width: 100, height: 100 } },
       camera: {
-        center: { x: 5, y: 10 } as WorldPoint,
+        center: toWorldPoint({ x: 5, y: 10 }),
         rotation: { turns: 0.125 }, // 45 degrees
         scale: 4,
         screenOffset: { x: 2, y: -3 },
       },
     });
 
-    const originalPoint = { x: 12, y: -4 } as WorldPoint;
+    const originalPoint = toWorldPoint({ x: 12, y: -4 });
     const projected = projectPoint(frame, originalPoint);
     const unprojected = unprojectPoint(frame, projected);
 

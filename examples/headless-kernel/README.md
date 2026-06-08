@@ -1,65 +1,26 @@
 # Headless Kernel Example
 
-This example shows the SDK story without React, SVG, Canvas, or browser APIs.
+Purpose: demonstrate the SDK story without React, SVG, Canvas, DOM, or browser APIs.
 
-It uses:
+Read this when changing the headless example or checking whether geometry and assessment can be used outside the web app.
 
-- `@euclid/geometry` to evaluate and explain a construction program.
-- `@euclid/assessment` to parse and evaluate a curriculum-authored goal.
+## Shows
 
-## Program
+- `@euclid/geometry` evaluating a construction program.
+- `@euclid/geometry` explaining a construction.
+- `@euclid/assessment` parsing and evaluating a curriculum-authored goal.
 
-```ts
-import { evaluateConstruction, explainConstruction, type ConstructionProgram } from "@euclid/geometry";
+## Boundary
 
-const program: ConstructionProgram = {
-  constructions: [
-    { id: "A", kind: "free-point", label: "A", position: { x: 0, y: 0 } },
-    { id: "B", kind: "free-point", label: "B", position: { x: 2, y: 0 } },
-    { id: "C", kind: "free-point", label: "C", position: { x: 1, y: 1 } },
-    { id: "D", kind: "free-point", label: "D", position: { x: 1, y: -1 } },
-    { id: "line-ab", kind: "line-through", label: "AB", points: ["A", "B"] },
-    { id: "line-cd", kind: "line-through", label: "CD", points: ["C", "D"] },
-    {
-      id: "intersection",
-      kind: "line-line-intersection",
-      label: "X",
-      lines: ["line-ab", "line-cd"],
-    },
-  ],
-};
+This example should stay headless. Do not add React state, rendering scenes, viewport/camera state, browser fetches, or UI-specific objects.
 
-const evaluation = evaluateConstruction(program);
-const explanation = explainConstruction(program, evaluation, "intersection");
+Construction fixture data here should use the same domain types and branded coordinate constructors used by tests.
 
-console.log(evaluation.diagnostics);
-console.log(explanation?.realized);
-console.log(explanation?.parents);
-```
+## Related Files
 
-## Assessment Goal
+- `examples/assessment-goals/line-intersection-goal.json`: goal fixture used by this example family.
+- `tests/examples/assessmentGoalFixture.test.ts`: executable coverage for the assessment goal fixture.
 
-Curriculum content can store a goal as JSON-like data:
+## Tests
 
-```ts
-import { evaluateGoal, parseAssessmentGoal } from "@euclid/assessment";
-
-const parsed = parseAssessmentGoal(goalJsonText);
-
-if (!parsed.ok) {
-  throw new Error(parsed.diagnostics.join("\n"));
-}
-
-const result = evaluateGoal(
-  {
-    program,
-    evaluation,
-  },
-  parsed.goal,
-);
-
-console.log(result.passed);
-console.log(result.evidence);
-```
-
-See [`../assessment-goals/line-intersection-goal.json`](../assessment-goals/line-intersection-goal.json) for the goal fixture used by tests.
+Run or update `tests/examples/*.test.ts` for fixture changes.

@@ -1,12 +1,11 @@
 import {
   addCircleCircleIntersection,
+  addFreePoint,
   addLineCircleIntersection,
   addLineLineIntersection,
-  generateNextPointLabel,
 } from "@euclid/geometry";
 import type {
   AddConstructionResult,
-  Construction,
   ConstructionId,
   ConstructionProgram,
   WorldPoint,
@@ -34,21 +33,7 @@ export function resolvePointInput(program: ConstructionProgram, input: PointInpu
   }
 
   if (input.kind === "free-point") {
-    const label = generateNextPointLabel(program.constructions);
-    const point: Construction = {
-      id: label,
-      kind: "free-point",
-      label,
-      position: input.position,
-    };
-
-    return {
-      program: {
-        constructions: [...program.constructions, point],
-      },
-      id: point.id,
-      changed: true,
-    };
+    return addFreePoint(program, input.position);
   }
 
   return resolveIntersectionPointInput(program, input.hit);

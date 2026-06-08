@@ -1,10 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  evaluateConstruction,
-  toWorldPoint,
-  type ConstructionProgram,
-  type WorldPoint,
-} from "@euclid/geometry";
+import { evaluateConstruction, toWorldPoint, type ConstructionProgram } from "@euclid/geometry";
 import { defaultScreenViewFor, sceneForEvaluation } from "./scene";
 import { moveCameraInScreen, rotateCamera, zoomCamera, type ScreenView, type ViewportSize } from "./viewport";
 
@@ -126,7 +121,7 @@ describe("sceneForEvaluation", () => {
     const view: ScreenView = {
       viewport: { size: { width: 100, height: 100 } },
       camera: {
-        center: { x: 0, y: 0 } as WorldPoint,
+        center: toWorldPoint({ x: 0, y: 0 }),
         rotation: { turns: 0 },
         scale: 20,
         screenOffset: { x: 0, y: 0 },
@@ -260,7 +255,7 @@ describe("sceneForEvaluation", () => {
     const scene = sceneForEvaluation(evaluation, {
       viewport: { size: { width: 100, height: 100 } },
       camera: {
-        center: { x: 0, y: 0 } as WorldPoint,
+        center: toWorldPoint({ x: 0, y: 0 }),
         rotation: { turns: 0 },
         scale: 10,
         screenOffset: { x: 0, y: 0 },

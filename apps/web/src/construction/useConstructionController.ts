@@ -11,17 +11,10 @@ import {
   addCircleThroughPoints,
   deleteConstructions,
   evaluateConstruction,
-  generateNextPointLabel,
   moveFreePoint,
   translateShape,
 } from "@euclid/geometry";
-import type {
-  Construction,
-  ConstructionId,
-  ConstructionProgram,
-  ScenePoint,
-  WorldPoint,
-} from "@euclid/geometry";
+import type { ConstructionId, ConstructionProgram, ScenePoint, WorldPoint } from "@euclid/geometry";
 import { unprojectPoint, worldFrameFor, type IntersectionHit, type ViewCamera } from "@euclid/rendering";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { firstRegisteredTool } from "./tools";
@@ -128,7 +121,7 @@ export function useConstructionController({
     [evaluated.primitives],
   );
 
-  const updateProgram = useCallback((nextProgram: { constructions: readonly Construction[] }) => {
+  const updateProgram = useCallback((nextProgram: ConstructionProgram) => {
     setHistory((prev) => pushState(prev, nextProgram));
   }, []);
 
@@ -284,21 +277,13 @@ export function useConstructionController({
         return;
       }
 
-      const label = generateNextPointLabel(program.constructions);
-
-      const newPoint: Construction = {
-        id: label,
-        kind: "free-point",
-        label,
-        position: screenToWorld(sceneCoords),
-      };
-
-      updateProgram({
-        constructions: [...program.constructions, newPoint],
-      });
-
-      setSelectedIds(new Set([newPoint.id]));
-      setLastSelectedId(newPoint.id);
+      const resolved = resolvePointInput(program, pointInput);
+      if (!resolved.id) {
+        return;
+      }
+      updateProgramIfChanged(resolved, updateProgram);
+      setSelectedIds(new Set([resolved.id]));
+      setLastSelectedId(resolved.id);
     },
     [activeTool, program, screenToWorld, updateProgram, handlePointInput],
   );

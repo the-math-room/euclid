@@ -8,6 +8,26 @@ export type AddConstructionResult = Readonly<{
   changed: boolean;
 }>;
 
+export function addFreePoint(program: ConstructionProgram, position: WorldPoint): AddConstructionResult {
+  const label = generateNextPointLabel(program.constructions);
+
+  return {
+    program: {
+      constructions: [
+        ...program.constructions,
+        {
+          id: label,
+          kind: "free-point",
+          label,
+          position,
+        },
+      ],
+    },
+    id: label,
+    changed: true,
+  };
+}
+
 export function moveFreePoint(
   program: ConstructionProgram,
   id: ConstructionId,

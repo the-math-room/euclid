@@ -128,6 +128,9 @@ Start here:
 - `docs/strategy/headless-edtech-sdk.md`
 - `docs/journal/2026-06-06-headless-sdk-and-provenance.md`
 - `tests/architecture/import-boundaries.test.ts`
+- `tests/architecture/pure-core.test.ts`
+- `tests/architecture/semantic-boundaries.test.ts`
+- `tests/architecture/sourceAnalysis.ts`
 
 Run:
 
@@ -137,6 +140,8 @@ npm run check
 
 ## Journal (Most Recent First)
 
+- `docs/journal/2026-06-08-executable-architecture-and-readme-routing.md` — converted recent boundary principles into split architecture tests and refocused READMEs for LLM attention routing.
+- `docs/journal/2026-06-08-construction-edit-boundary-and-branded-fixtures.md` — moved free-point construction into the geometry edit boundary and cleaned branded coordinate fixture casts.
 - `docs/journal/2026-06-07-day-3-summary.md` — Day 3 big-picture summary covering type boundaries, parse discipline, algebraic interpreters, assessment, rendering, and deployment hygiene.
 - `docs/journal/2026-06-07-security-meta-and-tolerances.md` — hardened production CSP meta output, added referrer meta, and replaced bare epsilon literals with semantic tolerance constants.
 - `docs/journal/2026-06-07-boundary-composition-and-fixtures.md` — added object-level content decoders for package composition and typed rendering test fixtures.

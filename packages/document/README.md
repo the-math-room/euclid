@@ -1,69 +1,44 @@
 # Document Package
 
-Owns versioned persistent data.
+Purpose: versioned persistent document data and pure document history.
+
+Read this when changing persisted document shape, document parsing, serialization, seed documents, or history behavior.
 
 ## Owns
 
-- `EuclidDocument` shape.
-- Seed and example documents.
-- Parse and serialize boundaries.
-- Future migrations between document schema versions.
+- `EuclidDocument` envelope.
+- Document schema version.
+- Public parse/serialize facade.
+- Zod-backed document and construction-program decoding.
+- Seed document.
+- Pure undo/redo history wrapper.
 
-Functions in this package should be memoizable in theory.
+## Does Not Own
 
-## Must Not Own
+- Construction meaning, realization, editing, or assessment.
+- Rendering, projection, SVG, Canvas, DOM, React, or browser interaction.
+- Lesson composition.
 
-- Rendering, projection, or presentation.
-- React or browser interaction.
-- Construction semantics beyond referencing geometry types.
-
-## Allowed Imports
-
-- `@euclid/geometry`.
-- Local document modules.
-
-## Key Files
+## Start Here
 
 - `src/model.ts`: document model.
-- `src/codec.ts`: public parse and serialize facade.
-- `src/documentDecoder.ts`: Zod-backed document envelope and construction-program decoder.
-- `src/constructionDecoder.ts`: Zod-backed construction variant decoder.
-- `src/seed.ts`: seed document.
-- `src/index.ts`: public package entrypoint.
+- `src/codec.ts`: public text parse/serialize facade.
+- `src/documentDecoder.ts`: object decoder for document envelope and program shape.
+- `src/constructionDecoder.ts`: construction decoder using geometry-owned construction schemas.
+- `src/history.ts`: pure history state transitions.
+- `src/seed.ts`: reference seed document.
+- `src/index.ts`: explicit public entrypoint.
 
-## Public API
+## Local Rules
 
-The package entrypoint uses explicit named exports. Treat these groups as the intentional document surface:
+- Parse unknown content into typed domain values at the boundary. Do not cast persisted construction JSON into `Construction`.
+- Document code may depend on `@euclid/geometry`; it must not depend on rendering, lesson, assessment, activity, app, or UI libraries.
+- Keep string parsers as text-boundary conveniences and object decoders as package-composition APIs.
+- History transitions must be pure and preserve useful identity/no-op behavior.
+- Public exports in `src/index.ts` must be explicit and intentional.
 
-- Document model and fixture: `EuclidDocument`, `seedDocument`.
-- Codec boundary: `DocumentParseResult`, `parseEuclidDocument`, `serializeEuclidDocument`.
-- Pure history wrapper: `DocumentHistory`, `createHistory`, `pushState`, `undo`, `redo`, `canUndo`, `canRedo`.
+## Tests
 
-Do not add wildcard exports to `src/index.ts`. New public exports should be named intentionally.
-
-## Change Pattern
-
-When changing persistence, keep the document version explicit and add codec tests for accepted and rejected input.
-
-## Instructions for LLM Agents
-
-### 1. Architectural Guardrails (Enforced by Tests)
-
-- **Zero UI/React/External Imports**: This package must NOT import React, DOM, or UI styling/icons libraries.
-- **Pure Functions Only**: Do not use global mutable state or module-level variables. All functions must be deterministic and side-effect free.
-- **No Console Logging**: The use of `console` APIs in production files is prohibited and will cause Vitest architecture checks to fail.
-- **Strict Layering**: May import `@euclid/geometry` but must NOT import `@euclid/rendering` or app packages.
-
-### 2. History & Persistence Boundaries
-
-- **Document History**: Design document state transitions (`DocumentHistory`) as pure functional state wrappers (e.g. `undo`, `redo`, `pushState`, `canUndo`, `canRedo`) in `src/history.ts`.
-- **History Snapshot Deduplication**: Ensure consecutive identical document states are filtered out when pushing to history to prevent duplicate state history snapshots.
-- **Codec Schema Validation**: Keep document parsing/serialization validation checks defined explicitly in `src/codec.ts`.
-
-### 3. Verification Command
-
-Always run the validation suite before finishing:
-
-```bash
-npm run check
-```
+- Codec and boundary behavior: `src/architecture.test.ts`.
+- History behavior: `src/history.test.ts`.
+- Full verification for code changes: `npm run check`.

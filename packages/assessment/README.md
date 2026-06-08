@@ -1,122 +1,43 @@
 # Assessment Package
 
-Owns reference assessment helpers over construction programs and evaluations.
+Purpose: reference assessment over construction programs and evaluations.
+
+Read this when changing goal specs, goal parsing, goal-id resolution, or assessment predicates.
 
 ## Owns
 
-- Reference predicates for construction kind checks.
-- Reference dependency checks for direct and transitive construction provenance.
-- Reference exact meaning checks.
-- Reference approximate incidence predicates over realized primitives.
-- A small predicate/result interface for composing reference or host-defined checks.
-- Serializable goal specs for curriculum-authored assessment definitions.
-- Parse and serialize boundaries for assessment goal JSON.
+- Reference predicates over construction kind, dependencies, exact meaning, and approximate incidence.
+- Predicate composition helpers.
+- Serializable `AssessmentGoal` specs.
+- Zod-backed goal JSON parse/serialize boundary.
+- Mapping curriculum goal references to learner construction ids.
 
-Functions in this package should be memoizable in theory.
+## Does Not Own
 
-## Must Not Own
+- Construction syntax, meaning, editing, or approximate realization.
+- Rendering, projection, SVG, Canvas, DOM, React, or browser interaction.
+- Lesson composition.
 
-- Construction syntax or meaning.
-- Construction editing.
-- Approximate realization.
-- Rendering, projection, SVG, Canvas, or DOM.
-- React, browser state, or user interaction.
+## Start Here
 
-## Allowed Imports
+- `src/assessment.ts`: low-level reference predicates and predicate composition.
+- `src/goals.ts`: serializable goal model and goal evaluation.
+- `src/goalCodec.ts`: Zod-backed goal parse/serialize boundary.
+- `src/goalResolution.ts`: explicit mapping between target references and learner constructions.
+- `src/index.ts`: explicit public entrypoint.
 
-- `@euclid/geometry`.
-- Local assessment modules.
+## Local Rules
 
-## Key Files
+- Assessment interprets geometry; it does not define construction meaning.
+- Prefer predicate-shaped helpers over a large rubric engine.
+- Keep goal resolution explicit over typed discriminated unions. Do not use reflective object traversal to recover construction-expression semantics.
+- `geometric-equivalent` goals should evaluate denotation, not labels or a single construction recipe.
+- Zod belongs in `goalCodec.ts`, not predicate or resolution internals.
+- Public exports in `src/index.ts` must be explicit and intentional.
 
-- `src/assessment.ts`: reference assessment predicates.
-- `src/goalCodec.ts`: Zod-backed parse and serialize boundary for assessment goal JSON.
-- `src/goalResolution.ts`: dynamic resolution of curriculum goal references to learner construction IDs.
-- `src/goals.ts`: serializable assessment goal specs and reference goal evaluation.
-- `src/index.ts`: public package entrypoint.
+## Tests
 
-## Public API
-
-The package entrypoint uses explicit named exports. Treat these groups as the intentional reference assessment surface:
-
-- Predicate interface: `AssessmentContext`, `AssessmentPredicate`, `AssessmentResult`, `AssessmentTolerance`.
-- Predicate composition and factories: `assessAll`, `assessAny`, `requiresConstructionKind`, `requiresDependency`, `requiresMeaning`, `requiresPointOnLine`, `requiresPointOnCircle`.
-- Low-level boolean helpers: `hasConstructionKind`, `constructionIdsOfKind`, `directlyDependsOn`, `dependsOn`, `hasConstructionMeaning`, `isPointOnLine`, `isPointOnCircle`.
-- Dynamic goal resolution: `mapGoalIds`, `resolveGoalMapping`.
-- Serializable goals: `AssessmentGoal`, `predicateForGoal`, `evaluateGoal`.
-- Goal codec: `AssessmentGoalParseResult`, `parseAssessmentGoal`, `serializeAssessmentGoal`.
-
-Do not add wildcard exports to `src/index.ts`. New public exports should be named intentionally.
-
-## Design Intent
-
-Assessment is an interpretation of construction meaning, not the owner of meaning. Hosts may use this package as a reference implementation or bring their own assessment engine against `@euclid/geometry` data.
-
-Keep this package small and composable. Prefer predicate-shaped helpers over a large rubric engine until repeated usage makes larger abstractions obvious.
-
-## Predicate Interface
-
-The reference interface is:
-
-```ts
-type AssessmentContext = Readonly<{
-  program: ConstructionProgram;
-  evaluation: Evaluation;
-}>;
-
-type AssessmentPredicate = (context: AssessmentContext) => AssessmentResult;
-```
-
-Reference predicate factories include:
-
-- `requiresConstructionKind`
-- `requiresDependency`
-- `requiresMeaning`
-- `requiresPointOnLine`
-- `requiresPointOnCircle`
-- `assessAll`
-- `assessAny`
-
-Hosts can compose these, wrap them with curriculum-specific metadata, or replace them with their own predicate implementations.
-
-## Goal Specs
-
-`AssessmentGoal` is a serializable discriminated union for curriculum content. It can express simple checks and `all` / `any` compositions without requiring a host to hard-code predicates:
-
-```ts
-const goal: AssessmentGoal = {
-  kind: "all",
-  id: "construct-x",
-  goals: [
-    {
-      kind: "meaning",
-      id: "intersection",
-      expression: {
-        kind: "line-line-intersection",
-        lines: ["line-ab", "line-cd"],
-      },
-    },
-  ],
-};
-```
-
-Use `evaluateGoal(context, goal)` for one-off evaluation or `predicateForGoal(goal)` to compile a goal into a reusable predicate.
-
-Use `parseAssessmentGoal` and `serializeAssessmentGoal` at JSON boundaries. Parsing validates structure only; it does not require referenced construction IDs to exist in a particular student program.
-
-## Construction Expression Kinds
-
-`sameExpression` comparison (used by `hasConstructionMeaning` and `requiresMeaning`) supports all current construction expression kinds. Some notes on non-obvious comparison semantics:
-
-- `"line-line-intersection"` — order-sensitive: `[line-ab, line-cd]` does not match `[line-cd, line-ab]`.
-- `"circle-circle-intersection"` — order-sensitive via `firstCircle` / `secondCircle`.
-- `"midpoint"` — **order-independent**: `[A, B]` matches `[B, A]`. Midpoint is symmetric and curriculum authors should not need to specify which parent is "first."
-- `"parallel-line"` and `"perpendicular-line"` — compared by `line` and `point` identity. The witness point uniquely determines the line in the context of a reference, so order does not apply.
-
-## Verification Command
-
-Always run the validation suite before finishing:
-
-```bash
-npm run check
-```
+- Predicate behavior: `src/assessment.test.ts`.
+- Goal behavior: `src/goals.test.ts`.
+- Goal codec behavior: `src/goalCodec.test.ts`.
+- Full verification for code changes: `npm run check`.

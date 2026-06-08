@@ -1,21 +1,28 @@
 # Lesson Fixtures
 
-These fixtures show the SDK story at the lesson layer: a starter document, a headless activity policy, and curriculum-authored assessment goals in one portable JSON value.
+Purpose: portable JSON fixtures for the lesson layer.
 
-## Basic Line Intersection
+Read this when changing example lesson content or checking the expected host flow for `EuclidLesson`.
 
-[`basic-line-intersection.lesson.json`](./basic-line-intersection.lesson.json) asks a learner to construct two lines through four locked starter points and then construct their intersection.
+## Shows
 
-It uses:
-
-- `@euclid/lesson` to parse the lesson shell.
-- `@euclid/geometry` to evaluate the learner construction program.
-- `@euclid/assessment` to evaluate each lesson goal.
-
-The fixture is covered by `tests/examples/lessonFixture.test.ts`.
+- A starter document.
+- A headless activity policy.
+- Curriculum-authored assessment goals.
+- A portable JSON value that can be parsed without the web app.
 
 ## Boundary
 
-Lesson fixtures should stay portable JSON. They should not include React state, viewport state, rendering preferences, LMS identifiers, analytics storage, or hosted runtime concerns.
+Lesson fixtures should stay portable JSON. Do not include React state, viewport/camera state, rendering preferences, LMS identifiers, analytics storage, browser state, or hosted runtime concerns.
 
-If a future host needs those fields, prefer a host-specific wrapper around `EuclidLesson` rather than expanding the lesson core too early.
+If a host needs those fields, prefer a host-specific wrapper around `EuclidLesson` instead of expanding the lesson core.
+
+## Related Files
+
+- `basic-line-intersection.lesson.json`: lesson fixture.
+- `tests/examples/lessonFixture.test.ts`: executable fixture coverage.
+- `packages/lesson/README.md`: lesson package rules.
+
+## Tests
+
+Run or update `tests/examples/*.test.ts` for fixture changes.
