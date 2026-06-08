@@ -71,98 +71,107 @@ function matchExpression(
     return false;
   }
 
-  const keys = Object.keys(goalExpr) as (keyof ConstructionExpression)[];
-  for (const key of keys) {
-    if (key === "kind") continue;
+  return matchSameKindExpression(userExpr, goalExpr, mapping);
+}
 
-    const goalVal = (goalExpr as Record<string, unknown>)[key];
-    const userVal = (userExpr as Record<string, unknown>)[key];
-
-    if (Array.isArray(goalVal)) {
-      if (!Array.isArray(userVal) || goalVal.length !== userVal.length) {
-        return false;
-      }
-      if (goalVal.length > 0 && typeof goalVal[0] === "string") {
-        const mappedGoalSet = new Set(goalVal.map((v: string) => mapping.get(v) ?? v));
-        const userSet = new Set(userVal);
-        if (mappedGoalSet.size !== userSet.size) {
-          return false;
-        }
-        for (const item of userSet) {
-          if (!mappedGoalSet.has(item)) {
-            return false;
-          }
-        }
-      } else {
-        for (let i = 0; i < goalVal.length; i++) {
-          if (!matchExpression(userVal[i], goalVal[i], mapping)) {
-            return false;
-          }
-        }
-      }
-    } else if (typeof goalVal === "string") {
-      if (
-        (key === "firstCircle" || key === "secondCircle") &&
-        "firstCircle" in goalExpr &&
-        "secondCircle" in goalExpr
-      ) {
-        const gExprObj = goalExpr as Record<string, unknown>;
-        const uExprObj = userExpr as Record<string, unknown>;
-        const gc0 = mapping.get(String(gExprObj.firstCircle)) ?? String(gExprObj.firstCircle);
-        const gc1 = mapping.get(String(gExprObj.secondCircle)) ?? String(gExprObj.secondCircle);
-        const uc0 = String(uExprObj.firstCircle);
-        const uc1 = String(uExprObj.secondCircle);
-        if (!((uc0 === gc0 && uc1 === gc1) || (uc0 === gc1 && uc1 === gc0))) {
-          return false;
-        }
-      } else {
-        const mappedVal = mapping.get(goalVal) ?? goalVal;
-        if (userVal !== mappedVal) {
-          return false;
-        }
-      }
-    } else if (userVal !== goalVal) {
-      return false;
-    }
+function matchSameKindExpression(
+  userExpr: ConstructionExpression,
+  goalExpr: ConstructionExpression,
+  mapping: Map<string, string>,
+): boolean {
+  switch (goalExpr.kind) {
+    case "free-point":
+      return userExpr.kind === "free-point";
+    case "line-through":
+      return userExpr.kind === "line-through" && sameMappedIdSet(goalExpr.points, userExpr.points, mapping);
+    case "circle-through":
+      return (
+        userExpr.kind === "circle-through" &&
+        sameMappedId(goalExpr.center, userExpr.center, mapping) &&
+        sameMappedId(goalExpr.pointOnCircle, userExpr.pointOnCircle, mapping)
+      );
+    case "circle-three-points":
+      return (
+        userExpr.kind === "circle-three-points" && sameMappedIdSet(goalExpr.points, userExpr.points, mapping)
+      );
+    case "line-line-intersection":
+      return (
+        userExpr.kind === "line-line-intersection" && sameMappedIdSet(goalExpr.lines, userExpr.lines, mapping)
+      );
+    case "line-circle-intersection":
+      return (
+        userExpr.kind === "line-circle-intersection" &&
+        sameMappedId(goalExpr.line, userExpr.line, mapping) &&
+        sameMappedId(goalExpr.circle, userExpr.circle, mapping) &&
+        goalExpr.intersectionIndex === userExpr.intersectionIndex
+      );
+    case "circle-circle-intersection":
+      return (
+        userExpr.kind === "circle-circle-intersection" &&
+        sameMappedIdSet(
+          [goalExpr.firstCircle, goalExpr.secondCircle],
+          [userExpr.firstCircle, userExpr.secondCircle],
+          mapping,
+        ) &&
+        goalExpr.intersectionIndex === userExpr.intersectionIndex
+      );
+    case "parallel-line":
+      return (
+        userExpr.kind === "parallel-line" &&
+        sameMappedId(goalExpr.line, userExpr.line, mapping) &&
+        sameMappedId(goalExpr.point, userExpr.point, mapping)
+      );
+    case "perpendicular-line":
+      return (
+        userExpr.kind === "perpendicular-line" &&
+        sameMappedId(goalExpr.line, userExpr.line, mapping) &&
+        sameMappedId(goalExpr.point, userExpr.point, mapping)
+      );
+    case "midpoint":
+      return userExpr.kind === "midpoint" && sameMappedIdSet(goalExpr.points, userExpr.points, mapping);
   }
-
-  return true;
 }
 
 export function mapGoalIds(goal: AssessmentGoal, mapping: Map<string, string>): AssessmentGoal {
-  if (goal.kind === "all" || goal.kind === "any") {
+  if (goal.kind === "all") {
     return {
       ...goal,
-      goals: goal.goals.map((g: AssessmentGoal) => mapGoalIds(g, mapping)),
-    } as AssessmentGoal;
+      goals: goal.goals.map((child) => mapGoalIds(child, mapping)),
+    };
+  }
+  if (goal.kind === "any") {
+    return {
+      ...goal,
+      goals: goal.goals.map((child) => mapGoalIds(child, mapping)),
+    };
   }
   if (goal.kind === "meaning") {
     return {
       ...goal,
       id: mapping.get(goal.id) ?? goal.id,
       expression: mapExpressionIds(goal.expression, mapping),
-    } as AssessmentGoal;
+    };
   }
   if (goal.kind === "point-on-line") {
     return {
       ...goal,
       pointId: mapping.get(goal.pointId) ?? goal.pointId,
       lineId: mapping.get(goal.lineId) ?? goal.lineId,
-    } as AssessmentGoal;
+    };
   }
   if (goal.kind === "point-on-circle") {
     return {
       ...goal,
       pointId: mapping.get(goal.pointId) ?? goal.pointId,
       circleId: mapping.get(goal.circleId) ?? goal.circleId,
-    } as AssessmentGoal;
+    };
   }
   if (goal.kind === "dependency") {
     return {
       ...goal,
       targetId: mapping.get(goal.targetId) ?? goal.targetId,
       sourceId: mapping.get(goal.sourceId) ?? goal.sourceId,
-    } as AssessmentGoal;
+    };
   }
   return goal;
 }
@@ -171,24 +180,113 @@ function mapExpressionIds(
   expr: ConstructionExpression,
   mapping: Map<string, string>,
 ): ConstructionExpression {
-  const mapped = { ...expr } as Record<string, unknown>;
-  const exprObj = expr as Record<string, unknown>;
-  for (const key of Object.keys(expr)) {
-    if (key === "kind") continue;
-    const val = exprObj[key];
-    if (Array.isArray(val)) {
-      if (val.length > 0 && typeof val[0] === "string") {
-        mapped[key] = val.map((v: string) => mapping.get(v) ?? v);
-      } else {
-        mapped[key] = val.map((v: unknown) =>
-          v && typeof v === "object" ? mapExpressionIds(v as ConstructionExpression, mapping) : v,
-        );
-      }
-    } else if (typeof val === "string") {
-      mapped[key] = mapping.get(val) ?? val;
-    } else if (val && typeof val === "object") {
-      mapped[key] = mapExpressionIds(val as ConstructionExpression, mapping);
-    }
+  if (expr.kind === "free-point") {
+    return expr;
   }
-  return mapped as unknown as ConstructionExpression;
+
+  if (expr.kind === "line-through") {
+    return {
+      kind: "line-through",
+      points: mapIdTuple(expr.points, mapping),
+    };
+  }
+
+  if (expr.kind === "circle-through") {
+    return {
+      kind: "circle-through",
+      center: mapId(expr.center, mapping),
+      pointOnCircle: mapId(expr.pointOnCircle, mapping),
+    };
+  }
+
+  if (expr.kind === "circle-three-points") {
+    return {
+      kind: "circle-three-points",
+      points: mapIdTriple(expr.points, mapping),
+    };
+  }
+
+  if (expr.kind === "line-line-intersection") {
+    return {
+      kind: "line-line-intersection",
+      lines: mapIdTuple(expr.lines, mapping),
+    };
+  }
+
+  if (expr.kind === "line-circle-intersection") {
+    return {
+      kind: "line-circle-intersection",
+      line: mapId(expr.line, mapping),
+      circle: mapId(expr.circle, mapping),
+      intersectionIndex: expr.intersectionIndex,
+    };
+  }
+
+  if (expr.kind === "circle-circle-intersection") {
+    return {
+      kind: "circle-circle-intersection",
+      firstCircle: mapId(expr.firstCircle, mapping),
+      secondCircle: mapId(expr.secondCircle, mapping),
+      intersectionIndex: expr.intersectionIndex,
+    };
+  }
+
+  if (expr.kind === "parallel-line") {
+    return {
+      kind: "parallel-line",
+      line: mapId(expr.line, mapping),
+      point: mapId(expr.point, mapping),
+    };
+  }
+
+  if (expr.kind === "perpendicular-line") {
+    return {
+      kind: "perpendicular-line",
+      line: mapId(expr.line, mapping),
+      point: mapId(expr.point, mapping),
+    };
+  }
+
+  if (expr.kind === "midpoint") {
+    return {
+      kind: "midpoint",
+      points: mapIdTuple(expr.points, mapping),
+    };
+  }
+
+  const _exhaustiveCheck: never = expr;
+  return _exhaustiveCheck;
+}
+
+function sameMappedId(goalId: string, userId: string, mapping: Map<string, string>): boolean {
+  return mapId(goalId, mapping) === userId;
+}
+
+function sameMappedIdSet(
+  goalIds: readonly string[],
+  userIds: readonly string[],
+  mapping: Map<string, string>,
+): boolean {
+  if (goalIds.length !== userIds.length) {
+    return false;
+  }
+
+  const mappedGoalIds = new Set(goalIds.map((id) => mapId(id, mapping)));
+  const userIdSet = new Set(userIds);
+  return mappedGoalIds.size === userIdSet.size && [...mappedGoalIds].every((id) => userIdSet.has(id));
+}
+
+function mapId(id: string, mapping: Map<string, string>): string {
+  return mapping.get(id) ?? id;
+}
+
+function mapIdTuple(ids: readonly [string, string], mapping: Map<string, string>): readonly [string, string] {
+  return [mapId(ids[0], mapping), mapId(ids[1], mapping)];
+}
+
+function mapIdTriple(
+  ids: readonly [string, string, string],
+  mapping: Map<string, string>,
+): readonly [string, string, string] {
+  return [mapId(ids[0], mapping), mapId(ids[1], mapping), mapId(ids[2], mapping)];
 }

@@ -26,9 +26,8 @@ Functions in this package should be memoizable in theory.
 
 - `src/model.ts`: document model.
 - `src/codec.ts`: public parse and serialize facade.
-- `src/documentDecoder.ts`: document envelope and construction-program decoder.
-- `src/constructionDecoder.ts`: construction variant decoder.
-- `src/jsonDecoder.ts`: small JSON decoding primitives shared by document decoders.
+- `src/documentDecoder.ts`: Zod-backed document envelope and construction-program decoder.
+- `src/constructionDecoder.ts`: Zod-backed construction variant decoder.
 - `src/seed.ts`: seed document.
 - `src/index.ts`: public package entrypoint.
 

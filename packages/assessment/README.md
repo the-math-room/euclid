@@ -30,7 +30,7 @@ Functions in this package should be memoizable in theory.
 ## Key Files
 
 - `src/assessment.ts`: reference assessment predicates.
-- `src/goalCodec.ts`: explicit parse and serialize boundary for assessment goal JSON.
+- `src/goalCodec.ts`: Zod-backed parse and serialize boundary for assessment goal JSON.
 - `src/goalResolution.ts`: dynamic resolution of curriculum goal references to learner construction IDs.
 - `src/goals.ts`: serializable assessment goal specs and reference goal evaluation.
 - `src/index.ts`: public package entrypoint.

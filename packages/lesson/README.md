@@ -29,7 +29,7 @@ Functions in this package should be memoizable in theory.
 ## Key Files
 
 - `src/model.ts`: lesson model.
-- `src/codec.ts`: explicit parse and serialize boundary for lesson JSON.
+- `src/codec.ts`: Zod-backed parse and serialize boundary for lesson JSON.
 - `src/index.ts`: public package entrypoint.
 
 ## Public API

@@ -1,52 +1,9 @@
 import { toWorldPoint, type Construction } from "@euclid/geometry";
-import {
-  decodeNumberField,
-  decodeRecord,
-  decodeStringField,
-  decodeStringPairFields,
-  decodeStringTuple,
-} from "./jsonDecoder";
+import { z } from "zod";
 
 export type ConstructionDecodeResult =
   | Readonly<{ ok: true; construction: Construction }>
   | Readonly<{ ok: false; diagnostic: string }>;
-
-type ConstructionHeader = Record<string, unknown> &
-  Readonly<{
-    id: string;
-    kind: Construction["kind"];
-    label: string;
-  }>;
-
-type ConstructionHeaderDecodeResult =
-  | Readonly<{ ok: true; value: ConstructionHeader }>
-  | Readonly<{ ok: false; diagnostic: string }>;
-
-type ConstructionKindDecodeResult =
-  | Readonly<{ ok: true; value: Construction["kind"] }>
-  | Readonly<{ ok: false; diagnostic: string }>;
-
-type WorldPointDecodeResult =
-  | Readonly<{ ok: true; value: ReturnType<typeof toWorldPoint> }>
-  | Readonly<{ ok: false; diagnostic: string }>;
-
-type PointRecordDecodeResult =
-  | Readonly<{ ok: true; x: number; y: number }>
-  | Readonly<{ ok: false; diagnostic: string }>;
-
-type IdPairDecodeResult =
-  | Readonly<{ ok: true; ids: readonly [string, string] }>
-  | Readonly<{ ok: false; diagnostic: string }>;
-
-type IdTripleDecodeResult =
-  | Readonly<{ ok: true; ids: readonly [string, string, string] }>
-  | Readonly<{ ok: false; diagnostic: string }>;
-
-type IntersectionIndexDecodeResult =
-  | Readonly<{ ok: true; value: 0 | 1 }>
-  | Readonly<{ ok: false; diagnostic: string }>;
-
-type ConstructionVariantDecoder = (value: ConstructionHeader, path: string) => ConstructionDecodeResult;
 
 const constructionKinds = [
   "free-point",
@@ -61,345 +18,323 @@ const constructionKinds = [
   "midpoint",
 ] as const satisfies readonly Construction["kind"][];
 
-const constructionDecoders: Readonly<Record<Construction["kind"], ConstructionVariantDecoder>> = {
-  "free-point": decodeFreePointConstruction,
-  "line-through": decodeLineThroughConstruction,
-  "circle-through": decodeCircleThroughConstruction,
-  "circle-three-points": decodeCircleThreePointsConstruction,
-  "line-line-intersection": decodeLineLineIntersectionConstruction,
-  "line-circle-intersection": decodeLineCircleIntersectionConstruction,
-  "circle-circle-intersection": decodeCircleCircleIntersectionConstruction,
-  "parallel-line": decodeParallelLineConstruction,
-  "perpendicular-line": decodePerpendicularLineConstruction,
-  midpoint: decodeMidpointConstruction,
+const idPairSchema = z.tuple([z.string(), z.string()]);
+const idTripleSchema = z.tuple([z.string(), z.string(), z.string()]);
+const intersectionIndexSchema = z.union([z.literal(0), z.literal(1)]);
+const point2Schema = z.object({
+  x: z.number(),
+  y: z.number(),
+});
+
+const freePointSchema = z.object({
+  id: z.string(),
+  kind: z.literal("free-point"),
+  label: z.string(),
+  position: point2Schema,
+});
+
+const lineThroughSchema = z.object({
+  id: z.string(),
+  kind: z.literal("line-through"),
+  label: z.string(),
+  points: idPairSchema,
+});
+
+const circleThroughSchema = z.object({
+  id: z.string(),
+  kind: z.literal("circle-through"),
+  label: z.string(),
+  center: z.string(),
+  pointOnCircle: z.string(),
+});
+
+const circleThreePointsSchema = z.object({
+  id: z.string(),
+  kind: z.literal("circle-three-points"),
+  label: z.string(),
+  points: idTripleSchema,
+});
+
+const lineLineIntersectionSchema = z.object({
+  id: z.string(),
+  kind: z.literal("line-line-intersection"),
+  label: z.string(),
+  lines: idPairSchema,
+});
+
+const lineCircleIntersectionSchema = z.object({
+  id: z.string(),
+  kind: z.literal("line-circle-intersection"),
+  label: z.string(),
+  line: z.string(),
+  circle: z.string(),
+  intersectionIndex: intersectionIndexSchema,
+});
+
+const circleCircleIntersectionSchema = z.object({
+  id: z.string(),
+  kind: z.literal("circle-circle-intersection"),
+  label: z.string(),
+  firstCircle: z.string(),
+  secondCircle: z.string(),
+  intersectionIndex: intersectionIndexSchema,
+});
+
+const parallelLineSchema = z.object({
+  id: z.string(),
+  kind: z.literal("parallel-line"),
+  label: z.string(),
+  line: z.string(),
+  point: z.string(),
+});
+
+const perpendicularLineSchema = z.object({
+  id: z.string(),
+  kind: z.literal("perpendicular-line"),
+  label: z.string(),
+  line: z.string(),
+  point: z.string(),
+});
+
+const midpointSchema = z.object({
+  id: z.string(),
+  kind: z.literal("midpoint"),
+  label: z.string(),
+  points: idPairSchema,
+});
+
+const constructionSchema = z.discriminatedUnion("kind", [
+  freePointSchema,
+  lineThroughSchema,
+  circleThroughSchema,
+  circleThreePointsSchema,
+  lineLineIntersectionSchema,
+  lineCircleIntersectionSchema,
+  circleCircleIntersectionSchema,
+  parallelLineSchema,
+  perpendicularLineSchema,
+  midpointSchema,
+]);
+
+type RawConstruction = z.infer<typeof constructionSchema>;
+
+type ConstructionMapper = (construction: RawConstruction) => Construction;
+
+const constructionMappers: Readonly<Record<Construction["kind"], ConstructionMapper>> = {
+  "free-point": mapFreePoint,
+  "line-through": mapLineThrough,
+  "circle-through": mapCircleThrough,
+  "circle-three-points": mapCircleThreePoints,
+  "line-line-intersection": mapLineLineIntersection,
+  "line-circle-intersection": mapLineCircleIntersection,
+  "circle-circle-intersection": mapCircleCircleIntersection,
+  "parallel-line": mapParallelLine,
+  "perpendicular-line": mapPerpendicularLine,
+  midpoint: mapMidpoint,
 };
 
 export function decodeConstruction(value: unknown, path: string): ConstructionDecodeResult {
-  const header = decodeConstructionHeader(value, path);
-  if (!header.ok) {
-    return constructionInvalid(header.diagnostic);
-  }
-
-  return constructionDecoders[header.value.kind](header.value, path);
-}
-
-function decodeConstructionHeader(value: unknown, path: string): ConstructionHeaderDecodeResult {
-  const record = decodeRecord(value, path);
-  if (!record.ok) {
-    return constructionHeaderInvalid(record.diagnostic);
-  }
-
-  const id = decodeStringField(record.value, "id", path);
-  if (!id.ok) {
-    return constructionHeaderInvalid(id.diagnostic);
-  }
-
-  const label = decodeStringField(record.value, "label", path);
-  if (!label.ok) {
-    return constructionHeaderInvalid(label.diagnostic);
-  }
-
-  const kind = decodeConstructionKind(record.value.kind, `${path}.kind`);
-  if (!kind.ok) {
-    return constructionHeaderInvalid(kind.diagnostic);
+  const parsed = constructionSchema.safeParse(value);
+  if (!parsed.success) {
+    return constructionInvalid(diagnosticForConstructionError(parsed.error, value, path));
   }
 
   return {
     ok: true,
-    value: {
-      ...record.value,
-      id: id.value,
-      kind: kind.value,
-      label: label.value,
-    },
+    construction: constructionMappers[parsed.data.kind](parsed.data),
   };
 }
 
-function decodeConstructionKind(value: unknown, path: string): ConstructionKindDecodeResult {
-  if (!isConstructionKind(value)) {
-    return {
-      ok: false,
-      diagnostic: `${path} is not a supported construction kind.`,
-    };
+function mapFreePoint(construction: RawConstruction): Construction {
+  if (construction.kind !== "free-point") {
+    return mapUnexpectedConstruction(construction);
   }
 
   return {
-    ok: true,
-    value,
+    id: construction.id,
+    kind: "free-point",
+    label: construction.label,
+    position: toWorldPoint(construction.position),
   };
 }
 
-function decodeFreePointConstruction(value: ConstructionHeader, path: string): ConstructionDecodeResult {
-  const position = decodeWorldPoint(value.position, `${path}.position`);
-  if (!position.ok) {
-    return constructionInvalid(position.diagnostic);
+function mapLineThrough(construction: RawConstruction): Construction {
+  if (construction.kind !== "line-through") {
+    return mapUnexpectedConstruction(construction);
   }
 
   return {
-    ok: true,
-    construction: {
-      id: value.id,
-      kind: "free-point",
-      label: value.label,
-      position: position.value,
-    },
+    id: construction.id,
+    kind: "line-through",
+    label: construction.label,
+    points: construction.points,
   };
 }
 
-function decodeWorldPoint(value: unknown, path: string): WorldPointDecodeResult {
-  const point = decodePointRecord(value, path);
-  if (!point.ok) {
-    return {
-      ok: false,
-      diagnostic: point.diagnostic,
-    };
+function mapCircleThrough(construction: RawConstruction): Construction {
+  if (construction.kind !== "circle-through") {
+    return mapUnexpectedConstruction(construction);
   }
 
   return {
-    ok: true,
-    value: toWorldPoint({
-      x: point.x,
-      y: point.y,
-    }),
+    id: construction.id,
+    kind: "circle-through",
+    label: construction.label,
+    center: construction.center,
+    pointOnCircle: construction.pointOnCircle,
   };
 }
 
-function decodePointRecord(value: unknown, path: string): PointRecordDecodeResult {
-  const record = decodeRecord(value, path);
-  if (!record.ok) {
-    return pointInvalid(`${path} must be a Point2 object.`);
-  }
-
-  const x = decodeNumberField(record.value, "x", path);
-  if (!x.ok) {
-    return pointInvalid(`${path} must be a Point2 object.`);
-  }
-
-  const y = decodeNumberField(record.value, "y", path);
-  if (!y.ok) {
-    return pointInvalid(`${path} must be a Point2 object.`);
+function mapCircleThreePoints(construction: RawConstruction): Construction {
+  if (construction.kind !== "circle-three-points") {
+    return mapUnexpectedConstruction(construction);
   }
 
   return {
-    ok: true,
-    x: x.value,
-    y: y.value,
+    id: construction.id,
+    kind: "circle-three-points",
+    label: construction.label,
+    points: construction.points,
   };
 }
 
-function decodeLineThroughConstruction(value: ConstructionHeader, path: string): ConstructionDecodeResult {
-  const points = decodeIdPair(value.points, `${path}.points`);
-  return points.ok
-    ? {
-        ok: true,
-        construction: {
-          id: value.id,
-          kind: "line-through",
-          label: value.label,
-          points: points.ids,
-        },
-      }
-    : constructionInvalid(points.diagnostic);
-}
-
-function decodeCircleThroughConstruction(value: ConstructionHeader, path: string): ConstructionDecodeResult {
-  const fields = decodeStringPairFields(value, "center", "pointOnCircle", path);
-  if (!fields.ok) {
-    return constructionInvalid(fields.diagnostic);
+function mapLineLineIntersection(construction: RawConstruction): Construction {
+  if (construction.kind !== "line-line-intersection") {
+    return mapUnexpectedConstruction(construction);
   }
 
   return {
-    ok: true,
-    construction: {
-      id: value.id,
-      kind: "circle-through",
-      label: value.label,
-      center: fields.first,
-      pointOnCircle: fields.second,
-    },
+    id: construction.id,
+    kind: "line-line-intersection",
+    label: construction.label,
+    lines: construction.lines,
   };
 }
 
-function decodeCircleThreePointsConstruction(
-  value: ConstructionHeader,
-  path: string,
-): ConstructionDecodeResult {
-  const points = decodeIdTriple(value.points, `${path}.points`);
-  return points.ok
-    ? {
-        ok: true,
-        construction: {
-          id: value.id,
-          kind: "circle-three-points",
-          label: value.label,
-          points: points.ids,
-        },
-      }
-    : constructionInvalid(points.diagnostic);
-}
-
-function decodeLineLineIntersectionConstruction(
-  value: ConstructionHeader,
-  path: string,
-): ConstructionDecodeResult {
-  const lines = decodeIdPair(value.lines, `${path}.lines`);
-  return lines.ok
-    ? {
-        ok: true,
-        construction: {
-          id: value.id,
-          kind: "line-line-intersection",
-          label: value.label,
-          lines: lines.ids,
-        },
-      }
-    : constructionInvalid(lines.diagnostic);
-}
-
-function decodeLineCircleIntersectionConstruction(
-  value: ConstructionHeader,
-  path: string,
-): ConstructionDecodeResult {
-  const fields = decodeStringPairFields(value, "line", "circle", path);
-  if (!fields.ok) {
-    return constructionInvalid(fields.diagnostic);
-  }
-
-  const intersectionIndex = decodeIntersectionIndex(value.intersectionIndex, `${path}.intersectionIndex`);
-  if (!intersectionIndex.ok) {
-    return constructionInvalid(intersectionIndex.diagnostic);
+function mapLineCircleIntersection(construction: RawConstruction): Construction {
+  if (construction.kind !== "line-circle-intersection") {
+    return mapUnexpectedConstruction(construction);
   }
 
   return {
-    ok: true,
-    construction: {
-      id: value.id,
-      kind: "line-circle-intersection",
-      label: value.label,
-      line: fields.first,
-      circle: fields.second,
-      intersectionIndex: intersectionIndex.value,
-    },
+    id: construction.id,
+    kind: "line-circle-intersection",
+    label: construction.label,
+    line: construction.line,
+    circle: construction.circle,
+    intersectionIndex: construction.intersectionIndex,
   };
 }
 
-function decodeCircleCircleIntersectionConstruction(
-  value: ConstructionHeader,
-  path: string,
-): ConstructionDecodeResult {
-  const fields = decodeStringPairFields(value, "firstCircle", "secondCircle", path);
-  if (!fields.ok) {
-    return constructionInvalid(fields.diagnostic);
-  }
-
-  const intersectionIndex = decodeIntersectionIndex(value.intersectionIndex, `${path}.intersectionIndex`);
-  if (!intersectionIndex.ok) {
-    return constructionInvalid(intersectionIndex.diagnostic);
+function mapCircleCircleIntersection(construction: RawConstruction): Construction {
+  if (construction.kind !== "circle-circle-intersection") {
+    return mapUnexpectedConstruction(construction);
   }
 
   return {
-    ok: true,
-    construction: {
-      id: value.id,
-      kind: "circle-circle-intersection",
-      label: value.label,
-      firstCircle: fields.first,
-      secondCircle: fields.second,
-      intersectionIndex: intersectionIndex.value,
-    },
+    id: construction.id,
+    kind: "circle-circle-intersection",
+    label: construction.label,
+    firstCircle: construction.firstCircle,
+    secondCircle: construction.secondCircle,
+    intersectionIndex: construction.intersectionIndex,
   };
 }
 
-function decodeParallelLineConstruction(value: ConstructionHeader, path: string): ConstructionDecodeResult {
-  const fields = decodeStringPairFields(value, "line", "point", path);
-  if (!fields.ok) {
-    return constructionInvalid(fields.diagnostic);
+function mapParallelLine(construction: RawConstruction): Construction {
+  if (construction.kind !== "parallel-line") {
+    return mapUnexpectedConstruction(construction);
   }
 
   return {
-    ok: true,
-    construction: {
-      id: value.id,
-      kind: "parallel-line",
-      label: value.label,
-      line: fields.first,
-      point: fields.second,
-    },
+    id: construction.id,
+    kind: "parallel-line",
+    label: construction.label,
+    line: construction.line,
+    point: construction.point,
   };
 }
 
-function decodePerpendicularLineConstruction(
-  value: ConstructionHeader,
-  path: string,
-): ConstructionDecodeResult {
-  const fields = decodeStringPairFields(value, "line", "point", path);
-  if (!fields.ok) {
-    return constructionInvalid(fields.diagnostic);
+function mapPerpendicularLine(construction: RawConstruction): Construction {
+  if (construction.kind !== "perpendicular-line") {
+    return mapUnexpectedConstruction(construction);
   }
 
   return {
-    ok: true,
-    construction: {
-      id: value.id,
-      kind: "perpendicular-line",
-      label: value.label,
-      line: fields.first,
-      point: fields.second,
-    },
+    id: construction.id,
+    kind: "perpendicular-line",
+    label: construction.label,
+    line: construction.line,
+    point: construction.point,
   };
 }
 
-function decodeMidpointConstruction(value: ConstructionHeader, path: string): ConstructionDecodeResult {
-  const points = decodeIdPair(value.points, `${path}.points`);
-  return points.ok
-    ? {
-        ok: true,
-        construction: {
-          id: value.id,
-          kind: "midpoint",
-          label: value.label,
-          points: points.ids,
-        },
-      }
-    : constructionInvalid(points.diagnostic);
-}
-
-function decodeIdPair(value: unknown, path: string): IdPairDecodeResult {
-  const tuple = decodeStringTuple(value, path, 2);
-  if (!tuple.ok) {
-    return idPairInvalid(tuple.diagnostic);
+function mapMidpoint(construction: RawConstruction): Construction {
+  if (construction.kind !== "midpoint") {
+    return mapUnexpectedConstruction(construction);
   }
 
   return {
-    ok: true,
-    ids: [tuple.values[0], tuple.values[1]],
+    id: construction.id,
+    kind: "midpoint",
+    label: construction.label,
+    points: construction.points,
   };
 }
 
-function decodeIdTriple(value: unknown, path: string): IdTripleDecodeResult {
-  const tuple = decodeStringTuple(value, path, 3);
-  if (!tuple.ok) {
-    return idTripleInvalid(tuple.diagnostic);
-  }
-
-  return {
-    ok: true,
-    ids: [tuple.values[0], tuple.values[1], tuple.values[2]],
-  };
+function mapUnexpectedConstruction(construction: RawConstruction): never {
+  throw new Error(`Unexpected construction kind ${construction.kind}.`);
 }
 
-function decodeIntersectionIndex(value: unknown, path: string): IntersectionIndexDecodeResult {
-  if (value === 0 || value === 1) {
-    return {
-      ok: true,
-      value,
-    };
+function diagnosticForConstructionError(error: z.ZodError, value: unknown, path: string): string {
+  const issue = error.issues[0];
+  if (!issue) {
+    return `${path} must be a JSON object.`;
   }
 
-  return {
-    ok: false,
-    diagnostic: `${path} must be 0 or 1.`,
-  };
+  if (issue.path.length === 0) {
+    return `${path} must be a JSON object.`;
+  }
+
+  const field = issue.path[0];
+
+  if (field === "kind") {
+    return `${path}.kind is not a supported construction kind.`;
+  }
+
+  if (field === "position") {
+    return `${path}.position must be a Point2 object.`;
+  }
+
+  if (field === "points") {
+    return `${path}.points must be an array of ${pointsTupleLength(value)} strings.`;
+  }
+
+  if (field === "lines") {
+    return `${path}.lines must be an array of 2 strings.`;
+  }
+
+  if (field === "intersectionIndex") {
+    return `${path}.intersectionIndex must be 0 or 1.`;
+  }
+
+  if (typeof field === "string") {
+    return `${path}.${field} must be a string.`;
+  }
+
+  return `${path} must be a JSON object.`;
+}
+
+function pointsTupleLength(value: unknown): 2 | 3 {
+  return constructionKindOf(value) === "circle-three-points" ? 3 : 2;
+}
+
+function constructionKindOf(value: unknown): Construction["kind"] | undefined {
+  if (!isRecord(value) || !isConstructionKind(value.kind)) {
+    return undefined;
+  }
+
+  return value.kind;
 }
 
 function constructionInvalid(diagnostic: string): ConstructionDecodeResult {
@@ -409,34 +344,10 @@ function constructionInvalid(diagnostic: string): ConstructionDecodeResult {
   };
 }
 
-function constructionHeaderInvalid(diagnostic: string): ConstructionHeaderDecodeResult {
-  return {
-    ok: false,
-    diagnostic,
-  };
-}
-
-function pointInvalid(diagnostic: string): PointRecordDecodeResult {
-  return {
-    ok: false,
-    diagnostic,
-  };
-}
-
-function idPairInvalid(diagnostic: string): IdPairDecodeResult {
-  return {
-    ok: false,
-    diagnostic,
-  };
-}
-
-function idTripleInvalid(diagnostic: string): IdTripleDecodeResult {
-  return {
-    ok: false,
-    diagnostic,
-  };
-}
-
 function isConstructionKind(value: unknown): value is Construction["kind"] {
   return constructionKinds.includes(value as Construction["kind"]);
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }

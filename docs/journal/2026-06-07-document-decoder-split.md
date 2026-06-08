@@ -15,11 +15,10 @@ The parser behavior stayed the same. The change was about making the boundary ea
 - return `DocumentParseResult`
 - serialize `EuclidDocument`
 
-The implementation moved into three internal modules:
+The implementation moved into internal decoder modules:
 
 - `documentDecoder.ts`: document envelope and construction-program parsing
 - `constructionDecoder.ts`: supported construction-kind parsing
-- `jsonDecoder.ts`: small JSON decoding primitives such as records, strings, arrays, tuples, and numbers
 
 The package README and LLM repo map now point future agents at the new decoder files.
 
@@ -32,7 +31,6 @@ The split restores the intended layering inside the document package:
 - `codec.ts` owns the text boundary.
 - `documentDecoder.ts` owns the versioned document shape.
 - `constructionDecoder.ts` owns the current construction syntax grammar.
-- `jsonDecoder.ts` owns reusable structural parsing helpers.
 
 This keeps “parse, don’t validate” explicit without turning the public codec into a god file.
 

@@ -1,9 +1,9 @@
-import type { ActivityPolicy, ActivityTool, DragPolicy } from "@euclid/activity";
 import { isActivityTool } from "@euclid/activity";
 import type { AssessmentGoal } from "@euclid/assessment";
 import { parseAssessmentGoal } from "@euclid/assessment";
 import type { EuclidDocument } from "@euclid/document";
 import { parseEuclidDocument } from "@euclid/document";
+import { z } from "zod";
 import type { EuclidLesson } from "./model";
 
 export type LessonParseResult =
@@ -32,42 +32,43 @@ export function parseEuclidLesson(text: string): LessonParseResult {
   return decodeEuclidLesson(parsed);
 }
 
+const dragPolicySchema = z.union([z.literal("none"), z.literal("free-points"), z.literal("all")]);
+const activityToolSchema = z.string().refine((value) => isActivityTool(value));
+const activityPolicySchema = z.object({
+  allowedTools: z.array(activityToolSchema),
+  lockedConstructions: z.array(z.string()),
+  allowDelete: z.boolean(),
+  pointDrag: dragPolicySchema,
+  shapeDrag: dragPolicySchema,
+});
+const lessonEnvelopeSchema = z.object({
+  schemaVersion: z.literal(1),
+  id: z.string(),
+  title: z.string(),
+  description: z.string().optional(),
+  document: z.unknown(),
+  policy: activityPolicySchema,
+  goals: z.array(z.unknown()),
+});
+
+type LessonEnvelope = z.infer<typeof lessonEnvelopeSchema>;
+
 function decodeEuclidLesson(value: unknown): LessonParseResult {
-  if (!isRecord(value)) {
-    return invalid("Lesson must be a JSON object.");
+  const parsed = lessonEnvelopeSchema.safeParse(value);
+  if (!parsed.success) {
+    return invalid(diagnosticForLessonError(parsed.error));
   }
 
-  if (value.schemaVersion !== 1) {
-    return invalid("Lesson schemaVersion must be 1.");
-  }
+  return lessonEnvelopeToParseResult(parsed.data);
+}
 
-  if (typeof value.id !== "string") {
-    return invalid("Lesson id must be a string.");
-  }
-
-  if (typeof value.title !== "string") {
-    return invalid("Lesson title must be a string.");
-  }
-
-  let description: string | undefined = undefined;
-  if (value.description !== undefined) {
-    if (typeof value.description !== "string") {
-      return invalid("Lesson description must be a string.");
-    }
-    description = value.description;
-  }
-
-  const starter = decodeStarterDocument(value.document);
+function lessonEnvelopeToParseResult(envelope: LessonEnvelope): LessonParseResult {
+  const starter = decodeStarterDocument(envelope.document);
   if (!starter.ok) {
     return invalid(...starter.diagnostics);
   }
 
-  const policy = decodeActivityPolicy(value.policy);
-  if (!policy.ok) {
-    return invalid(policy.diagnostic);
-  }
-
-  const goals = decodeAssessmentGoals(value.goals);
+  const goals = decodeAssessmentGoals(envelope.goals);
   if (!goals.ok) {
     return invalid(...goals.diagnostics);
   }
@@ -76,11 +77,11 @@ function decodeEuclidLesson(value: unknown): LessonParseResult {
     ok: true,
     lesson: {
       schemaVersion: 1,
-      id: value.id,
-      title: value.title,
-      description,
+      id: envelope.id,
+      title: envelope.title,
+      ...(envelope.description === undefined ? {} : { description: envelope.description }),
       document: starter.starterDocument,
-      policy: policy.policy,
+      policy: envelope.policy,
       goals: goals.goals,
     },
   };
@@ -108,116 +109,6 @@ function decodeStarterDocument(value: unknown): DocumentDecodeResult {
         ok: false,
         diagnostics: parsed.diagnostics.map((diagnostic) => `Lesson document: ${diagnostic}`),
       };
-}
-
-type PolicyDecodeResult =
-  | Readonly<{
-      ok: true;
-      policy: ActivityPolicy;
-    }>
-  | Readonly<{
-      ok: false;
-      diagnostic: string;
-    }>;
-
-function decodeActivityPolicy(value: unknown): PolicyDecodeResult {
-  if (!isRecord(value)) {
-    return policyInvalid("Lesson policy must be a JSON object.");
-  }
-
-  const allowedTools = decodeActivityTools(value.allowedTools, "Lesson policy.allowedTools");
-  if (!allowedTools.ok) {
-    return policyInvalid(allowedTools.diagnostic);
-  }
-
-  const lockedConstructions = decodeStringArray(
-    value.lockedConstructions,
-    "Lesson policy.lockedConstructions",
-  );
-  if (!lockedConstructions.ok) {
-    return policyInvalid(lockedConstructions.diagnostic);
-  }
-
-  if (typeof value.allowDelete !== "boolean") {
-    return policyInvalid("Lesson policy.allowDelete must be a boolean.");
-  }
-
-  if (!isDragPolicy(value.pointDrag)) {
-    return policyInvalid("Lesson policy.pointDrag must be a drag policy.");
-  }
-
-  if (!isDragPolicy(value.shapeDrag)) {
-    return policyInvalid("Lesson policy.shapeDrag must be a drag policy.");
-  }
-
-  return {
-    ok: true,
-    policy: {
-      allowedTools: allowedTools.tools,
-      lockedConstructions: lockedConstructions.values,
-      allowDelete: value.allowDelete,
-      pointDrag: value.pointDrag,
-      shapeDrag: value.shapeDrag,
-    },
-  };
-}
-
-type ActivityToolsDecodeResult =
-  | Readonly<{
-      ok: true;
-      tools: readonly ActivityTool[];
-    }>
-  | Readonly<{
-      ok: false;
-      diagnostic: string;
-    }>;
-
-function decodeActivityTools(value: unknown, path: string): ActivityToolsDecodeResult {
-  if (!Array.isArray(value)) {
-    return activityToolsInvalid(`${path} must be an array.`);
-  }
-
-  const tools: ActivityTool[] = [];
-  for (const [index, tool] of value.entries()) {
-    if (!isActivityTool(tool)) {
-      return activityToolsInvalid(`${path}[${index}] must be a non-empty tool id.`);
-    }
-    tools.push(tool);
-  }
-
-  return {
-    ok: true,
-    tools,
-  };
-}
-
-type StringArrayDecodeResult =
-  | Readonly<{
-      ok: true;
-      values: readonly string[];
-    }>
-  | Readonly<{
-      ok: false;
-      diagnostic: string;
-    }>;
-
-function decodeStringArray(value: unknown, path: string): StringArrayDecodeResult {
-  if (!Array.isArray(value)) {
-    return stringArrayInvalid(`${path} must be an array.`);
-  }
-
-  const values: string[] = [];
-  for (const [index, item] of value.entries()) {
-    if (typeof item !== "string") {
-      return stringArrayInvalid(`${path}[${index}] must be a string.`);
-    }
-    values.push(item);
-  }
-
-  return {
-    ok: true,
-    values,
-  };
 }
 
 type GoalsDecodeResult =
@@ -250,39 +141,10 @@ function decodeAssessmentGoals(value: unknown): GoalsDecodeResult {
   };
 }
 
-function isDragPolicy(value: unknown): value is DragPolicy {
-  return value === "none" || value === "free-points" || value === "all";
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
 function invalid(...diagnostics: readonly string[]): LessonParseResult {
   return {
     ok: false,
     diagnostics,
-  };
-}
-
-function policyInvalid(diagnostic: string): PolicyDecodeResult {
-  return {
-    ok: false,
-    diagnostic,
-  };
-}
-
-function activityToolsInvalid(diagnostic: string): ActivityToolsDecodeResult {
-  return {
-    ok: false,
-    diagnostic,
-  };
-}
-
-function stringArrayInvalid(diagnostic: string): StringArrayDecodeResult {
-  return {
-    ok: false,
-    diagnostic,
   };
 }
 
@@ -291,6 +153,75 @@ function goalsInvalid(...diagnostics: readonly string[]): GoalsDecodeResult {
     ok: false,
     diagnostics,
   };
+}
+
+function diagnosticForLessonError(error: z.ZodError): string {
+  const issue = error.issues[0];
+  if (!issue || issue.path.length === 0) {
+    return "Lesson must be a JSON object.";
+  }
+
+  const [first, second] = issue.path;
+
+  if (first === "schemaVersion") {
+    return "Lesson schemaVersion must be 1.";
+  }
+
+  if (first === "id") {
+    return "Lesson id must be a string.";
+  }
+
+  if (first === "title") {
+    return "Lesson title must be a string.";
+  }
+
+  if (first === "description") {
+    return "Lesson description must be a string.";
+  }
+
+  if (first === "policy") {
+    return diagnosticForPolicyError(second, issue.path);
+  }
+
+  if (first === "goals") {
+    return "Lesson goals must be an array.";
+  }
+
+  return "Lesson must be a JSON object.";
+}
+
+function diagnosticForPolicyError(field: PropertyKey | undefined, path: readonly PropertyKey[]): string {
+  if (field === undefined) {
+    return "Lesson policy must be a JSON object.";
+  }
+
+  if (field === "allowedTools") {
+    const index = path[2];
+    return typeof index === "number"
+      ? `Lesson policy.allowedTools[${index}] must be a non-empty tool id.`
+      : "Lesson policy.allowedTools must be an array.";
+  }
+
+  if (field === "lockedConstructions") {
+    const index = path[2];
+    return typeof index === "number"
+      ? `Lesson policy.lockedConstructions[${index}] must be a string.`
+      : "Lesson policy.lockedConstructions must be an array.";
+  }
+
+  if (field === "allowDelete") {
+    return "Lesson policy.allowDelete must be a boolean.";
+  }
+
+  if (field === "pointDrag") {
+    return "Lesson policy.pointDrag must be a drag policy.";
+  }
+
+  if (field === "shapeDrag") {
+    return "Lesson policy.shapeDrag must be a drag policy.";
+  }
+
+  return "Lesson policy must be a JSON object.";
 }
 
 export function compressLessonToUrlPayload(lesson: EuclidLesson): string {

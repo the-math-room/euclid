@@ -1,5 +1,6 @@
+import { toWorldPoint, type Construction } from "@euclid/geometry";
+import { z } from "zod";
 import type { AssessmentGoal } from "./goals";
-import { toWorldPoint, type Construction, type ConstructionExpression } from "@euclid/geometry";
 
 export type AssessmentGoalParseResult =
   | Readonly<{
@@ -9,6 +10,238 @@ export type AssessmentGoalParseResult =
   | Readonly<{
       ok: false;
       diagnostics: readonly string[];
+    }>;
+
+type RawConstructionExpression = z.infer<typeof constructionExpressionSchema>;
+type RawConstruction = z.infer<typeof constructionSchema>;
+type RawAssessmentGoal = z.infer<typeof assessmentGoalSchema>;
+
+const constructionKinds = [
+  "free-point",
+  "line-through",
+  "circle-through",
+  "circle-three-points",
+  "line-line-intersection",
+  "line-circle-intersection",
+  "circle-circle-intersection",
+  "parallel-line",
+  "perpendicular-line",
+  "midpoint",
+] as const satisfies readonly Construction["kind"][];
+
+const idPairSchema = z.tuple([z.string(), z.string()]);
+const idTripleSchema = z.tuple([z.string(), z.string(), z.string()]);
+const intersectionIndexSchema = z.union([z.literal(0), z.literal(1)]);
+const toleranceSchema = z
+  .object({
+    epsilon: z.number().finite().nonnegative(),
+  })
+  .optional();
+
+const point2Schema = z.object({
+  x: z.number(),
+  y: z.number(),
+});
+
+const freePointExpressionSchema = z.object({
+  kind: z.literal("free-point"),
+});
+
+const lineThroughExpressionSchema = z.object({
+  kind: z.literal("line-through"),
+  points: idPairSchema,
+});
+
+const circleThroughExpressionSchema = z.object({
+  kind: z.literal("circle-through"),
+  center: z.string(),
+  pointOnCircle: z.string(),
+});
+
+const circleThreePointsExpressionSchema = z.object({
+  kind: z.literal("circle-three-points"),
+  points: idTripleSchema,
+});
+
+const lineLineIntersectionExpressionSchema = z.object({
+  kind: z.literal("line-line-intersection"),
+  lines: idPairSchema,
+});
+
+const lineCircleIntersectionExpressionSchema = z.object({
+  kind: z.literal("line-circle-intersection"),
+  line: z.string(),
+  circle: z.string(),
+  intersectionIndex: intersectionIndexSchema,
+});
+
+const circleCircleIntersectionExpressionSchema = z.object({
+  kind: z.literal("circle-circle-intersection"),
+  firstCircle: z.string(),
+  secondCircle: z.string(),
+  intersectionIndex: intersectionIndexSchema,
+});
+
+const parallelLineExpressionSchema = z.object({
+  kind: z.literal("parallel-line"),
+  line: z.string(),
+  point: z.string(),
+});
+
+const perpendicularLineExpressionSchema = z.object({
+  kind: z.literal("perpendicular-line"),
+  line: z.string(),
+  point: z.string(),
+});
+
+const midpointExpressionSchema = z.object({
+  kind: z.literal("midpoint"),
+  points: idPairSchema,
+});
+
+const constructionExpressionSchema = z.discriminatedUnion("kind", [
+  freePointExpressionSchema,
+  lineThroughExpressionSchema,
+  circleThroughExpressionSchema,
+  circleThreePointsExpressionSchema,
+  lineLineIntersectionExpressionSchema,
+  lineCircleIntersectionExpressionSchema,
+  circleCircleIntersectionExpressionSchema,
+  parallelLineExpressionSchema,
+  perpendicularLineExpressionSchema,
+  midpointExpressionSchema,
+]);
+
+const freePointConstructionSchema = freePointExpressionSchema.extend({
+  id: z.string(),
+  label: z.string(),
+  position: point2Schema,
+});
+
+const constructionSchema = z.discriminatedUnion("kind", [
+  freePointConstructionSchema,
+  lineThroughExpressionSchema.extend({ id: z.string(), label: z.string() }),
+  circleThroughExpressionSchema.extend({ id: z.string(), label: z.string() }),
+  circleThreePointsExpressionSchema.extend({ id: z.string(), label: z.string() }),
+  lineLineIntersectionExpressionSchema.extend({ id: z.string(), label: z.string() }),
+  lineCircleIntersectionExpressionSchema.extend({ id: z.string(), label: z.string() }),
+  circleCircleIntersectionExpressionSchema.extend({ id: z.string(), label: z.string() }),
+  parallelLineExpressionSchema.extend({ id: z.string(), label: z.string() }),
+  perpendicularLineExpressionSchema.extend({ id: z.string(), label: z.string() }),
+  midpointExpressionSchema.extend({ id: z.string(), label: z.string() }),
+]);
+
+const descriptionSchema = {
+  description: z.string().optional(),
+} as const;
+
+const assessmentGoalSchema: z.ZodType<RawAssessmentGoalInput> = z.lazy(() =>
+  z.discriminatedUnion("kind", [
+    z.object({
+      kind: z.literal("all"),
+      id: z.string().optional(),
+      goals: z.array(assessmentGoalSchema),
+      ...descriptionSchema,
+    }),
+    z.object({
+      kind: z.literal("any"),
+      id: z.string().optional(),
+      goals: z.array(assessmentGoalSchema),
+      ...descriptionSchema,
+    }),
+    z.object({
+      kind: z.literal("construction-kind"),
+      constructionKind: z.enum(constructionKinds),
+      ...descriptionSchema,
+    }),
+    z.object({
+      kind: z.literal("dependency"),
+      targetId: z.string(),
+      sourceId: z.string(),
+      transitive: z.boolean().optional(),
+      ...descriptionSchema,
+    }),
+    z.object({
+      kind: z.literal("meaning"),
+      id: z.string(),
+      expression: constructionExpressionSchema,
+      ...descriptionSchema,
+    }),
+    z.object({
+      kind: z.literal("point-on-line"),
+      pointId: z.string(),
+      lineId: z.string(),
+      tolerance: toleranceSchema,
+      ...descriptionSchema,
+    }),
+    z.object({
+      kind: z.literal("point-on-circle"),
+      pointId: z.string(),
+      circleId: z.string(),
+      tolerance: toleranceSchema,
+      ...descriptionSchema,
+    }),
+    z.object({
+      kind: z.literal("geometric-equivalent"),
+      targetConstructions: z.array(constructionSchema),
+      targetId: z.string(),
+      tolerance: toleranceSchema,
+      ...descriptionSchema,
+    }),
+  ]),
+);
+
+type RawAssessmentGoalInput =
+  | Readonly<{
+      kind: "all";
+      id?: string;
+      description?: string;
+      goals: readonly RawAssessmentGoalInput[];
+    }>
+  | Readonly<{
+      kind: "any";
+      id?: string;
+      description?: string;
+      goals: readonly RawAssessmentGoalInput[];
+    }>
+  | Readonly<{
+      kind: "construction-kind";
+      description?: string;
+      constructionKind: Construction["kind"];
+    }>
+  | Readonly<{
+      kind: "dependency";
+      description?: string;
+      targetId: string;
+      sourceId: string;
+      transitive?: boolean;
+    }>
+  | Readonly<{
+      kind: "meaning";
+      description?: string;
+      id: string;
+      expression: RawConstructionExpression;
+    }>
+  | Readonly<{
+      kind: "point-on-line";
+      description?: string;
+      pointId: string;
+      lineId: string;
+      tolerance?: { epsilon: number };
+    }>
+  | Readonly<{
+      kind: "point-on-circle";
+      description?: string;
+      pointId: string;
+      circleId: string;
+      tolerance?: { epsilon: number };
+    }>
+  | Readonly<{
+      kind: "geometric-equivalent";
+      description?: string;
+      targetConstructions: readonly RawConstruction[];
+      targetId: string;
+      tolerance?: { epsilon: number };
     }>;
 
 export function serializeAssessmentGoal(goal: AssessmentGoal): string {
@@ -24,572 +257,190 @@ export function parseAssessmentGoal(text: string): AssessmentGoalParseResult {
     return invalid("Assessment goal is not valid JSON.");
   }
 
-  return decodeAssessmentGoal(parsed, "goal");
+  const decoded = decodeAssessmentGoal(parsed);
+  return decoded.ok ? { ok: true, goal: decoded.goal } : invalid(decoded.diagnostic);
 }
 
-function decodeAssessmentGoal(value: unknown, path: string): AssessmentGoalParseResult {
-  if (!isRecord(value)) {
-    return invalid(`${path} must be a JSON object.`);
-  }
+type GoalDecodeResult =
+  | Readonly<{ ok: true; goal: AssessmentGoal }>
+  | Readonly<{ ok: false; diagnostic: string }>;
 
-  if (typeof value.kind !== "string") {
-    return invalid(`${path}.kind must be a string.`);
-  }
-
-  if (value.description !== undefined && typeof value.description !== "string") {
-    return invalid(`${path}.description must be a string when present.`);
-  }
-
-  const descriptionObj = value.description === undefined ? {} : { description: value.description };
-
-  if (value.kind === "all" || value.kind === "any") {
-    if (value.id !== undefined && typeof value.id !== "string") {
-      return invalid(`${path}.id must be a string when present.`);
-    }
-
-    if (!Array.isArray(value.goals)) {
-      return invalid(`${path}.goals must be an array.`);
-    }
-
-    const goals: AssessmentGoal[] = [];
-    for (const [index, child] of value.goals.entries()) {
-      const decoded = decodeAssessmentGoal(child, `${path}.goals[${index}]`);
-      if (!decoded.ok) {
-        return decoded;
-      }
-      goals.push(decoded.goal);
-    }
-
-    return {
-      ok: true,
-      goal: {
-        kind: value.kind,
-        ...(value.id === undefined ? {} : { id: value.id }),
-        ...descriptionObj,
-        goals,
-      },
-    };
-  }
-
-  if (value.kind === "construction-kind") {
-    if (!isConstructionKind(value.constructionKind)) {
-      return invalid(`${path}.constructionKind must be a construction kind.`);
-    }
-
-    return {
-      ok: true,
-      goal: {
-        kind: "construction-kind",
-        constructionKind: value.constructionKind,
-        ...descriptionObj,
-      },
-    };
-  }
-
-  if (value.kind === "dependency") {
-    if (typeof value.targetId !== "string") {
-      return invalid(`${path}.targetId must be a string.`);
-    }
-    if (typeof value.sourceId !== "string") {
-      return invalid(`${path}.sourceId must be a string.`);
-    }
-    if (value.transitive !== undefined && typeof value.transitive !== "boolean") {
-      return invalid(`${path}.transitive must be a boolean when present.`);
-    }
-
-    return {
-      ok: true,
-      goal: {
-        kind: "dependency",
-        targetId: value.targetId,
-        sourceId: value.sourceId,
-        ...(value.transitive === undefined ? {} : { transitive: value.transitive }),
-        ...descriptionObj,
-      },
-    };
-  }
-
-  if (value.kind === "meaning") {
-    if (typeof value.id !== "string") {
-      return invalid(`${path}.id must be a string.`);
-    }
-
-    const expression = decodeConstructionExpression(value.expression, `${path}.expression`);
-    if (!expression.ok) {
-      return invalid(expression.diagnostic);
-    }
-
-    return {
-      ok: true,
-      goal: {
-        kind: "meaning",
-        id: value.id,
-        expression: expression.expression,
-        ...descriptionObj,
-      },
-    };
-  }
-
-  if (value.kind === "point-on-line") {
-    if (typeof value.pointId !== "string") {
-      return invalid(`${path}.pointId must be a string.`);
-    }
-    if (typeof value.lineId !== "string") {
-      return invalid(`${path}.lineId must be a string.`);
-    }
-    const tolerance = decodeTolerance(value.tolerance, `${path}.tolerance`);
-    if (!tolerance.ok) {
-      return invalid(tolerance.diagnostic);
-    }
-
-    return {
-      ok: true,
-      goal: {
-        kind: "point-on-line",
-        pointId: value.pointId,
-        lineId: value.lineId,
-        ...(tolerance.tolerance === undefined ? {} : { tolerance: tolerance.tolerance }),
-        ...descriptionObj,
-      },
-    };
-  }
-
-  if (value.kind === "point-on-circle") {
-    if (typeof value.pointId !== "string") {
-      return invalid(`${path}.pointId must be a string.`);
-    }
-    if (typeof value.circleId !== "string") {
-      return invalid(`${path}.circleId must be a string.`);
-    }
-    const tolerance = decodeTolerance(value.tolerance, `${path}.tolerance`);
-    if (!tolerance.ok) {
-      return invalid(tolerance.diagnostic);
-    }
-
-    return {
-      ok: true,
-      goal: {
-        kind: "point-on-circle",
-        pointId: value.pointId,
-        circleId: value.circleId,
-        ...(tolerance.tolerance === undefined ? {} : { tolerance: tolerance.tolerance }),
-        ...descriptionObj,
-      },
-    };
-  }
-
-  if (value.kind === "geometric-equivalent") {
-    if (!Array.isArray(value.targetConstructions)) {
-      return invalid(`${path}.targetConstructions must be an array.`);
-    }
-    if (typeof value.targetId !== "string") {
-      return invalid(`${path}.targetId must be a string.`);
-    }
-    const tolerance = decodeTolerance(value.tolerance, `${path}.tolerance`);
-    if (!tolerance.ok) {
-      return invalid(tolerance.diagnostic);
-    }
-
-    const targetConstructions: Construction[] = [];
-    for (const [index, child] of value.targetConstructions.entries()) {
-      const decoded = decodeConstruction(child, `${path}.targetConstructions[${index}]`);
-      if (!decoded.ok) {
-        return invalid(decoded.diagnostic);
-      }
-      targetConstructions.push(decoded.construction);
-    }
-
-    return {
-      ok: true,
-      goal: {
-        kind: "geometric-equivalent",
-        targetConstructions,
-        targetId: value.targetId,
-        ...(tolerance.tolerance === undefined ? {} : { tolerance: tolerance.tolerance }),
-        ...descriptionObj,
-      },
-    };
-  }
-
-  return invalid(`${path}.kind is not a supported assessment goal kind.`);
-}
-
-type ConstructionDecodeResult =
-  | Readonly<{
-      ok: true;
-      construction: Construction;
-    }>
-  | Readonly<{
-      ok: false;
-      diagnostic: string;
-    }>;
-
-function decodeConstruction(value: unknown, path: string): ConstructionDecodeResult {
-  if (!isRecord(value)) {
-    return constructionInvalid(`${path} must be a JSON object.`);
-  }
-  if (typeof value.id !== "string") {
-    return constructionInvalid(`${path}.id must be a string.`);
-  }
-  if (typeof value.label !== "string") {
-    return constructionInvalid(`${path}.label must be a string.`);
-  }
-  if (typeof value.kind !== "string") {
-    return constructionInvalid(`${path}.kind must be a string.`);
-  }
-
-  const exprDecode = decodeConstructionExpression(value, path);
-  if (!exprDecode.ok) {
-    return constructionInvalid(exprDecode.diagnostic);
-  }
-
-  if (value.kind === "free-point") {
-    if (
-      !isRecord(value.position) ||
-      typeof value.position.x !== "number" ||
-      typeof value.position.y !== "number"
-    ) {
-      return constructionInvalid(`${path}.position must be a Point2 object.`);
-    }
-    return {
-      ok: true,
-      construction: {
-        id: value.id,
-        kind: "free-point",
-        label: value.label,
-        position: toWorldPoint({
-          x: value.position.x,
-          y: value.position.y,
-        }),
-      },
-    };
+function decodeAssessmentGoal(value: unknown): GoalDecodeResult {
+  const parsed = assessmentGoalSchema.safeParse(value);
+  if (!parsed.success) {
+    return goalInvalid(diagnosticForGoalError(parsed.error, value, "goal"));
   }
 
   return {
     ok: true,
-    construction: {
-      id: value.id,
-      label: value.label,
-      ...exprDecode.expression,
-    } as unknown as Construction,
+    goal: mapAssessmentGoal(parsed.data),
   };
 }
 
-function constructionInvalid(diagnostic: string): ConstructionDecodeResult {
-  return {
-    ok: false,
-    diagnostic,
-  };
+function mapAssessmentGoal(goal: RawAssessmentGoal): AssessmentGoal {
+  if (goal.kind === "all") {
+    return {
+      kind: "all",
+      ...(goal.id === undefined ? {} : { id: goal.id }),
+      ...descriptionOf(goal),
+      goals: goal.goals.map(mapAssessmentGoal),
+    };
+  }
+
+  if (goal.kind === "any") {
+    return {
+      kind: "any",
+      ...(goal.id === undefined ? {} : { id: goal.id }),
+      ...descriptionOf(goal),
+      goals: goal.goals.map(mapAssessmentGoal),
+    };
+  }
+
+  if (goal.kind === "geometric-equivalent") {
+    return {
+      kind: "geometric-equivalent",
+      ...descriptionOf(goal),
+      targetConstructions: goal.targetConstructions.map(mapConstruction),
+      targetId: goal.targetId,
+      ...(goal.tolerance === undefined ? {} : { tolerance: goal.tolerance }),
+    };
+  }
+
+  return goal;
 }
 
-type ExpressionDecodeResult =
-  | Readonly<{
-      ok: true;
-      expression: ConstructionExpression;
-    }>
-  | Readonly<{
-      ok: false;
-      diagnostic: string;
-    }>;
-
-function decodeConstructionExpression(value: unknown, path: string): ExpressionDecodeResult {
-  if (!isRecord(value)) {
-    return expressionInvalid(`${path} must be a JSON object.`);
-  }
-
-  if (typeof value.kind !== "string") {
-    return expressionInvalid(`${path}.kind must be a string.`);
-  }
-
-  if (value.kind === "free-point") {
+function mapConstruction(construction: RawConstruction): Construction {
+  if (construction.kind === "free-point") {
     return {
-      ok: true,
-      expression: {
-        kind: "free-point",
-      },
-    };
-  }
-
-  if (value.kind === "line-through") {
-    const points = decodeIdPair(value.points, `${path}.points`);
-    return points.ok
-      ? {
-          ok: true,
-          expression: {
-            kind: "line-through",
-            points: points.ids,
-          },
-        }
-      : expressionInvalid(points.diagnostic);
-  }
-
-  if (value.kind === "circle-through") {
-    if (typeof value.center !== "string") {
-      return expressionInvalid(`${path}.center must be a string.`);
-    }
-    if (typeof value.pointOnCircle !== "string") {
-      return expressionInvalid(`${path}.pointOnCircle must be a string.`);
-    }
-
-    return {
-      ok: true,
-      expression: {
-        kind: "circle-through",
-        center: value.center,
-        pointOnCircle: value.pointOnCircle,
-      },
-    };
-  }
-
-  if (value.kind === "circle-three-points") {
-    const points = decodeIdTriple(value.points, `${path}.points`);
-    return points.ok
-      ? {
-          ok: true,
-          expression: {
-            kind: "circle-three-points",
-            points: points.ids,
-          },
-        }
-      : expressionInvalid(points.diagnostic);
-  }
-
-  if (value.kind === "line-line-intersection") {
-    const lines = decodeIdPair(value.lines, `${path}.lines`);
-    return lines.ok
-      ? {
-          ok: true,
-          expression: {
-            kind: "line-line-intersection",
-            lines: lines.ids,
-          },
-        }
-      : expressionInvalid(lines.diagnostic);
-  }
-
-  if (value.kind === "line-circle-intersection") {
-    if (typeof value.line !== "string") {
-      return expressionInvalid(`${path}.line must be a string.`);
-    }
-    if (typeof value.circle !== "string") {
-      return expressionInvalid(`${path}.circle must be a string.`);
-    }
-    const intersectionIndex = decodeIntersectionIndex(value.intersectionIndex, `${path}.intersectionIndex`);
-    if (!intersectionIndex.ok) {
-      return expressionInvalid(intersectionIndex.diagnostic);
-    }
-
-    return {
-      ok: true,
-      expression: {
-        kind: "line-circle-intersection",
-        line: value.line,
-        circle: value.circle,
-        intersectionIndex: intersectionIndex.value,
-      },
-    };
-  }
-
-  if (value.kind === "circle-circle-intersection") {
-    if (typeof value.firstCircle !== "string") {
-      return expressionInvalid(`${path}.firstCircle must be a string.`);
-    }
-    if (typeof value.secondCircle !== "string") {
-      return expressionInvalid(`${path}.secondCircle must be a string.`);
-    }
-    const intersectionIndex = decodeIntersectionIndex(value.intersectionIndex, `${path}.intersectionIndex`);
-    if (!intersectionIndex.ok) {
-      return expressionInvalid(intersectionIndex.diagnostic);
-    }
-
-    return {
-      ok: true,
-      expression: {
-        kind: "circle-circle-intersection",
-        firstCircle: value.firstCircle,
-        secondCircle: value.secondCircle,
-        intersectionIndex: intersectionIndex.value,
-      },
-    };
-  }
-
-  if (value.kind === "parallel-line") {
-    if (typeof value.line !== "string") {
-      return expressionInvalid(`${path}.line must be a string.`);
-    }
-    if (typeof value.point !== "string") {
-      return expressionInvalid(`${path}.point must be a string.`);
-    }
-
-    return {
-      ok: true,
-      expression: {
-        kind: "parallel-line",
-        line: value.line,
-        point: value.point,
-      },
-    };
-  }
-
-  if (value.kind === "perpendicular-line") {
-    if (typeof value.line !== "string") {
-      return expressionInvalid(`${path}.line must be a string.`);
-    }
-    if (typeof value.point !== "string") {
-      return expressionInvalid(`${path}.point must be a string.`);
-    }
-
-    return {
-      ok: true,
-      expression: {
-        kind: "perpendicular-line",
-        line: value.line,
-        point: value.point,
-      },
-    };
-  }
-
-  if (value.kind === "midpoint") {
-    const points = decodeIdPair(value.points, `${path}.points`);
-    return points.ok
-      ? {
-          ok: true,
-          expression: {
-            kind: "midpoint",
-            points: points.ids,
-          },
-        }
-      : expressionInvalid(points.diagnostic);
-  }
-
-  return expressionInvalid(`${path}.kind is not a supported construction expression kind.`);
-}
-
-type IdPairDecodeResult =
-  | Readonly<{
-      ok: true;
-      ids: readonly [string, string];
-    }>
-  | Readonly<{
-      ok: false;
-      diagnostic: string;
-    }>;
-
-function decodeIdPair(value: unknown, path: string): IdPairDecodeResult {
-  if (!Array.isArray(value) || value.length !== 2 || !value.every((item) => typeof item === "string")) {
-    return {
-      ok: false,
-      diagnostic: `${path} must be an array of 2 strings.`,
+      id: construction.id,
+      kind: "free-point",
+      label: construction.label,
+      position: toWorldPoint(construction.position),
     };
   }
 
   return {
-    ok: true,
-    ids: [value[0], value[1]],
+    ...construction,
   };
 }
 
-type IdTripleDecodeResult =
-  | Readonly<{
-      ok: true;
-      ids: readonly [string, string, string];
-    }>
-  | Readonly<{
-      ok: false;
-      diagnostic: string;
-    }>;
-
-function decodeIdTriple(value: unknown, path: string): IdTripleDecodeResult {
-  if (!Array.isArray(value) || value.length !== 3 || !value.every((item) => typeof item === "string")) {
-    return {
-      ok: false,
-      diagnostic: `${path} must be an array of 3 strings.`,
-    };
-  }
-
-  return {
-    ok: true,
-    ids: [value[0], value[1], value[2]],
-  };
+function descriptionOf(goal: { description?: string }): { description?: string } {
+  return goal.description === undefined ? {} : { description: goal.description };
 }
 
-type ToleranceDecodeResult =
-  | Readonly<{
-      ok: true;
-      tolerance: { epsilon: number } | undefined;
-    }>
-  | Readonly<{
-      ok: false;
-      diagnostic: string;
-    }>;
-
-function decodeTolerance(value: unknown, path: string): ToleranceDecodeResult {
-  if (value === undefined) {
-    return {
-      ok: true,
-      tolerance: undefined,
-    };
+function diagnosticForGoalError(error: z.ZodError, value: unknown, path: string): string {
+  const issue = error.issues[0];
+  if (!issue) {
+    return `${path} must be a JSON object.`;
   }
 
-  if (!isRecord(value)) {
-    return {
-      ok: false,
-      diagnostic: `${path} must be a JSON object when present.`,
-    };
+  const issuePath = pathForIssue(path, issue.path);
+  const field = issue.path.at(-1);
+
+  if (issue.path.length === 0) {
+    return `${path} must be a JSON object.`;
   }
 
-  if (typeof value.epsilon !== "number" || !Number.isFinite(value.epsilon) || value.epsilon < 0) {
-    return {
-      ok: false,
-      diagnostic: `${path}.epsilon must be a non-negative finite number.`,
-    };
+  if (field === "kind") {
+    return `${issuePath} is not a supported assessment goal kind.`;
   }
 
-  return {
-    ok: true,
-    tolerance: {
-      epsilon: value.epsilon,
-    },
-  };
+  if (field === "constructionKind") {
+    return `${issuePath} must be a construction kind.`;
+  }
+
+  if (field === "goals") {
+    return `${issuePath} must be an array.`;
+  }
+
+  if (field === "expression") {
+    return `${issuePath} must be a JSON object.`;
+  }
+
+  if (field === "targetConstructions") {
+    return `${issuePath} must be an array.`;
+  }
+
+  if (field === "tolerance") {
+    return `${issuePath} must be a JSON object when present.`;
+  }
+
+  if (field === "epsilon") {
+    return `${issuePath} must be a non-negative finite number.`;
+  }
+
+  if (field === "points") {
+    return `${issuePath} must be an array of ${pointsTupleLength(value, issue.path)} strings.`;
+  }
+
+  if (field === "lines") {
+    return `${issuePath} must be an array of 2 strings.`;
+  }
+
+  if (field === "intersectionIndex") {
+    return `${issuePath} must be 0 or 1.`;
+  }
+
+  if (field === "position") {
+    return `${issuePath} must be a Point2 object.`;
+  }
+
+  if (field === "description") {
+    return `${issuePath} must be a string when present.`;
+  }
+
+  if (field === "id" && parentGoalKind(value, issue.path) === "all") {
+    return `${issuePath} must be a string when present.`;
+  }
+
+  if (field === "id" && parentGoalKind(value, issue.path) === "any") {
+    return `${issuePath} must be a string when present.`;
+  }
+
+  if (field === "transitive") {
+    return `${issuePath} must be a boolean when present.`;
+  }
+
+  if (typeof field === "string") {
+    return `${issuePath} must be a string.`;
+  }
+
+  return `${path} must be a JSON object.`;
 }
 
-type IntersectionIndexDecodeResult =
-  | Readonly<{
-      ok: true;
-      value: 0 | 1;
-    }>
-  | Readonly<{
-      ok: false;
-      diagnostic: string;
-    }>;
-
-function decodeIntersectionIndex(value: unknown, path: string): IntersectionIndexDecodeResult {
-  if (value === 0 || value === 1) {
-    return {
-      ok: true,
-      value,
-    };
-  }
-
-  return {
-    ok: false,
-    diagnostic: `${path} must be 0 or 1.`,
-  };
+function pathForIssue(root: string, issuePath: readonly PropertyKey[]): string {
+  return issuePath.reduce<string>((current, segment) => {
+    return typeof segment === "number" ? `${current}[${segment}]` : `${current}.${String(segment)}`;
+  }, root);
 }
 
-function isConstructionKind(value: unknown): value is Construction["kind"] {
-  return (
-    value === "free-point" ||
-    value === "line-through" ||
-    value === "circle-through" ||
-    value === "circle-three-points" ||
-    value === "line-line-intersection" ||
-    value === "line-circle-intersection" ||
-    value === "circle-circle-intersection" ||
-    value === "parallel-line" ||
-    value === "perpendicular-line" ||
-    value === "midpoint"
-  );
+function pointsTupleLength(root: unknown, path: readonly PropertyKey[]): 2 | 3 {
+  const parent = valueAtPath(root, path.slice(0, -1));
+  return isRecord(parent) && parent.kind === "circle-three-points" ? 3 : 2;
+}
+
+function parentGoalKind(root: unknown, path: readonly PropertyKey[]): string | undefined {
+  const parent = valueAtPath(root, path.slice(0, -1));
+  return isRecord(parent) && typeof parent.kind === "string" ? parent.kind : undefined;
+}
+
+function valueAtPath(root: unknown, path: readonly PropertyKey[]): unknown {
+  let value = root;
+  for (const segment of path) {
+    if (typeof segment === "number" && Array.isArray(value)) {
+      value = value[segment];
+      continue;
+    }
+
+    if (typeof segment === "string" && isRecord(value)) {
+      value = value[segment];
+      continue;
+    }
+
+    return undefined;
+  }
+
+  return value;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -603,7 +454,7 @@ function invalid(message: string): AssessmentGoalParseResult {
   };
 }
 
-function expressionInvalid(diagnostic: string): ExpressionDecodeResult {
+function goalInvalid(diagnostic: string): GoalDecodeResult {
   return {
     ok: false,
     diagnostic,

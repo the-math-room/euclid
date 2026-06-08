@@ -1,25 +1,21 @@
 import type { Construction, ConstructionProgram } from "@euclid/geometry";
+import { z } from "zod";
 import { decodeConstruction } from "./constructionDecoder";
-import {
-  decodeArrayField,
-  decodeRecord,
-  decodeStringField,
-  type StringFieldDecodeResult,
-} from "./jsonDecoder";
 import type { EuclidDocument } from "./model";
 
 export type DocumentDecodeResult =
   | Readonly<{ ok: true; document: EuclidDocument }>
   | Readonly<{ ok: false; diagnostic: string }>;
 
-type DocumentFields = Readonly<{
-  title: string;
-  program: ConstructionProgram;
-}>;
+const documentEnvelopeSchema = z.object({
+  schemaVersion: z.literal(1),
+  title: z.string(),
+  program: z.object({
+    constructions: z.array(z.unknown()),
+  }),
+});
 
-type DocumentFieldsDecodeResult =
-  | Readonly<{ ok: true; value: DocumentFields }>
-  | Readonly<{ ok: false; diagnostic: string }>;
+type DocumentEnvelope = z.infer<typeof documentEnvelopeSchema>;
 
 type ProgramDecodeResult =
   | Readonly<{ ok: true; program: ConstructionProgram }>
@@ -30,67 +26,32 @@ type ConstructionListDecodeResult =
   | Readonly<{ ok: false; diagnostic: string }>;
 
 export function decodeEuclidDocument(value: unknown): DocumentDecodeResult {
-  return documentFieldsToDecodeResult(decodeDocumentFields(value));
+  const parsed = documentEnvelopeSchema.safeParse(value);
+  if (!parsed.success) {
+    return documentInvalid(diagnosticForDocumentError(parsed.error));
+  }
+
+  return documentEnvelopeToDecodeResult(parsed.data);
 }
 
-function decodeDocumentFields(value: unknown): DocumentFieldsDecodeResult {
-  const record = decodeRecord(value, "Document");
-  if (!record.ok) {
-    return documentFieldsInvalid("Document must be a JSON object.");
-  }
-
-  if (record.value.schemaVersion !== 1) {
-    return documentFieldsInvalid("Document schemaVersion must be 1.");
-  }
-
-  const title = decodeDocumentTitle(record.value);
-  if (!title.ok) {
-    return documentFieldsInvalid(title.diagnostic);
-  }
-
-  const program = decodeConstructionProgram(record.value.program);
+function documentEnvelopeToDecodeResult(envelope: DocumentEnvelope): DocumentDecodeResult {
+  const program = decodeConstructionProgram(envelope.program);
   if (!program.ok) {
-    return documentFieldsInvalid(program.diagnostic);
-  }
-
-  return {
-    ok: true,
-    value: {
-      title: title.value,
-      program: program.program,
-    },
-  };
-}
-
-function documentFieldsToDecodeResult(fields: DocumentFieldsDecodeResult): DocumentDecodeResult {
-  if (!fields.ok) {
-    return documentInvalid(fields.diagnostic);
+    return documentInvalid(program.diagnostic);
   }
 
   return {
     ok: true,
     document: {
       schemaVersion: 1,
-      title: fields.value.title,
-      program: fields.value.program,
+      title: envelope.title,
+      program: program.program,
     },
   };
 }
 
-function decodeDocumentTitle(value: Record<string, unknown>): StringFieldDecodeResult {
-  const title = decodeStringField(value, "title", "Document");
-  if (!title.ok) {
-    return {
-      ok: false,
-      diagnostic: "Document title must be a string.",
-    };
-  }
-
-  return title;
-}
-
-function decodeConstructionProgram(value: unknown): ProgramDecodeResult {
-  const constructions = decodeConstructionList(value);
+function decodeConstructionProgram(value: DocumentEnvelope["program"]): ProgramDecodeResult {
+  const constructions = decodeConstructionList(value.constructions);
   if (!constructions.ok) {
     return {
       ok: false,
@@ -106,19 +67,9 @@ function decodeConstructionProgram(value: unknown): ProgramDecodeResult {
   };
 }
 
-function decodeConstructionList(value: unknown): ConstructionListDecodeResult {
-  const record = decodeRecord(value, "Document program");
-  if (!record.ok) {
-    return constructionListInvalid("Document program must contain a constructions array.");
-  }
-
-  const array = decodeArrayField(record.value, "constructions", "Document program");
-  if (!array.ok) {
-    return constructionListInvalid("Document program must contain a constructions array.");
-  }
-
+function decodeConstructionList(value: readonly unknown[]): ConstructionListDecodeResult {
   const constructions: Construction[] = [];
-  for (const [index, construction] of array.value.entries()) {
+  for (const [index, construction] of value.entries()) {
     const decoded = decodeConstruction(construction, `Document program.constructions[${index}]`);
     if (!decoded.ok) {
       return constructionListInvalid(decoded.diagnostic);
@@ -132,14 +83,35 @@ function decodeConstructionList(value: unknown): ConstructionListDecodeResult {
   };
 }
 
-function documentInvalid(diagnostic: string): DocumentDecodeResult {
-  return {
-    ok: false,
-    diagnostic,
-  };
+function diagnosticForDocumentError(error: z.ZodError): string {
+  const issue = error.issues[0];
+  if (!issue || issue.path.length === 0) {
+    return "Document must be a JSON object.";
+  }
+
+  const firstPath = issue.path[0];
+  const secondPath = issue.path[1];
+
+  if (firstPath === "schemaVersion") {
+    return "Document schemaVersion must be 1.";
+  }
+
+  if (firstPath === "title") {
+    return "Document title must be a string.";
+  }
+
+  if (firstPath === "program" && secondPath === "constructions") {
+    return "Document program must contain a constructions array.";
+  }
+
+  if (firstPath === "program") {
+    return "Document program must contain a constructions array.";
+  }
+
+  return "Document must be a JSON object.";
 }
 
-function documentFieldsInvalid(diagnostic: string): DocumentFieldsDecodeResult {
+function documentInvalid(diagnostic: string): DocumentDecodeResult {
   return {
     ok: false,
     diagnostic,
