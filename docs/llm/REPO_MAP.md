@@ -137,6 +137,7 @@ npm run check
 
 ## Journal (Most Recent First)
 
+- `docs/journal/2026-06-07-day-3-summary.md` — Day 3 big-picture summary covering type boundaries, parse discipline, algebraic interpreters, assessment, rendering, and deployment hygiene.
 - `docs/journal/2026-06-07-security-meta-and-tolerances.md` — hardened production CSP meta output, added referrer meta, and replaced bare epsilon literals with semantic tolerance constants.
 - `docs/journal/2026-06-07-boundary-composition-and-fixtures.md` — added object-level content decoders for package composition and typed rendering test fixtures.
 - `docs/journal/2026-06-07-geometry-algebraic-interpreters.md` — refactored geometry construction interpreters toward exhaustive native TypeScript ADT folds.
