@@ -1,48 +1,28 @@
 import type { Construction, ConstructionId, DependencyGraph } from "./model";
 
 export function dependencyIds(construction: Construction): readonly ConstructionId[] {
-  if (construction.kind === "free-point") {
-    return [];
+  switch (construction.kind) {
+    case "free-point":
+      return [];
+    case "line-through":
+      return construction.points;
+    case "circle-through":
+      return [construction.center, construction.pointOnCircle];
+    case "circle-three-points":
+      return construction.points;
+    case "line-line-intersection":
+      return construction.lines;
+    case "line-circle-intersection":
+      return [construction.line, construction.circle];
+    case "circle-circle-intersection":
+      return [construction.firstCircle, construction.secondCircle];
+    case "parallel-line":
+      return [construction.line, construction.point];
+    case "perpendicular-line":
+      return [construction.line, construction.point];
+    case "midpoint":
+      return construction.points;
   }
-
-  if (construction.kind === "line-through") {
-    return construction.points;
-  }
-
-  if (construction.kind === "circle-through") {
-    return [construction.center, construction.pointOnCircle];
-  }
-
-  if (construction.kind === "circle-three-points") {
-    return construction.points;
-  }
-
-  if (construction.kind === "line-line-intersection") {
-    return construction.lines;
-  }
-
-  if (construction.kind === "line-circle-intersection") {
-    return [construction.line, construction.circle];
-  }
-
-  if (construction.kind === "circle-circle-intersection") {
-    return [construction.firstCircle, construction.secondCircle];
-  }
-
-  if (construction.kind === "parallel-line") {
-    return [construction.line, construction.point];
-  }
-
-  if (construction.kind === "perpendicular-line") {
-    return [construction.line, construction.point];
-  }
-
-  if (construction.kind === "midpoint") {
-    return construction.points;
-  }
-
-  const _exhaustiveCheck: never = construction;
-  return _exhaustiveCheck;
 }
 
 export function dependencyGraphFor(constructions: readonly Construction[]): DependencyGraph {

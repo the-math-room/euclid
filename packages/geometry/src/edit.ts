@@ -434,24 +434,7 @@ export function translateShape(
   const construction = program.constructions.find((c) => c.id === id);
   if (!construction) return program;
 
-  const pointsToTranslate = new Set<ConstructionId>();
-
-  if (construction.kind === "line-through") {
-    pointsToTranslate.add(construction.points[0]);
-    pointsToTranslate.add(construction.points[1]);
-  } else if (construction.kind === "circle-through") {
-    pointsToTranslate.add(construction.center);
-    pointsToTranslate.add(construction.pointOnCircle);
-  } else if (construction.kind === "circle-three-points") {
-    pointsToTranslate.add(construction.points[0]);
-    pointsToTranslate.add(construction.points[1]);
-    pointsToTranslate.add(construction.points[2]);
-  } else if (construction.kind === "parallel-line" || construction.kind === "perpendicular-line") {
-    pointsToTranslate.add(construction.point);
-  } else if (construction.kind === "midpoint") {
-    pointsToTranslate.add(construction.points[0]);
-    pointsToTranslate.add(construction.points[1]);
-  }
+  const pointsToTranslate = new Set(translatedPointIds(construction));
 
   if (pointsToTranslate.size === 0) {
     return program;
@@ -479,4 +462,26 @@ export function translateShape(
   return {
     constructions,
   };
+}
+
+function translatedPointIds(construction: Construction): readonly ConstructionId[] {
+  switch (construction.kind) {
+    case "free-point":
+      return [];
+    case "line-through":
+      return construction.points;
+    case "circle-through":
+      return [construction.center, construction.pointOnCircle];
+    case "circle-three-points":
+      return construction.points;
+    case "parallel-line":
+    case "perpendicular-line":
+      return [construction.point];
+    case "midpoint":
+      return construction.points;
+    case "line-line-intersection":
+    case "line-circle-intersection":
+    case "circle-circle-intersection":
+      return [];
+  }
 }

@@ -1,6 +1,7 @@
 import type {
   Construction,
   ConstructionId,
+  ConstructionExpression,
   ConstructionProgram,
   ConstructionMeaning,
   Evaluation,
@@ -34,124 +35,72 @@ type EvaluationPlan = Readonly<{
 }>;
 
 function meaningFor(construction: Construction): ConstructionMeaning {
-  if (construction.kind === "free-point") {
-    return {
-      id: construction.id,
-      label: construction.label,
-      expression: {
-        kind: "free-point",
-      },
-    };
-  }
+  return {
+    id: construction.id,
+    label: construction.label,
+    expression: expressionFor(construction),
+  };
+}
 
-  if (construction.kind === "line-through") {
-    return {
-      id: construction.id,
-      label: construction.label,
-      expression: {
+function expressionFor(construction: Construction): ConstructionExpression {
+  switch (construction.kind) {
+    case "free-point":
+      return {
+        kind: "free-point",
+      };
+    case "line-through":
+      return {
         kind: "line-through",
         points: construction.points,
-      },
-    };
-  }
-
-  if (construction.kind === "circle-through") {
-    return {
-      id: construction.id,
-      label: construction.label,
-      expression: {
+      };
+    case "circle-through":
+      return {
         kind: "circle-through",
         center: construction.center,
         pointOnCircle: construction.pointOnCircle,
-      },
-    };
-  }
-
-  if (construction.kind === "circle-three-points") {
-    return {
-      id: construction.id,
-      label: construction.label,
-      expression: {
+      };
+    case "circle-three-points":
+      return {
         kind: "circle-three-points",
         points: construction.points,
-      },
-    };
-  }
-
-  if (construction.kind === "line-line-intersection") {
-    return {
-      id: construction.id,
-      label: construction.label,
-      expression: {
+      };
+    case "line-line-intersection":
+      return {
         kind: "line-line-intersection",
         lines: construction.lines,
-      },
-    };
-  }
-
-  if (construction.kind === "line-circle-intersection") {
-    return {
-      id: construction.id,
-      label: construction.label,
-      expression: {
+      };
+    case "line-circle-intersection":
+      return {
         kind: "line-circle-intersection",
         line: construction.line,
         circle: construction.circle,
         intersectionIndex: construction.intersectionIndex,
-      },
-    };
-  }
-
-  if (construction.kind === "circle-circle-intersection") {
-    return {
-      id: construction.id,
-      label: construction.label,
-      expression: {
+      };
+    case "circle-circle-intersection":
+      return {
         kind: "circle-circle-intersection",
         firstCircle: construction.firstCircle,
         secondCircle: construction.secondCircle,
         intersectionIndex: construction.intersectionIndex,
-      },
-    };
-  }
-
-  if (construction.kind === "parallel-line") {
-    return {
-      id: construction.id,
-      label: construction.label,
-      expression: {
+      };
+    case "parallel-line":
+      return {
         kind: "parallel-line",
         line: construction.line,
         point: construction.point,
-      },
-    };
-  }
-
-  if (construction.kind === "perpendicular-line") {
-    return {
-      id: construction.id,
-      label: construction.label,
-      expression: {
+      };
+    case "perpendicular-line":
+      return {
         kind: "perpendicular-line",
         line: construction.line,
         point: construction.point,
-      },
-    };
-  }
-
-  if (construction.kind === "midpoint") {
-    return {
-      id: construction.id,
-      label: construction.label,
-      expression: {
+      };
+    case "midpoint":
+      return {
         kind: "midpoint",
         points: construction.points,
-      },
-    };
+      };
   }
-
-  const _exhaustiveCheck: never = construction;
-  return _exhaustiveCheck;
 }
 
 function evaluationPlanFor(constructions: readonly Construction[]): EvaluationPlan {

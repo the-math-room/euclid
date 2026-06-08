@@ -137,46 +137,26 @@ function referenceFor(construction: Construction): ConstructionReference {
 }
 
 function explanationFor(construction: Construction): string {
-  if (construction.kind === "free-point") {
-    return `${construction.label} is a free point.`;
+  switch (construction.kind) {
+    case "free-point":
+      return `${construction.label} is a free point.`;
+    case "line-through":
+      return `${construction.label} is the line through ${construction.points[0]} and ${construction.points[1]}.`;
+    case "circle-through":
+      return `${construction.label} is the circle centered at ${construction.center} through ${construction.pointOnCircle}.`;
+    case "circle-three-points":
+      return `${construction.label} is the circle through ${construction.points[0]}, ${construction.points[1]}, and ${construction.points[2]}.`;
+    case "line-line-intersection":
+      return `${construction.label} is the intersection of lines ${construction.lines[0]} and ${construction.lines[1]}.`;
+    case "line-circle-intersection":
+      return `${construction.label} is intersection ${construction.intersectionIndex} of line ${construction.line} and circle ${construction.circle}.`;
+    case "circle-circle-intersection":
+      return `${construction.label} is intersection ${construction.intersectionIndex} of circles ${construction.firstCircle} and ${construction.secondCircle}.`;
+    case "parallel-line":
+      return `${construction.label} is the line through ${construction.point} parallel to line ${construction.line}.`;
+    case "perpendicular-line":
+      return `${construction.label} is the line through ${construction.point} perpendicular to line ${construction.line}.`;
+    case "midpoint":
+      return `${construction.label} is the midpoint of segment between ${construction.points[0]} and ${construction.points[1]}.`;
   }
-
-  if (construction.kind === "line-through") {
-    return `${construction.label} is the line through ${construction.points[0]} and ${construction.points[1]}.`;
-  }
-
-  if (construction.kind === "circle-through") {
-    return `${construction.label} is the circle centered at ${construction.center} through ${construction.pointOnCircle}.`;
-  }
-
-  if (construction.kind === "circle-three-points") {
-    return `${construction.label} is the circle through ${construction.points[0]}, ${construction.points[1]}, and ${construction.points[2]}.`;
-  }
-
-  if (construction.kind === "line-line-intersection") {
-    return `${construction.label} is the intersection of lines ${construction.lines[0]} and ${construction.lines[1]}.`;
-  }
-
-  if (construction.kind === "line-circle-intersection") {
-    return `${construction.label} is intersection ${construction.intersectionIndex} of line ${construction.line} and circle ${construction.circle}.`;
-  }
-
-  if (construction.kind === "circle-circle-intersection") {
-    return `${construction.label} is intersection ${construction.intersectionIndex} of circles ${construction.firstCircle} and ${construction.secondCircle}.`;
-  }
-
-  if (construction.kind === "parallel-line") {
-    return `${construction.label} is the line through ${construction.point} parallel to line ${construction.line}.`;
-  }
-
-  if (construction.kind === "perpendicular-line") {
-    return `${construction.label} is the line through ${construction.point} perpendicular to line ${construction.line}.`;
-  }
-
-  if (construction.kind === "midpoint") {
-    return `${construction.label} is the midpoint of segment between ${construction.points[0]} and ${construction.points[1]}.`;
-  }
-
-  const _exhaustiveCheck: never = construction;
-  return _exhaustiveCheck;
 }
