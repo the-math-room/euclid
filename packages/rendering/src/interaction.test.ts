@@ -1,38 +1,31 @@
 import { describe, expect, it } from "vitest";
-import { toScenePoint } from "@euclid/geometry";
-import type { RenderScene } from "./scene";
 import { findIntersectionAtPosition, findItemAtPosition, findSnapTargets } from "./interaction";
+import { circleItem, lineItem, pointItem, renderScene, scenePoint } from "./renderTestFixtures";
 
-const p = (x: number, y: number) => toScenePoint({ x, y });
+const p = scenePoint;
 
-const mockScene = {
+const mockScene = renderScene({
   size: { width: 100, height: 100 },
-  grid: [],
   items: [
-    {
+    pointItem({
       id: "point-A",
-      kind: "point",
-      mark: { x: 50, y: 50 },
-      label: { text: "A", anchor: { x: 60, y: 40 } },
-    },
-    {
+      x: 50,
+      y: 50,
+      text: "A",
+      labelAnchor: p(60, 40),
+    }),
+    lineItem({
       id: "line-B",
-      kind: "line",
-      from: { x: 10, y: 10 },
-      to: { x: 90, y: 10 },
-      supportLine: [
-        { x: 10, y: 10 },
-        { x: 90, y: 10 },
-      ],
-    },
-    {
+      from: p(10, 10),
+      to: p(90, 10),
+    }),
+    circleItem({
       id: "circle-C",
-      kind: "circle",
-      center: { x: 50, y: 50 },
+      center: p(50, 50),
       radius: 30,
-    },
+    }),
   ],
-} as unknown as RenderScene;
+});
 
 describe("interaction hit testing", () => {
   it("finds points close to query position", () => {
@@ -45,22 +38,19 @@ describe("interaction hit testing", () => {
   });
 
   it("treats point labels as hits on their owning point", () => {
-    const scene = {
+    const scene = renderScene({
       size: { width: 100, height: 100 },
-      grid: [],
       items: [
-        {
+        pointItem({
           id: "point-A",
-          kind: "point",
-          mark: { x: 50, y: 50 },
-          label: {
-            text: "A",
-            anchor: { x: 70, y: 40 },
-            bounds: { x: 68, y: 24, width: 12, height: 18 },
-          },
-        },
+          x: 50,
+          y: 50,
+          text: "A",
+          labelAnchor: p(70, 40),
+          labelBounds: { x: 68, y: 24, width: 12, height: 18 },
+        }),
       ],
-    } as unknown as RenderScene;
+    });
 
     expect(findItemAtPosition(scene, p(74, 32))?.id).toBe("point-A");
   });
@@ -86,28 +76,23 @@ describe("interaction hit testing", () => {
   });
 
   it("prioritizes points over lines/circles", () => {
-    const sceneWithOverlap = {
+    const sceneWithOverlap = renderScene({
       size: { width: 100, height: 100 },
-      grid: [],
       items: [
-        {
+        lineItem({
           id: "overlap-line",
-          kind: "line",
-          from: { x: 10, y: 10 },
-          to: { x: 90, y: 10 },
-          supportLine: [
-            { x: 10, y: 10 },
-            { x: 90, y: 10 },
-          ],
-        },
-        {
+          from: p(10, 10),
+          to: p(90, 10),
+        }),
+        pointItem({
           id: "overlap-point",
-          kind: "point",
-          mark: { x: 50, y: 10 },
-          label: { text: "P", anchor: { x: 60, y: 0 } },
-        },
+          x: 50,
+          y: 10,
+          text: "P",
+          labelAnchor: p(60, 0),
+        }),
       ],
-    } as unknown as RenderScene;
+    });
 
     // Position 50,11 is close to both the line and the point.
     // Distance to point is 1. Distance to line is 1.
@@ -116,32 +101,21 @@ describe("interaction hit testing", () => {
   });
 
   it("finds line-line intersection candidates close to query position", () => {
-    const scene = {
+    const scene = renderScene({
       size: { width: 100, height: 100 },
-      grid: [],
       items: [
-        {
+        lineItem({
           id: "line-a",
-          kind: "line",
-          from: { x: 10, y: 10 },
-          to: { x: 90, y: 90 },
-          supportLine: [
-            { x: 10, y: 10 },
-            { x: 90, y: 90 },
-          ],
-        },
-        {
+          from: p(10, 10),
+          to: p(90, 90),
+        }),
+        lineItem({
           id: "line-b",
-          kind: "line",
-          from: { x: 10, y: 90 },
-          to: { x: 90, y: 10 },
-          supportLine: [
-            { x: 10, y: 90 },
-            { x: 90, y: 10 },
-          ],
-        },
+          from: p(10, 90),
+          to: p(90, 10),
+        }),
       ],
-    } as unknown as RenderScene;
+    });
 
     expect(findIntersectionAtPosition(scene, p(52, 51))).toEqual({
       kind: "line-line-intersection",
@@ -151,59 +125,41 @@ describe("interaction hit testing", () => {
   });
 
   it("does not find intersection candidates for parallel lines", () => {
-    const scene = {
+    const scene = renderScene({
       size: { width: 100, height: 100 },
-      grid: [],
       items: [
-        {
+        lineItem({
           id: "line-a",
-          kind: "line",
-          from: { x: 10, y: 10 },
-          to: { x: 90, y: 10 },
-          supportLine: [
-            { x: 10, y: 10 },
-            { x: 90, y: 10 },
-          ],
-        },
-        {
+          from: p(10, 10),
+          to: p(90, 10),
+        }),
+        lineItem({
           id: "line-b",
-          kind: "line",
-          from: { x: 10, y: 20 },
-          to: { x: 90, y: 20 },
-          supportLine: [
-            { x: 10, y: 20 },
-            { x: 90, y: 20 },
-          ],
-        },
+          from: p(10, 20),
+          to: p(90, 20),
+        }),
       ],
-    } as unknown as RenderScene;
+    });
 
     expect(findIntersectionAtPosition(scene, p(50, 15))).toBeUndefined();
   });
 
   it("finds line-circle intersection candidates close to query position", () => {
-    const scene = {
+    const scene = renderScene({
       size: { width: 100, height: 100 },
-      grid: [],
       items: [
-        {
+        lineItem({
           id: "line-a",
-          kind: "line",
-          from: { x: 10, y: 50 },
-          to: { x: 90, y: 50 },
-          supportLine: [
-            { x: 10, y: 50 },
-            { x: 90, y: 50 },
-          ],
-        },
-        {
+          from: p(10, 50),
+          to: p(90, 50),
+        }),
+        circleItem({
           id: "circle-b",
-          kind: "circle",
-          center: { x: 50, y: 50 },
+          center: p(50, 50),
           radius: 10,
-        },
+        }),
       ],
-    } as unknown as RenderScene;
+    });
 
     // Intersections at { x: 40, y: 50 } and { x: 60, y: 50 }
     expect(findIntersectionAtPosition(scene, p(41, 51))).toEqual({
@@ -224,24 +180,21 @@ describe("interaction hit testing", () => {
   });
 
   it("finds circle-circle intersection candidates close to query position with canonical operands", () => {
-    const scene = {
+    const scene = renderScene({
       size: { width: 100, height: 100 },
-      grid: [],
       items: [
-        {
+        circleItem({
           id: "circle-y",
-          kind: "circle",
-          center: { x: 45, y: 50 },
+          center: p(45, 50),
           radius: 10,
-        },
-        {
+        }),
+        circleItem({
           id: "circle-x",
-          kind: "circle",
-          center: { x: 55, y: 50 },
+          center: p(55, 50),
           radius: 10,
-        },
+        }),
       ],
-    } as unknown as RenderScene;
+    });
 
     // Intersection points at x = 50, y = 50 +- sqrt(75) (approx 58.66 and 41.34)
     // circle-x and circle-y should be canonicalized by alphabetical ID sorting: circle-x first, circle-y second
@@ -268,32 +221,21 @@ describe("interaction hit testing", () => {
     });
 
     it("finds intersections and items together", () => {
-      const scene = {
+      const scene = renderScene({
         size: { width: 100, height: 100 },
-        grid: [],
         items: [
-          {
+          lineItem({
             id: "line-a",
-            kind: "line",
-            from: { x: 10, y: 10 },
-            to: { x: 90, y: 90 },
-            supportLine: [
-              { x: 10, y: 10 },
-              { x: 90, y: 90 },
-            ],
-          },
-          {
+            from: p(10, 10),
+            to: p(90, 90),
+          }),
+          lineItem({
             id: "line-b",
-            kind: "line",
-            from: { x: 10, y: 90 },
-            to: { x: 90, y: 10 },
-            supportLine: [
-              { x: 10, y: 90 },
-              { x: 90, y: 10 },
-            ],
-          },
+            from: p(10, 90),
+            to: p(90, 10),
+          }),
         ],
-      } as unknown as RenderScene;
+      });
 
       const targets = findSnapTargets(scene, p(52, 51), 8);
       expect(targets.map((t) => t.kind)).toContain("intersection");

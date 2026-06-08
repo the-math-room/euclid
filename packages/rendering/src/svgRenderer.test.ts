@@ -1,35 +1,30 @@
 import { describe, expect, it } from "vitest";
-import type { RenderScene } from "./scene";
+import { circleItem, gridLine, lineItem, pointItem, renderScene, scenePoint } from "./renderTestFixtures";
 import { renderSceneToSvgString } from "./svgRenderer";
 
-const mockScene = {
+const mockScene = renderScene({
   size: { width: 400, height: 300 },
-  grid: [{ id: "g1", from: { x: 0, y: 0 }, to: { x: 400, y: 0 } }],
+  grid: [gridLine("g1", scenePoint(0, 0), scenePoint(400, 0))],
   items: [
-    {
+    pointItem({
       id: "pt-A",
-      kind: "point",
-      mark: { x: 100, y: 100 },
-      label: { text: "A", anchor: { x: 110, y: 90 } },
-    },
-    {
+      x: 100,
+      y: 100,
+      text: "A",
+      labelAnchor: scenePoint(110, 90),
+    }),
+    lineItem({
       id: "ln-B",
-      kind: "line",
-      from: { x: 10, y: 10 },
-      to: { x: 90, y: 90 },
-      supportLine: [
-        { x: 10, y: 10 },
-        { x: 90, y: 90 },
-      ],
-    },
-    {
+      from: scenePoint(10, 10),
+      to: scenePoint(90, 90),
+    }),
+    circleItem({
       id: "cr-C",
-      kind: "circle",
-      center: { x: 200, y: 200 },
+      center: scenePoint(200, 200),
       radius: 50,
-    },
+    }),
   ],
-} as unknown as RenderScene;
+});
 
 describe("svg renderer", () => {
   it("renders a scene to an SVG string containing all elements", () => {
@@ -88,18 +83,18 @@ describe("svg renderer", () => {
   });
 
   it("escapes XML-special characters in ids and labels", () => {
-    const scene = {
+    const scene = renderScene({
       size: { width: 100, height: 100 },
-      grid: [],
       items: [
-        {
+        pointItem({
           id: `pt-"A"&'B'<C>`,
-          kind: "point",
-          mark: { x: 20, y: 30 },
-          label: { text: `A & B < C > D "quote" 'apostrophe'`, anchor: { x: 30, y: 20 } },
-        },
+          x: 20,
+          y: 30,
+          text: `A & B < C > D "quote" 'apostrophe'`,
+          labelAnchor: scenePoint(30, 20),
+        }),
       ],
-    } as unknown as RenderScene;
+    });
     const svgStr = renderSceneToSvgString(scene);
 
     expect(svgStr).toContain(`data-id="pt-&quot;A&quot;&amp;&apos;B&apos;&lt;C&gt;"`);
@@ -107,19 +102,19 @@ describe("svg renderer", () => {
   });
 
   it("includes constructed point role classes", () => {
-    const scene = {
+    const scene = renderScene({
       size: { width: 100, height: 100 },
-      grid: [],
       items: [
-        {
+        pointItem({
           id: "constructed-point",
-          kind: "point",
           pointRole: "constructed",
-          mark: { x: 20, y: 30 },
-          label: { text: "D", anchor: { x: 30, y: 20 } },
-        },
+          x: 20,
+          y: 30,
+          text: "D",
+          labelAnchor: scenePoint(30, 20),
+        }),
       ],
-    } as unknown as RenderScene;
+    });
     const svgStr = renderSceneToSvgString(scene);
 
     expect(svgStr).toContain('<g class="primitive point constructed" data-id="constructed-point">');

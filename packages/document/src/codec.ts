@@ -1,4 +1,4 @@
-import { decodeEuclidDocument } from "./documentDecoder";
+import { decodeEuclidDocument as decodeEuclidDocumentValue } from "./documentDecoder";
 import type { EuclidDocument } from "./model";
 
 export type DocumentParseResult =
@@ -24,7 +24,11 @@ export function parseEuclidDocument(text: string): DocumentParseResult {
     return invalid("Document is not valid JSON.");
   }
 
-  const decoded = decodeEuclidDocument(parsed);
+  return decodeEuclidDocument(parsed);
+}
+
+export function decodeEuclidDocument(value: unknown): DocumentParseResult {
+  const decoded = decodeEuclidDocumentValue(value);
   return decoded.ok
     ? {
         ok: true,

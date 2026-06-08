@@ -23,7 +23,7 @@ export {
   requiresPointOnLine,
 } from "./assessment";
 export type { AssessmentGoalParseResult } from "./goalCodec";
-export { parseAssessmentGoal, serializeAssessmentGoal } from "./goalCodec";
+export { decodeAssessmentGoal, parseAssessmentGoal, serializeAssessmentGoal } from "./goalCodec";
 export { mapGoalIds, resolveGoalMapping } from "./goalResolution";
 export type { AssessmentGoal } from "./goals";
 export { evaluateGoal, predicateForGoal } from "./goals";

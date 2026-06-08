@@ -137,6 +137,7 @@ npm run check
 
 ## Journal (Most Recent First)
 
+- `docs/journal/2026-06-07-boundary-composition-and-fixtures.md` — added object-level content decoders for package composition and typed rendering test fixtures.
 - `docs/journal/2026-06-07-geometry-algebraic-interpreters.md` — refactored geometry construction interpreters toward exhaustive native TypeScript ADT folds.
 - `docs/journal/2026-06-07-shared-construction-schemas.md` — moved canonical construction Zod schemas into geometry for reuse by document and assessment parsers.
 - `docs/journal/2026-06-07-goal-resolution-pattern-matching.md` — replaced reflective assessment goal-resolution traversal with explicit construction-expression pattern matching.

@@ -87,14 +87,31 @@ Geometry does not know about documents, lessons, rendering, interaction, or Reac
 
 ## Current Domain
 
-The initial domain supports:
+The current domain supports:
 
 - Free points.
 - Lines through two points.
 - Circles with a center point and point on circumference.
+- Circles through three points.
 - Line-line, line-circle, and circle-circle intersection points.
+- Lines parallel to an existing line through a witness point.
+- Lines perpendicular to an existing line through a witness point.
+- Midpoints of two points.
 
 This is deliberately small. It gives future construction operations a clear pattern without pretending the domain is complete.
+
+## Construction Interpreters
+
+`Construction` is a runtime algebraic data type. Documents persist heterogeneous construction programs as data, so interpretation requires runtime case analysis somewhere.
+
+Within TypeScript, the preferred style is a small total interpreter over the discriminated union:
+
+- `dependencyIds`: construction to dependency references.
+- `expressionFor`: construction to exact construction expression.
+- `realizeOne`: construction to approximate primitive or realization diagnostic.
+- `explanationFor`: construction to human-readable provenance text.
+
+These switches are not validation. They are folds over the construction ADT. Keep them exhaustive, local to semantic interpreters, and explicit enough that adding a construction forces deliberate updates across dependency extraction, meaning, realization, rendering, assessment, and explanation.
 
 ## Label Layout
 

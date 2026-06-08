@@ -154,18 +154,13 @@ export function parseAssessmentGoal(text: string): AssessmentGoalParseResult {
     return invalid("Assessment goal is not valid JSON.");
   }
 
-  const decoded = decodeAssessmentGoal(parsed);
-  return decoded.ok ? { ok: true, goal: decoded.goal } : invalid(decoded.diagnostic);
+  return decodeAssessmentGoal(parsed);
 }
 
-type GoalDecodeResult =
-  | Readonly<{ ok: true; goal: AssessmentGoal }>
-  | Readonly<{ ok: false; diagnostic: string }>;
-
-function decodeAssessmentGoal(value: unknown): GoalDecodeResult {
+export function decodeAssessmentGoal(value: unknown): AssessmentGoalParseResult {
   const parsed = assessmentGoalSchema.safeParse(value);
   if (!parsed.success) {
-    return goalInvalid(diagnosticForGoalError(parsed.error, value, "goal"));
+    return invalid(diagnosticForGoalError(parsed.error, value, "goal"));
   }
 
   return {
@@ -337,12 +332,5 @@ function invalid(message: string): AssessmentGoalParseResult {
   return {
     ok: false,
     diagnostics: [message],
-  };
-}
-
-function goalInvalid(diagnostic: string): GoalDecodeResult {
-  return {
-    ok: false,
-    diagnostic,
   };
 }

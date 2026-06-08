@@ -1,35 +1,30 @@
 import { describe, expect, it, vi } from "vitest";
-import type { RenderScene } from "./scene";
 import { drawSceneToCanvas, type CanvasRenderingContext2DLike } from "./canvasRenderer";
+import { circleItem, gridLine, lineItem, pointItem, renderScene, scenePoint } from "./renderTestFixtures";
 
-const mockScene = {
+const mockScene = renderScene({
   size: { width: 400, height: 300 },
-  grid: [{ id: "g1", from: { x: 0, y: 0 }, to: { x: 400, y: 0 } }],
+  grid: [gridLine("g1", scenePoint(0, 0), scenePoint(400, 0))],
   items: [
-    {
+    pointItem({
       id: "pt-A",
-      kind: "point",
-      mark: { x: 100, y: 100 },
-      label: { text: "A", anchor: { x: 110, y: 90 } },
-    },
-    {
+      x: 100,
+      y: 100,
+      text: "A",
+      labelAnchor: scenePoint(110, 90),
+    }),
+    lineItem({
       id: "ln-B",
-      kind: "line",
-      from: { x: 10, y: 10 },
-      to: { x: 90, y: 90 },
-      supportLine: [
-        { x: 10, y: 10 },
-        { x: 90, y: 90 },
-      ],
-    },
-    {
+      from: scenePoint(10, 10),
+      to: scenePoint(90, 90),
+    }),
+    circleItem({
       id: "cr-C",
-      kind: "circle",
-      center: { x: 200, y: 200 },
+      center: scenePoint(200, 200),
       radius: 50,
-    },
+    }),
   ],
-} as unknown as RenderScene;
+});
 
 function createMockContext(): CanvasRenderingContext2DLike & { calls: string[]; styleCalls: string[] } {
   const calls: string[] = [];
@@ -104,18 +99,10 @@ describe("canvas renderer", () => {
 
   it("applies active styles when items are multi-selected", () => {
     const ctx = createMockContext();
-    const circleScene = {
+    const circleScene = renderScene({
       size: { width: 400, height: 300 },
-      grid: [],
-      items: [
-        {
-          id: "cr-C",
-          kind: "circle",
-          center: { x: 200, y: 200 },
-          radius: 50,
-        },
-      ],
-    } as unknown as RenderScene;
+      items: [circleItem({ id: "cr-C", center: scenePoint(200, 200), radius: 50 })],
+    });
     drawSceneToCanvas(ctx, circleScene, { selectedIds: new Set(["cr-C"]) });
 
     expect(ctx.strokeStyle).toBe("#e3c057"); // THEME.colors.circleActive
@@ -124,19 +111,22 @@ describe("canvas renderer", () => {
 
   it("applies constructed point styles", () => {
     const ctx = createMockContext();
-    drawSceneToCanvas(ctx, {
-      size: { width: 100, height: 100 },
-      grid: [],
-      items: [
-        {
-          id: "constructed-point",
-          kind: "point",
-          pointRole: "constructed",
-          mark: { x: 50, y: 50 },
-          label: { text: "D", anchor: { x: 60, y: 40 } },
-        },
-      ],
-    } as unknown as RenderScene);
+    drawSceneToCanvas(
+      ctx,
+      renderScene({
+        size: { width: 100, height: 100 },
+        items: [
+          pointItem({
+            id: "constructed-point",
+            pointRole: "constructed",
+            x: 50,
+            y: 50,
+            text: "D",
+            labelAnchor: scenePoint(60, 40),
+          }),
+        ],
+      }),
+    );
 
     expect(ctx.styleCalls).toContain("fillStyle(#fbfaf6)");
     expect(ctx.styleCalls).toContain("strokeStyle(#246a73)");

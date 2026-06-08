@@ -1,8 +1,8 @@
 import { isActivityTool } from "@euclid/activity";
 import type { AssessmentGoal } from "@euclid/assessment";
-import { parseAssessmentGoal } from "@euclid/assessment";
+import { decodeAssessmentGoal } from "@euclid/assessment";
 import type { EuclidDocument } from "@euclid/document";
-import { parseEuclidDocument } from "@euclid/document";
+import { decodeEuclidDocument } from "@euclid/document";
 import { z } from "zod";
 import type { EuclidLesson } from "./model";
 
@@ -98,7 +98,7 @@ type DocumentDecodeResult =
     }>;
 
 function decodeStarterDocument(value: unknown): DocumentDecodeResult {
-  const parsed = parseEuclidDocument(JSON.stringify(value));
+  const parsed = decodeEuclidDocument(value);
 
   return parsed.ok
     ? {
@@ -128,7 +128,7 @@ function decodeAssessmentGoals(value: unknown): GoalsDecodeResult {
 
   const goals: AssessmentGoal[] = [];
   for (const [index, goal] of value.entries()) {
-    const parsed = parseAssessmentGoal(JSON.stringify(goal));
+    const parsed = decodeAssessmentGoal(goal);
     if (!parsed.ok) {
       return goalsInvalid(...parsed.diagnostics.map((diagnostic) => `Lesson goals[${index}]: ${diagnostic}`));
     }

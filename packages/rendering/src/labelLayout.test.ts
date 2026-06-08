@@ -1,17 +1,20 @@
 import { describe, expect, it } from "vitest";
-import type { RenderItem } from "./scene";
 import { layoutPointLabels } from "./labelLayout";
+import { lineItem, pointItem, scenePoint } from "./renderTestFixtures";
+
+type PointLabelTarget = Parameters<typeof layoutPointLabels>[0][number];
+
+function labelTarget(id: string, x: number, y: number): PointLabelTarget {
+  return {
+    id,
+    text: id,
+    mark: scenePoint(x, y),
+  };
+}
 
 describe("label layout", () => {
   it("uses the preferred northeast candidate when it is clear", () => {
-    const labels = layoutPointLabels(
-      [
-        { id: "A", text: "A", mark: { x: 50, y: 50 } } as unknown as Parameters<
-          typeof layoutPointLabels
-        >[0][number],
-      ],
-      [],
-    );
+    const labels = layoutPointLabels([labelTarget("A", 50, 50)], []);
     const label = labels.get("A");
 
     expect(label).toEqual(
@@ -24,59 +27,40 @@ describe("label layout", () => {
   });
 
   it("moves labels away from each other without privileging source order", () => {
-    const labels = layoutPointLabels(
-      [
-        { id: "A", text: "A", mark: { x: 50, y: 50 } },
-        { id: "B", text: "B", mark: { x: 50, y: 50 } },
-      ] as unknown as Parameters<typeof layoutPointLabels>[0],
-      [],
-    );
+    const labels = layoutPointLabels([labelTarget("A", 50, 50), labelTarget("B", 50, 50)], []);
 
     expect(labels.get("A")?.candidate).not.toBe(labels.get("B")?.candidate);
   });
   it("penalizes labels that cross rendered line obstacles", () => {
-    const line = {
+    const line = lineItem({
       id: "line",
-      kind: "line",
-      from: { x: 0, y: 31 },
-      to: { x: 100, y: 31 },
-      supportLine: [
-        { x: 0, y: 31 },
-        { x: 100, y: 31 },
-      ],
-    } as unknown as RenderItem;
-    const labels = layoutPointLabels(
-      [
-        { id: "A", text: "A", mark: { x: 50, y: 50 } } as unknown as Parameters<
-          typeof layoutPointLabels
-        >[0][number],
-      ],
-      [line],
-    );
+      from: scenePoint(0, 31),
+      to: scenePoint(100, 31),
+    });
+    const labels = layoutPointLabels([labelTarget("A", 50, 50)], [line]);
 
     expect(labels.get("A")?.candidate).toBe("e");
   });
 
   it("keeps labels visually associated with their home point in a point clump", () => {
     const labels = layoutPointLabels(
+      [labelTarget("A", 50, 50), labelTarget("B", 68, 31)],
       [
-        { id: "A", text: "A", mark: { x: 50, y: 50 } },
-        { id: "B", text: "B", mark: { x: 68, y: 31 } },
-      ] as unknown as Parameters<typeof layoutPointLabels>[0],
-      [
-        {
+        pointItem({
           id: "A",
-          kind: "point",
-          mark: { x: 50, y: 50 },
-          label: { text: "A", anchor: { x: 0, y: 0 } },
-        },
-        {
+          x: 50,
+          y: 50,
+          text: "A",
+          labelAnchor: scenePoint(0, 0),
+        }),
+        pointItem({
           id: "B",
-          kind: "point",
-          mark: { x: 68, y: 31 },
-          label: { text: "B", anchor: { x: 0, y: 0 } },
-        },
-      ] as unknown as RenderItem[],
+          x: 68,
+          y: 31,
+          text: "B",
+          labelAnchor: scenePoint(0, 0),
+        }),
+      ],
     );
 
     expect(labels.get("A")?.candidate).not.toBe("ne");
