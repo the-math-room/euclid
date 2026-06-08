@@ -263,6 +263,175 @@ describe("construction edits", () => {
     }
   });
 
+  it("solves two distance constraints for one movable free point", () => {
+    const program: ConstructionProgram = {
+      constructions: [
+        {
+          id: "A",
+          kind: "free-point",
+          label: "A",
+          mobility: "fixed",
+          position: toWorldPoint({ x: 0, y: 0 }),
+        },
+        {
+          id: "B",
+          kind: "free-point",
+          label: "B",
+          mobility: "fixed",
+          position: toWorldPoint({ x: 4, y: 0 }),
+        },
+        { id: "C", kind: "free-point", label: "C", position: toWorldPoint({ x: 2, y: 1 }) },
+      ],
+      measurementSettings: {
+        variables: { x: 4 },
+      },
+      measurements: [
+        segmentLengthMeasurement("A", "C", "x", "constraint"),
+        segmentLengthMeasurement("B", "C", "x", "constraint"),
+      ],
+    };
+
+    const result = applyMeasurementConstraint(
+      program,
+      evaluateConstruction(program),
+      "length-a-c",
+      "move-free-endpoint",
+    );
+
+    expect(result).toMatchObject({ ok: true, changed: true });
+    if (result.ok) {
+      const moved = result.program.constructions.find((construction) => construction.id === "C");
+      expect(moved).toMatchObject({
+        id: "C",
+        kind: "free-point",
+        label: "C",
+      });
+      if (moved?.kind === "free-point") {
+        expect(moved.position.x).toBeCloseTo(2);
+        expect(moved.position.y).toBeCloseTo(Math.sqrt(12));
+      }
+    }
+  });
+
+  it("preserves the current orientation when solving two distance constraints when possible", () => {
+    const program: ConstructionProgram = {
+      constructions: [
+        {
+          id: "A",
+          kind: "free-point",
+          label: "A",
+          mobility: "fixed",
+          position: toWorldPoint({ x: 0, y: 0 }),
+        },
+        {
+          id: "B",
+          kind: "free-point",
+          label: "B",
+          mobility: "fixed",
+          position: toWorldPoint({ x: 4, y: 0 }),
+        },
+        { id: "C", kind: "free-point", label: "C", position: toWorldPoint({ x: 2, y: -1 }) },
+      ],
+      measurementSettings: {
+        variables: { x: 4 },
+      },
+      measurements: [
+        segmentLengthMeasurement("A", "C", "x", "constraint"),
+        segmentLengthMeasurement("B", "C", "x", "constraint"),
+      ],
+    };
+
+    const result = applyMeasurementConstraint(
+      program,
+      evaluateConstruction(program),
+      "length-a-c",
+      "move-free-endpoint",
+    );
+
+    expect(result).toMatchObject({ ok: true, changed: true });
+    if (result.ok) {
+      const moved = result.program.constructions.find((construction) => construction.id === "C");
+      if (moved?.kind === "free-point") {
+        expect(moved.position.x).toBeCloseTo(2);
+        expect(moved.position.y).toBeCloseTo(-Math.sqrt(12));
+      }
+    }
+  });
+
+  it("refuses two distance constraints that do not share a point position", () => {
+    const program: ConstructionProgram = {
+      constructions: [
+        {
+          id: "A",
+          kind: "free-point",
+          label: "A",
+          mobility: "fixed",
+          position: toWorldPoint({ x: 0, y: 0 }),
+        },
+        {
+          id: "B",
+          kind: "free-point",
+          label: "B",
+          mobility: "fixed",
+          position: toWorldPoint({ x: 10, y: 0 }),
+        },
+        { id: "C", kind: "free-point", label: "C", position: toWorldPoint({ x: 2, y: 1 }) },
+      ],
+      measurements: [
+        segmentLengthMeasurement("A", "C", 2, "constraint"),
+        segmentLengthMeasurement("B", "C", 2, "constraint"),
+      ],
+    };
+
+    expect(
+      applyMeasurementConstraint(program, evaluateConstruction(program), "length-a-c", "move-free-endpoint"),
+    ).toMatchObject({
+      ok: false,
+      code: "measurement:unsolvable-constraint-system",
+    });
+  });
+
+  it("refuses more than two distance constraints for one movable point", () => {
+    const program: ConstructionProgram = {
+      constructions: [
+        {
+          id: "A",
+          kind: "free-point",
+          label: "A",
+          mobility: "fixed",
+          position: toWorldPoint({ x: 0, y: 0 }),
+        },
+        {
+          id: "B",
+          kind: "free-point",
+          label: "B",
+          mobility: "fixed",
+          position: toWorldPoint({ x: 4, y: 0 }),
+        },
+        {
+          id: "D",
+          kind: "free-point",
+          label: "D",
+          mobility: "fixed",
+          position: toWorldPoint({ x: 2, y: 4 }),
+        },
+        { id: "C", kind: "free-point", label: "C", position: toWorldPoint({ x: 2, y: 1 }) },
+      ],
+      measurements: [
+        segmentLengthMeasurement("A", "C", 4, "constraint"),
+        segmentLengthMeasurement("B", "C", 4, "constraint"),
+        segmentLengthMeasurement("D", "C", 4, "constraint"),
+      ],
+    };
+
+    expect(
+      applyMeasurementConstraint(program, evaluateConstruction(program), "length-a-c", "move-free-endpoint"),
+    ).toMatchObject({
+      ok: false,
+      code: "measurement:unsupported-constraint-system",
+    });
+  });
+
   it("refuses to move a constraint segment when both endpoints can move", () => {
     const program: ConstructionProgram = {
       constructions: [

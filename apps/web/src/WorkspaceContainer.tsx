@@ -613,7 +613,7 @@ function MeasurementList({
                   type="button"
                   onClick={() => onApplyMeasurementConstraint(measurement.id, "move-free-endpoint")}
                 >
-                  Move endpoint
+                  Solve endpoint
                 </button>
               </div>
             )}

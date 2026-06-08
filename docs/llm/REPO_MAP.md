@@ -151,9 +151,11 @@ Start here:
 - `docs/how-to/add-a-construction.md` — use when adding a new construction meaning.
 - `docs/how-to/add-authored-shape-presentation.md` — use when adding user-authored visual intent to existing shape constructions.
 - `docs/how-to/add-a-third-party-macro-tool.md` — use when adding a data-backed third-party macro tool.
+- `docs/how-to/add-measurement-constraint-behavior.md` — use when changing authored measurements, point mobility, unit/variable evaluation, or constraint solving.
 
 ## Journal (Most Recent First)
 
+- `docs/journal/2026-06-08-measurement-constraints-and-local-solver.md` — added authored measurement constraints, fixed/free point mobility, unit calibration, endpoint solving, and the first local two-distance solver.
 - `docs/journal/2026-06-08-third-party-macro-tools.md` — added data-backed third-party macro tools with directory discovery, equilateral reference tool, and a scrubbed core extension path.
 - `docs/journal/2026-06-08-authored-shape-presentation-and-selection-routing.md` — added primary/auxiliary shape roles as authored presentation intent and fixed select-mode session routing.
 - `docs/journal/2026-06-08-executable-architecture-and-readme-routing.md` — converted recent boundary principles into split architecture tests and refocused READMEs for LLM attention routing.

@@ -12,6 +12,7 @@ import type {
   ShapeRole,
   WorldPoint,
 } from "./model";
+import { circleCircleIntersections, cross } from "./approx";
 import { toWorldPoint } from "./model";
 import { evaluateMeasurements } from "./measurement";
 import type { EvaluatedSegmentLengthMeasurement } from "./measurement";
@@ -48,12 +49,22 @@ export type ApplyMeasurementConstraintResult =
         | "measurement:no-movable-endpoint"
         | "measurement:ambiguous-movable-endpoint"
         | "measurement:missing-endpoint"
-        | "measurement:coincident-endpoints";
+        | "measurement:coincident-endpoints"
+        | "measurement:unsolvable-constraint-system"
+        | "measurement:unsupported-constraint-system";
       message: string;
     }>;
 
 export type MeasurementConstraintOptions = Readonly<{
   canMoveConstruction?: (construction: Construction) => boolean;
+}>;
+
+type MovableEndpointConstraint = Readonly<{
+  movingId: ConstructionId;
+  fixedId: ConstructionId;
+  fixedPoint: WorldPoint;
+  movingPoint: WorldPoint;
+  targetWorldLength: number;
 }>;
 
 export function addFreePoint(program: ConstructionProgram, position: WorldPoint): AddConstructionResult {
@@ -346,7 +357,13 @@ export function applyMeasurementConstraint(
     };
   }
 
-  return applyMeasurementConstraintByMovingFreeEndpoint(program, segment, options);
+  return applyMeasurementConstraintByMovingFreeEndpoint(
+    program,
+    measurementEvaluation.segments,
+    segment,
+    measurementEvaluation.unitLength,
+    options,
+  );
 }
 
 export function addLineThroughPoints(
@@ -725,48 +742,57 @@ function unchanged(program: ConstructionProgram, id?: ConstructionId): AddConstr
 
 function applyMeasurementConstraintByMovingFreeEndpoint(
   program: ConstructionProgram,
+  segments: readonly EvaluatedSegmentLengthMeasurement[],
   segment: EvaluatedSegmentLengthMeasurement,
+  unitLength: number,
   options: MeasurementConstraintOptions,
 ): ApplyMeasurementConstraintResult {
-  const fromConstruction = constructionById(program, segment.measurement.from);
-  const toConstruction = constructionById(program, segment.measurement.to);
-  if (!fromConstruction || !toConstruction) {
+  const selectedConstraint = movableEndpointConstraintFor(program, segment, unitLength, options);
+  if (!selectedConstraint.ok) {
+    return selectedConstraint.failure;
+  }
+
+  const peerConstraints = segments
+    .filter((candidate) => candidate.intent === "constraint")
+    .map((candidate) => movableEndpointConstraintFor(program, candidate, unitLength, options))
+    .filter(
+      (
+        candidate,
+      ): candidate is Readonly<{
+        ok: true;
+        constraint: MovableEndpointConstraint;
+      }> => candidate.ok,
+    )
+    .map((candidate) => candidate.constraint)
+    .filter((candidate) => candidate.movingId === selectedConstraint.constraint.movingId);
+
+  if (peerConstraints.length > 2) {
     return applyMeasurementConstraintFailure(
       program,
-      "measurement:missing-endpoint",
-      "Measurement endpoint construction was not found.",
+      "measurement:unsupported-constraint-system",
+      "Constraint solving currently supports at most two distance constraints for one movable point.",
     );
   }
 
-  const fromMovable = canMoveEndpoint(fromConstruction, options);
-  const toMovable = canMoveEndpoint(toConstruction, options);
-  if (fromMovable && toMovable) {
-    return applyMeasurementConstraintFailure(
-      program,
-      "measurement:ambiguous-movable-endpoint",
-      "Both segment endpoints can move. Select a measurement with exactly one movable free point.",
-    );
+  if (peerConstraints.length === 2) {
+    const twoConstraintProgram = applyTwoDistanceConstraintSolve(program, peerConstraints);
+    if (!twoConstraintProgram) {
+      return applyMeasurementConstraintFailure(
+        program,
+        "measurement:unsolvable-constraint-system",
+        "The two distance constraints do not have a shared point position.",
+      );
+    }
+
+    return {
+      ok: true,
+      program: twoConstraintProgram,
+      changed: twoConstraintProgram !== program,
+      message: `Solved ${selectedConstraint.constraint.movingId} from two distance constraints.`,
+    };
   }
 
-  if (!fromMovable && !toMovable) {
-    return applyMeasurementConstraintFailure(
-      program,
-      "measurement:no-movable-endpoint",
-      "Neither segment endpoint can move. A constraint measurement needs exactly one movable free point.",
-    );
-  }
-
-  if (segment.expressionValue === undefined) {
-    return applyMeasurementConstraintFailure(
-      program,
-      "measurement:not-evaluable",
-      "Measurement must evaluate to a positive target length before it can be applied.",
-    );
-  }
-
-  const movingId = fromMovable ? segment.measurement.from : segment.measurement.to;
-  const fixedPoint = fromMovable ? segment.to : segment.from;
-  const movingPoint = fromMovable ? segment.from : segment.to;
+  const { movingId, fixedPoint, movingPoint, targetWorldLength } = selectedConstraint.constraint;
   const currentLength = Math.hypot(movingPoint.x - fixedPoint.x, movingPoint.y - fixedPoint.y);
   if (currentLength === 0) {
     return applyMeasurementConstraintFailure(
@@ -776,8 +802,6 @@ function applyMeasurementConstraintByMovingFreeEndpoint(
     );
   }
 
-  const effectiveUnitLength = segment.actualWorldLength / segment.actualUnitLength;
-  const targetWorldLength = segment.expressionValue * effectiveUnitLength;
   const nextPosition = toWorldPoint({
     x: fixedPoint.x + ((movingPoint.x - fixedPoint.x) / currentLength) * targetWorldLength,
     y: fixedPoint.y + ((movingPoint.y - fixedPoint.y) / currentLength) * targetWorldLength,
@@ -790,6 +814,133 @@ function applyMeasurementConstraintByMovingFreeEndpoint(
     changed: nextProgram !== program,
     message: `Moved ${movingId} to satisfy the constraint measurement.`,
   };
+}
+
+function movableEndpointConstraintFor(
+  program: ConstructionProgram,
+  segment: EvaluatedSegmentLengthMeasurement,
+  unitLength: number,
+  options: MeasurementConstraintOptions,
+):
+  | Readonly<{ ok: true; constraint: MovableEndpointConstraint }>
+  | Readonly<{ ok: false; failure: ApplyMeasurementConstraintResult }> {
+  const fromConstruction = constructionById(program, segment.measurement.from);
+  const toConstruction = constructionById(program, segment.measurement.to);
+  if (!fromConstruction || !toConstruction) {
+    return {
+      ok: false,
+      failure: applyMeasurementConstraintFailure(
+        program,
+        "measurement:missing-endpoint",
+        "Measurement endpoint construction was not found.",
+      ),
+    };
+  }
+
+  const fromMovable = canMoveEndpoint(fromConstruction, options);
+  const toMovable = canMoveEndpoint(toConstruction, options);
+  if (fromMovable && toMovable) {
+    return {
+      ok: false,
+      failure: applyMeasurementConstraintFailure(
+        program,
+        "measurement:ambiguous-movable-endpoint",
+        "Both segment endpoints can move. Select a measurement with exactly one movable free point.",
+      ),
+    };
+  }
+
+  if (!fromMovable && !toMovable) {
+    return {
+      ok: false,
+      failure: applyMeasurementConstraintFailure(
+        program,
+        "measurement:no-movable-endpoint",
+        "Neither segment endpoint can move. A constraint measurement needs exactly one movable free point.",
+      ),
+    };
+  }
+
+  if (segment.expressionValue === undefined || segment.expressionValue <= 0) {
+    return {
+      ok: false,
+      failure: applyMeasurementConstraintFailure(
+        program,
+        "measurement:not-evaluable",
+        "Measurement must evaluate to a positive target length before it can be applied.",
+      ),
+    };
+  }
+
+  return {
+    ok: true,
+    constraint: {
+      movingId: fromMovable ? segment.measurement.from : segment.measurement.to,
+      fixedId: fromMovable ? segment.measurement.to : segment.measurement.from,
+      fixedPoint: fromMovable ? segment.to : segment.from,
+      movingPoint: fromMovable ? segment.from : segment.to,
+      targetWorldLength: segment.expressionValue * unitLength,
+    },
+  };
+}
+
+function applyTwoDistanceConstraintSolve(
+  program: ConstructionProgram,
+  constraints: readonly MovableEndpointConstraint[],
+): ConstructionProgram | undefined {
+  if (constraints.length !== 2 || constraints[0].fixedId === constraints[1].fixedId) {
+    return undefined;
+  }
+
+  const [first, second] = constraints;
+  const intersections = circleCircleIntersections(
+    first.fixedPoint,
+    first.targetWorldLength,
+    second.fixedPoint,
+    second.targetWorldLength,
+  );
+  const selected = selectIntersectionByOrientation(first, second, intersections);
+  if (!selected) {
+    return undefined;
+  }
+
+  return moveFreePoint(program, first.movingId, toWorldPoint(selected));
+}
+
+function selectIntersectionByOrientation(
+  first: MovableEndpointConstraint,
+  second: MovableEndpointConstraint,
+  intersections: readonly Point2[],
+): Point2 | undefined {
+  if (intersections.length === 0) {
+    return undefined;
+  }
+
+  const currentOrientation = orientation(first.fixedPoint, second.fixedPoint, first.movingPoint);
+  if (currentOrientation !== 0) {
+    const sameSide = intersections.find(
+      (intersection) => orientation(first.fixedPoint, second.fixedPoint, intersection) === currentOrientation,
+    );
+    if (sameSide) {
+      return sameSide;
+    }
+  }
+
+  return intersections.reduce((closest, candidate) =>
+    distanceSquared(candidate, first.movingPoint) < distanceSquared(closest, first.movingPoint)
+      ? candidate
+      : closest,
+  );
+}
+
+function orientation(a: Point2, b: Point2, c: Point2): number {
+  return Math.sign(cross({ x: b.x - a.x, y: b.y - a.y }, { x: c.x - a.x, y: c.y - a.y }));
+}
+
+function distanceSquared(a: Point2, b: Point2): number {
+  const dx = a.x - b.x;
+  const dy = a.y - b.y;
+  return dx * dx + dy * dy;
 }
 
 function canMoveEndpoint(construction: Construction, options: MeasurementConstraintOptions): boolean {

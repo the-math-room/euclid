@@ -44,7 +44,7 @@ Read this when changing React composition, workspace controls, browser event han
 - Do not construct authored geometry records directly in app command code. Use geometry edit helpers.
 - Measurement UI must call geometry edit helpers and consume geometry measurement evaluation; do not parse or validate measurement expressions in React.
 - Constraint measurement intent is authored in the app, but solver behavior belongs in geometry. The app should show diagnostics rather than moving geometry itself.
-- When the user applies a constraint measurement, delegate to geometry and display the returned message. Do not choose which endpoint moves in React.
+- When the user applies a constraint measurement, delegate to geometry and display the returned message. Do not choose which endpoint moves or solve measurement constraints in React.
 - Fixed/free point mobility is authored through geometry edit helpers. Dragging and measurement application must respect geometry state plus activity policy.
 - Third-party macro tools should be data interpreted by `@euclid/geometry` macro expansion, not app-side construction assembly.
 - To add a third-party macro tool, add one `*.ts` file under `src/construction/third-party-tools/` exporting a `ThirdPartyMacroTool`; do not edit the central registries.
