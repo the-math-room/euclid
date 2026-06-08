@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { toWorldPoint, type Construction } from "./model";
+import { toWorldPoint, type Construction, type SegmentLengthAssertion } from "./model";
 
 export const constructionKinds = [
   "free-point",
@@ -22,6 +22,16 @@ export const point2Schema = z.object({
   y: z.number(),
 });
 export const shapeRoleSchema = z.union([z.literal("primary"), z.literal("auxiliary")]);
+export const measurementExpressionSchema = z.union([z.number().finite(), z.string()]);
+
+export const segmentLengthAssertionSchema = z.object({
+  id: z.string(),
+  kind: z.literal("segment-length"),
+  from: z.string(),
+  to: z.string(),
+  length: measurementExpressionSchema,
+  label: z.string().optional(),
+}) satisfies z.ZodType<SegmentLengthAssertion>;
 
 export const freePointExpressionSchema = z.object({
   kind: z.literal("free-point"),

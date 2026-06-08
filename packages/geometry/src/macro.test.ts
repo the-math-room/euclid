@@ -75,6 +75,7 @@ describe("construction macros", () => {
       { id: "A", kind: "free-point", label: "A", position: toWorldPoint({ x: 0, y: 0 }) },
       { id: "B", kind: "free-point", label: "B", position: toWorldPoint({ x: 1, y: 0 }) },
     ],
+    measurements: [{ id: "length-a-b", kind: "segment-length", from: "A", to: "B", length: "x" }],
   };
 
   it("expands data into primitive constructions with helper circles", () => {
@@ -129,6 +130,7 @@ describe("construction macros", () => {
       },
     ]);
     expect(result.selectedIds).toEqual(["sample-a-b-base", "sample-a-b-side-a", "sample-a-b-side-b"]);
+    expect(result.program.measurements).toBe(program.measurements);
 
     const apex = evaluateConstruction(result.program).primitives.find(
       (primitive) => primitive.id === "sample-a-b-apex",

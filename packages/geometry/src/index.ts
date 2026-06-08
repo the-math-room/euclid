@@ -14,8 +14,10 @@ export {
   idPairSchema,
   idTripleSchema,
   intersectionIndexSchema,
+  measurementExpressionSchema,
   point2Schema,
   rawConstructionToConstruction,
+  segmentLengthAssertionSchema,
   shapeRoleSchema,
 } from "./constructionSchemas";
 export type { RawConstruction, RawConstructionExpression } from "./constructionSchemas";
@@ -54,6 +56,12 @@ export type {
   MacroStepDefinition,
 } from "./macro";
 export { applyConstructionMacro } from "./macro";
+export type { LinearMeasurementExpression } from "./measurement";
+export {
+  evaluateLinearMeasurementExpression,
+  parseLinearMeasurementExpression,
+  variablesInMeasurementExpressions,
+} from "./measurement";
 export type {
   Construction,
   ConstructionExpression,
@@ -66,8 +74,11 @@ export type {
   EvaluatedPrimitive,
   Evaluation,
   EvaluationDiagnostic,
+  MeasurementExpression,
+  MeasurementId,
   Point2,
   ScenePoint,
+  SegmentLengthAssertion,
   ShapeRole,
   WorldPoint,
 } from "./model";

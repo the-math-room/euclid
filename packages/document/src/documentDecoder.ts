@@ -1,4 +1,9 @@
-import type { Construction, ConstructionProgram } from "@euclid/geometry";
+import {
+  segmentLengthAssertionSchema,
+  type Construction,
+  type ConstructionProgram,
+  type SegmentLengthAssertion,
+} from "@euclid/geometry";
 import { z } from "zod";
 import { decodeConstruction } from "./constructionDecoder";
 import type { EuclidDocument } from "./model";
@@ -12,6 +17,7 @@ const documentEnvelopeSchema = z.object({
   title: z.string(),
   program: z.object({
     constructions: z.array(z.unknown()),
+    measurements: z.array(z.unknown()).optional(),
   }),
 });
 
@@ -23,6 +29,10 @@ type ProgramDecodeResult =
 
 type ConstructionListDecodeResult =
   | Readonly<{ ok: true; value: readonly Construction[] }>
+  | Readonly<{ ok: false; diagnostic: string }>;
+
+type SegmentLengthAssertionListDecodeResult =
+  | Readonly<{ ok: true; value: readonly SegmentLengthAssertion[] }>
   | Readonly<{ ok: false; diagnostic: string }>;
 
 export function decodeEuclidDocument(value: unknown): DocumentDecodeResult {
@@ -59,10 +69,19 @@ function decodeConstructionProgram(value: DocumentEnvelope["program"]): ProgramD
     };
   }
 
+  const measurements = decodeSegmentLengthAssertionList(value.measurements ?? []);
+  if (!measurements.ok) {
+    return {
+      ok: false,
+      diagnostic: measurements.diagnostic,
+    };
+  }
+
   return {
     ok: true,
     program: {
       constructions: constructions.value,
+      ...(value.measurements === undefined ? {} : { measurements: measurements.value }),
     },
   };
 }
@@ -80,6 +99,24 @@ function decodeConstructionList(value: readonly unknown[]): ConstructionListDeco
   return {
     ok: true,
     value: constructions,
+  };
+}
+
+function decodeSegmentLengthAssertionList(value: readonly unknown[]): SegmentLengthAssertionListDecodeResult {
+  const measurements: SegmentLengthAssertion[] = [];
+  for (const [index, measurement] of value.entries()) {
+    const decoded = segmentLengthAssertionSchema.safeParse(measurement);
+    if (!decoded.success) {
+      return measurementListInvalid(
+        diagnosticForMeasurementError(decoded.error, `Document program.measurements[${index}]`),
+      );
+    }
+    measurements.push(decoded.data);
+  }
+
+  return {
+    ok: true,
+    value: measurements,
   };
 }
 
@@ -104,11 +141,49 @@ function diagnosticForDocumentError(error: z.ZodError): string {
     return "Document program must contain a constructions array.";
   }
 
+  if (firstPath === "program" && secondPath === "measurements") {
+    return "Document program.measurements must be an array when present.";
+  }
+
   if (firstPath === "program") {
     return "Document program must contain a constructions array.";
   }
 
   return "Document must be a JSON object.";
+}
+
+function diagnosticForMeasurementError(error: z.ZodError, path: string): string {
+  const issue = error.issues[0];
+  if (!issue) {
+    return `${path} must be a segment length assertion.`;
+  }
+
+  const issuePath = pathForIssue(path, issue.path);
+  const field = issue.path.at(-1);
+
+  if (field === "kind") {
+    return `${issuePath} must be segment-length.`;
+  }
+
+  if (field === "length") {
+    return `${issuePath} must be a finite number or string expression.`;
+  }
+
+  if (field === "label") {
+    return `${issuePath} must be a string when present.`;
+  }
+
+  if (typeof field === "string") {
+    return `${issuePath} must be a string.`;
+  }
+
+  return `${path} must be a segment length assertion.`;
+}
+
+function pathForIssue(root: string, issuePath: readonly PropertyKey[]): string {
+  return issuePath.reduce<string>((current, segment) => {
+    return typeof segment === "number" ? `${current}[${segment}]` : `${current}.${String(segment)}`;
+  }, root);
 }
 
 function documentInvalid(diagnostic: string): DocumentDecodeResult {
@@ -119,6 +194,13 @@ function documentInvalid(diagnostic: string): DocumentDecodeResult {
 }
 
 function constructionListInvalid(diagnostic: string): ConstructionListDecodeResult {
+  return {
+    ok: false,
+    diagnostic,
+  };
+}
+
+function measurementListInvalid(diagnostic: string): SegmentLengthAssertionListDecodeResult {
   return {
     ok: false,
     diagnostic,

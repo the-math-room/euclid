@@ -106,6 +106,59 @@ describe("document architecture", () => {
     });
   });
 
+  it("parses authored segment length assertions in the construction program", () => {
+    const document: EuclidDocument = {
+      schemaVersion: 1,
+      title: "Measured segment",
+      program: {
+        constructions: [
+          { id: "A", kind: "free-point", label: "A", position: toWorldPoint({ x: 0, y: 0 }) },
+          { id: "B", kind: "free-point", label: "B", position: toWorldPoint({ x: 1, y: 0 }) },
+        ],
+        measurements: [
+          {
+            id: "length-a-b",
+            kind: "segment-length",
+            from: "A",
+            to: "B",
+            length: "2x + 1",
+            label: "AB",
+          },
+        ],
+      },
+    };
+
+    expect(parseEuclidDocument(serializeEuclidDocument(document))).toEqual({
+      ok: true,
+      document,
+    });
+  });
+
+  it("rejects malformed segment length assertions", () => {
+    expect(
+      parseEuclidDocument(
+        JSON.stringify({
+          ...seedDocument,
+          program: {
+            constructions: seedDocument.program.constructions,
+            measurements: [
+              {
+                id: "length-a-b",
+                kind: "segment-length",
+                from: "A",
+                to: "B",
+                length: false,
+              },
+            ],
+          },
+        }),
+      ),
+    ).toEqual({
+      ok: false,
+      diagnostics: ["Document program.measurements[0].length must be a finite number or string expression."],
+    });
+  });
+
   it("rejects unsupported construction kinds", () => {
     const invalidConstruction: Construction = {
       id: "line-ab",

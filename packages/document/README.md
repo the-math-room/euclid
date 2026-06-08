@@ -10,12 +10,14 @@ Read this when changing persisted document shape, document parsing, serializatio
 - Document schema version.
 - Public parse/serialize facade.
 - Zod-backed document and construction-program decoding.
+- Persistence of geometry-owned construction-program fields such as constructions and measurement assertions.
 - Seed document.
 - Pure undo/redo history wrapper.
 
 ## Does Not Own
 
 - Construction meaning, realization, editing, or assessment.
+- Measurement-expression semantics.
 - Rendering, projection, SVG, Canvas, DOM, React, or browser interaction.
 - Lesson composition.
 
@@ -32,6 +34,7 @@ Read this when changing persisted document shape, document parsing, serializatio
 ## Local Rules
 
 - Parse unknown content into typed domain values at the boundary. Do not cast persisted construction JSON into `Construction`.
+- Decode geometry-owned program fields using geometry-owned schemas where available; do not redefine their semantics in this package.
 - Document code may depend on `@euclid/geometry`; it must not depend on rendering, lesson, assessment, activity, app, or UI libraries.
 - Keep string parsers as text-boundary conveniences and object decoders as package-composition APIs.
 - History transitions must be pure and preserve useful identity/no-op behavior.

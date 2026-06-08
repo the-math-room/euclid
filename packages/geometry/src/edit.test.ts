@@ -21,6 +21,7 @@ describe("construction edits", () => {
   it("adds a free point with the next generated point label", () => {
     const program: ConstructionProgram = {
       constructions: [{ id: "A", kind: "free-point", label: "A", position: toWorldPoint({ x: 0, y: 0 }) }],
+      measurements: [{ id: "length-a-b", kind: "segment-length", from: "A", to: "B", length: "x" }],
     };
 
     const result = addFreePoint(program, toWorldPoint({ x: 1, y: 2 }));
@@ -31,6 +32,7 @@ describe("construction edits", () => {
           { id: "A", kind: "free-point", label: "A", position: toWorldPoint({ x: 0, y: 0 }) },
           { id: "B", kind: "free-point", label: "B", position: toWorldPoint({ x: 1, y: 2 }) },
         ],
+        measurements: [{ id: "length-a-b", kind: "segment-length", from: "A", to: "B", length: "x" }],
       },
       id: "B",
       changed: true,
@@ -44,6 +46,7 @@ describe("construction edits", () => {
         { id: "B", kind: "free-point", label: "B", position: toWorldPoint({ x: 1, y: 0 }) },
         { id: "line-ab", kind: "line-through", label: "AB", points: ["A", "B"] },
       ],
+      measurements: [{ id: "length-a-b", kind: "segment-length", from: "A", to: "B", length: 2 }],
     };
 
     const degenerate = moveFreePoint(initial, "B", toWorldPoint({ x: 0, y: 0 }));
@@ -55,6 +58,7 @@ describe("construction edits", () => {
       "B",
       "line-ab",
     ]);
+    expect(restored.measurements).toBe(initial.measurements);
   });
 
   it("returns the same program when the target is not a free point", () => {

@@ -8,6 +8,8 @@ export type Point2 = Readonly<{
 export type WorldPoint = Point2 & { readonly __brand: "world" };
 export type ScenePoint = Point2 & { readonly __brand: "scene" };
 export type ShapeRole = "primary" | "auxiliary";
+export type MeasurementId = string;
+export type MeasurementExpression = number | string;
 
 export function toWorldPoint(p: Point2): WorldPoint {
   return p as WorldPoint;
@@ -19,6 +21,16 @@ export function toScenePoint(p: Point2): ScenePoint {
 
 export type ConstructionProgram = Readonly<{
   constructions: readonly Construction[];
+  measurements?: readonly SegmentLengthAssertion[];
+}>;
+
+export type SegmentLengthAssertion = Readonly<{
+  id: MeasurementId;
+  kind: "segment-length";
+  from: ConstructionId;
+  to: ConstructionId;
+  length: MeasurementExpression;
+  label?: string;
 }>;
 
 export type Construction =

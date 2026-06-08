@@ -112,7 +112,7 @@ export function applyConstructionMacro(
   const selectedIds = idsForSelectedSteps(definition, stepIds);
 
   return {
-    program: { constructions },
+    program: { ...program, constructions },
     changed: stepIds.length > 0,
     stepIds,
     selectedIds,

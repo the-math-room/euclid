@@ -34,6 +34,7 @@ Start here:
 - `packages/geometry/README.md`
 - `packages/geometry/src/model.ts`
 - `packages/geometry/src/constructionSchemas.ts`
+- `packages/geometry/src/measurement.ts`
 - `packages/geometry/src/dependencies.ts`
 - `packages/geometry/src/evaluate.ts`
 - `packages/geometry/src/explain.ts`

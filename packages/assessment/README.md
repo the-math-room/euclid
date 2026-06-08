@@ -15,6 +15,7 @@ Read this when changing goal specs, goal parsing, goal-id resolution, or assessm
 ## Does Not Own
 
 - Construction syntax, meaning, editing, or approximate realization.
+- Authored measurement assertions and measurement-expression syntax.
 - Rendering, projection, SVG, Canvas, DOM, React, or browser interaction.
 - Lesson composition.
 
@@ -32,6 +33,7 @@ Read this when changing goal specs, goal parsing, goal-id resolution, or assessm
 - Prefer predicate-shaped helpers over a large rubric engine.
 - Keep goal resolution explicit over typed discriminated unions. Do not use reflective object traversal to recover construction-expression semantics.
 - `geometric-equivalent` goals should evaluate denotation, not labels or a single construction recipe.
+- If future goals ask about authored measurements, consume measurement state from `@euclid/geometry`; do not define a parallel measurement model here.
 - Zod belongs in `goalCodec.ts`, not predicate or resolution internals.
 - Public exports in `src/index.ts` must be explicit and intentional.
 

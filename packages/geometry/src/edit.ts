@@ -20,6 +20,7 @@ export function addFreePoint(program: ConstructionProgram, position: WorldPoint)
 
   return {
     program: {
+      ...program,
       constructions: [
         ...program.constructions,
         {
@@ -62,6 +63,7 @@ export function moveFreePoint(
   }
 
   return {
+    ...program,
     constructions,
   };
 }
@@ -99,6 +101,7 @@ export function setConstructionShapeRole(
   }
 
   return {
+    ...program,
     constructions,
   };
 }
@@ -124,6 +127,7 @@ export function addLineThroughPoints(
 
   return {
     program: {
+      ...program,
       constructions: [
         ...program.constructions,
         {
@@ -159,6 +163,7 @@ export function addLineLineIntersection(
 
   return {
     program: {
+      ...program,
       constructions: [
         ...program.constructions,
         {
@@ -213,6 +218,7 @@ export function addCircleThroughPoints(
 
   return {
     program: {
+      ...program,
       constructions: [
         ...program.constructions,
         {
@@ -253,6 +259,7 @@ export function addCircleThreePoints(
 
   return {
     program: {
+      ...program,
       constructions: [
         ...program.constructions,
         {
@@ -293,6 +300,7 @@ export function addLineCircleIntersection(
 
   return {
     program: {
+      ...program,
       constructions: [
         ...program.constructions,
         {
@@ -337,6 +345,7 @@ export function addCircleCircleIntersection(
 
   return {
     program: {
+      ...program,
       constructions: [
         ...program.constructions,
         {
@@ -372,6 +381,7 @@ export function addParallelLine(
 
   return {
     program: {
+      ...program,
       constructions: [
         ...program.constructions,
         {
@@ -408,6 +418,7 @@ export function addPerpendicularLine(
 
   return {
     program: {
+      ...program,
       constructions: [
         ...program.constructions,
         {
@@ -445,6 +456,7 @@ export function addMidpoint(
 
   return {
     program: {
+      ...program,
       constructions: [
         ...program.constructions,
         {
@@ -524,6 +536,7 @@ export function translateShape(
   }
 
   return {
+    ...program,
     constructions,
   };
 }

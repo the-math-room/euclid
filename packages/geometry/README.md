@@ -7,6 +7,7 @@ Read this before changing any construction semantics.
 ## Owns
 
 - `Construction`, `ConstructionProgram`, construction expressions, evaluated primitives, diagnostics.
+- Authored segment length assertions and algebraic measurement expressions carried by construction programs.
 - Branded world/scene coordinate types and constructors.
 - Shared construction schemas for JSON/content boundaries.
 - Dependency extraction and dependency graph evaluation.
@@ -27,6 +28,7 @@ Read this before changing any construction semantics.
 
 - `src/model.ts`: construction ADT, expressions, primitives, diagnostics, branded coordinates.
 - `src/constructionSchemas.ts`: Zod schemas for construction syntax at content boundaries.
+- `src/measurement.ts`: measurement-expression parsing and helpers for authored segment length assertions.
 - `src/dependencies.ts`: dependency ids, graph, transitive dependents, deletion.
 - `src/evaluate.ts`: graph planning and exact meaning.
 - `src/realize.ts`: approximate realization and realization diagnostics.
@@ -43,8 +45,10 @@ Read this before changing any construction semantics.
 - Evaluation must use explicit dependency graph planning; source order is not semantic order.
 - Add construction variants as discriminated-union cases, then update dependencies, meaning, realization, explanation, schemas, edits, and tests together.
 - `shapeRole` is authored presentation intent for line/circle-producing constructions. Keep it on construction syntax and realized primitives; do not put it in exact construction expressions.
+- Segment length assertions are authored geometric state. Keep their data shape in `ConstructionProgram`; assessment, rendering, and label layout may interpret them but should not own them.
 - Zod is allowed in `constructionSchemas.ts`; do not import it into evaluation, realization, or edit modules.
 - Construction-adding edits return `{ program, id, changed }`.
+- Edits that rebuild a `ConstructionProgram` must preserve program-level metadata such as measurements.
 - No-op edits should preserve the original program reference.
 - Macro expansion may assemble authored construction records, but macros must expand to ordinary construction variants rather than adding hidden geometry semantics.
 - Use `toWorldPoint` and `toScenePoint` at boundaries. Raw branded casts belong only inside their constructors.
@@ -53,6 +57,7 @@ Read this before changing any construction semantics.
 ## Tests
 
 - Geometry behavior: `src/*.test.ts`.
+- Measurement behavior: `src/measurement.test.ts`.
 - Architecture guards: `src/architecture.test.ts` and `tests/architecture/*.test.ts`.
 - When adding a construction, follow `docs/how-to/add-a-construction.md`.
 - Full verification for code changes: `npm run check`.
