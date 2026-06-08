@@ -1,4 +1,12 @@
-import { toWorldPoint, type Construction } from "@euclid/geometry";
+import {
+  constructionExpressionSchema,
+  constructionKinds,
+  constructionSchema,
+  rawConstructionToConstruction,
+  type Construction,
+  type RawConstruction,
+  type RawConstructionExpression,
+} from "@euclid/geometry";
 import { z } from "zod";
 import type { AssessmentGoal } from "./goals";
 
@@ -12,124 +20,13 @@ export type AssessmentGoalParseResult =
       diagnostics: readonly string[];
     }>;
 
-type RawConstructionExpression = z.infer<typeof constructionExpressionSchema>;
-type RawConstruction = z.infer<typeof constructionSchema>;
 type RawAssessmentGoal = z.infer<typeof assessmentGoalSchema>;
 
-const constructionKinds = [
-  "free-point",
-  "line-through",
-  "circle-through",
-  "circle-three-points",
-  "line-line-intersection",
-  "line-circle-intersection",
-  "circle-circle-intersection",
-  "parallel-line",
-  "perpendicular-line",
-  "midpoint",
-] as const satisfies readonly Construction["kind"][];
-
-const idPairSchema = z.tuple([z.string(), z.string()]);
-const idTripleSchema = z.tuple([z.string(), z.string(), z.string()]);
-const intersectionIndexSchema = z.union([z.literal(0), z.literal(1)]);
 const toleranceSchema = z
   .object({
     epsilon: z.number().finite().nonnegative(),
   })
   .optional();
-
-const point2Schema = z.object({
-  x: z.number(),
-  y: z.number(),
-});
-
-const freePointExpressionSchema = z.object({
-  kind: z.literal("free-point"),
-});
-
-const lineThroughExpressionSchema = z.object({
-  kind: z.literal("line-through"),
-  points: idPairSchema,
-});
-
-const circleThroughExpressionSchema = z.object({
-  kind: z.literal("circle-through"),
-  center: z.string(),
-  pointOnCircle: z.string(),
-});
-
-const circleThreePointsExpressionSchema = z.object({
-  kind: z.literal("circle-three-points"),
-  points: idTripleSchema,
-});
-
-const lineLineIntersectionExpressionSchema = z.object({
-  kind: z.literal("line-line-intersection"),
-  lines: idPairSchema,
-});
-
-const lineCircleIntersectionExpressionSchema = z.object({
-  kind: z.literal("line-circle-intersection"),
-  line: z.string(),
-  circle: z.string(),
-  intersectionIndex: intersectionIndexSchema,
-});
-
-const circleCircleIntersectionExpressionSchema = z.object({
-  kind: z.literal("circle-circle-intersection"),
-  firstCircle: z.string(),
-  secondCircle: z.string(),
-  intersectionIndex: intersectionIndexSchema,
-});
-
-const parallelLineExpressionSchema = z.object({
-  kind: z.literal("parallel-line"),
-  line: z.string(),
-  point: z.string(),
-});
-
-const perpendicularLineExpressionSchema = z.object({
-  kind: z.literal("perpendicular-line"),
-  line: z.string(),
-  point: z.string(),
-});
-
-const midpointExpressionSchema = z.object({
-  kind: z.literal("midpoint"),
-  points: idPairSchema,
-});
-
-const constructionExpressionSchema = z.discriminatedUnion("kind", [
-  freePointExpressionSchema,
-  lineThroughExpressionSchema,
-  circleThroughExpressionSchema,
-  circleThreePointsExpressionSchema,
-  lineLineIntersectionExpressionSchema,
-  lineCircleIntersectionExpressionSchema,
-  circleCircleIntersectionExpressionSchema,
-  parallelLineExpressionSchema,
-  perpendicularLineExpressionSchema,
-  midpointExpressionSchema,
-]);
-
-const freePointConstructionSchema = freePointExpressionSchema.extend({
-  id: z.string(),
-  label: z.string(),
-  position: point2Schema,
-});
-
-const constructionSchema = z.discriminatedUnion("kind", [
-  freePointConstructionSchema,
-  lineThroughExpressionSchema.extend({ id: z.string(), label: z.string() }),
-  circleThroughExpressionSchema.extend({ id: z.string(), label: z.string() }),
-  circleThreePointsExpressionSchema.extend({ id: z.string(), label: z.string() }),
-  lineLineIntersectionExpressionSchema.extend({ id: z.string(), label: z.string() }),
-  lineCircleIntersectionExpressionSchema.extend({ id: z.string(), label: z.string() }),
-  circleCircleIntersectionExpressionSchema.extend({ id: z.string(), label: z.string() }),
-  parallelLineExpressionSchema.extend({ id: z.string(), label: z.string() }),
-  perpendicularLineExpressionSchema.extend({ id: z.string(), label: z.string() }),
-  midpointExpressionSchema.extend({ id: z.string(), label: z.string() }),
-]);
 
 const descriptionSchema = {
   description: z.string().optional(),
@@ -310,18 +207,7 @@ function mapAssessmentGoal(goal: RawAssessmentGoal): AssessmentGoal {
 }
 
 function mapConstruction(construction: RawConstruction): Construction {
-  if (construction.kind === "free-point") {
-    return {
-      id: construction.id,
-      kind: "free-point",
-      label: construction.label,
-      position: toWorldPoint(construction.position),
-    };
-  }
-
-  return {
-    ...construction,
-  };
+  return rawConstructionToConstruction(construction);
 }
 
 function descriptionOf(goal: { description?: string }): { description?: string } {

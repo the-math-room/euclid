@@ -33,6 +33,7 @@ Start here:
 
 - `packages/geometry/README.md`
 - `packages/geometry/src/model.ts`
+- `packages/geometry/src/constructionSchemas.ts`
 - `packages/geometry/src/dependencies.ts`
 - `packages/geometry/src/evaluate.ts`
 - `packages/geometry/src/explain.ts`
@@ -136,6 +137,7 @@ npm run check
 
 ## Journal (Most Recent First)
 
+- `docs/journal/2026-06-07-shared-construction-schemas.md` — moved canonical construction Zod schemas into geometry for reuse by document and assessment parsers.
 - `docs/journal/2026-06-07-goal-resolution-pattern-matching.md` — replaced reflective assessment goal-resolution traversal with explicit construction-expression pattern matching.
 - `docs/journal/2026-06-07-zod-document-boundary.md` — added Zod at document, assessment-goal, and lesson content boundaries.
 - `docs/journal/2026-06-07-document-decoder-split.md` — split the document codec into facade, document decoder, and construction decoder modules.

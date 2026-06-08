@@ -8,6 +8,17 @@ export {
   samePoint,
 } from "./approx";
 export {
+  constructionExpressionSchema,
+  constructionKinds,
+  constructionSchema,
+  idPairSchema,
+  idTripleSchema,
+  intersectionIndexSchema,
+  point2Schema,
+  rawConstructionToConstruction,
+} from "./constructionSchemas";
+export type { RawConstruction, RawConstructionExpression } from "./constructionSchemas";
+export {
   deleteConstructions,
   dependencyGraphFor,
   dependencyIds,
