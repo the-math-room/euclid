@@ -12,6 +12,7 @@ import {
   addPerpendicularLine,
   addMidpoint,
   moveFreePoint,
+  setConstructionShapeRole,
   translateShape,
 } from "./edit";
 import { toWorldPoint, type ConstructionProgram } from "./model";
@@ -91,6 +92,36 @@ describe("construction edits", () => {
       "B",
       "line-a-b",
     ]);
+  });
+
+  it("sets shape roles only on shape constructions and preserves no-op identity", () => {
+    const program: ConstructionProgram = {
+      constructions: [
+        { id: "A", kind: "free-point", label: "A", position: toWorldPoint({ x: 0, y: 0 }) },
+        { id: "B", kind: "free-point", label: "B", position: toWorldPoint({ x: 1, y: 0 }) },
+        { id: "line-ab", kind: "line-through", label: "AB", points: ["A", "B"] },
+      ],
+    };
+
+    const auxiliary = setConstructionShapeRole(program, "line-ab", "auxiliary");
+    expect(auxiliary.constructions.at(-1)).toEqual({
+      id: "line-ab",
+      kind: "line-through",
+      label: "AB",
+      points: ["A", "B"],
+      shapeRole: "auxiliary",
+    });
+
+    expect(setConstructionShapeRole(auxiliary, "line-ab", "auxiliary")).toBe(auxiliary);
+    expect(setConstructionShapeRole(auxiliary, "A", "auxiliary")).toBe(auxiliary);
+
+    const primary = setConstructionShapeRole(auxiliary, "line-ab", "primary");
+    expect(primary.constructions.at(-1)).toEqual({
+      id: "line-ab",
+      kind: "line-through",
+      label: "AB",
+      points: ["A", "B"],
+    });
   });
 
   it("does not add duplicate or self-dependent lines", () => {

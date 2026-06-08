@@ -1,4 +1,11 @@
-import type { Construction, ConstructionId, ConstructionProgram, Point2, WorldPoint } from "./model";
+import type {
+  Construction,
+  ConstructionId,
+  ConstructionProgram,
+  Point2,
+  ShapeRole,
+  WorldPoint,
+} from "./model";
 import { toWorldPoint } from "./model";
 import { generateNextPointLabel } from "./names";
 
@@ -47,6 +54,43 @@ export function moveFreePoint(
     return {
       ...construction,
       position,
+    };
+  });
+
+  if (!changed) {
+    return program;
+  }
+
+  return {
+    constructions,
+  };
+}
+
+export function setConstructionShapeRole(
+  program: ConstructionProgram,
+  id: ConstructionId,
+  shapeRole: ShapeRole,
+): ConstructionProgram {
+  let changed = false;
+  const constructions = program.constructions.map((construction): Construction => {
+    if (construction.id !== id || !isShapeConstruction(construction)) {
+      return construction;
+    }
+
+    if ((construction.shapeRole ?? "primary") === shapeRole) {
+      return construction;
+    }
+
+    changed = true;
+    if (shapeRole === "primary") {
+      const next = { ...construction };
+      delete next.shapeRole;
+      return next;
+    }
+
+    return {
+      ...construction,
+      shapeRole,
     };
   });
 
@@ -503,5 +547,27 @@ function translatedPointIds(construction: Construction): readonly ConstructionId
     case "line-circle-intersection":
     case "circle-circle-intersection":
       return [];
+  }
+}
+
+function isShapeConstruction(
+  construction: Construction,
+): construction is Extract<
+  Construction,
+  { kind: "line-through" | "circle-through" | "circle-three-points" | "parallel-line" | "perpendicular-line" }
+> {
+  switch (construction.kind) {
+    case "line-through":
+    case "circle-through":
+    case "circle-three-points":
+    case "parallel-line":
+    case "perpendicular-line":
+      return true;
+    case "free-point":
+    case "line-line-intersection":
+    case "line-circle-intersection":
+    case "circle-circle-intersection":
+    case "midpoint":
+      return false;
   }
 }

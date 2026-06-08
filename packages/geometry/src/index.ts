@@ -16,6 +16,7 @@ export {
   intersectionIndexSchema,
   point2Schema,
   rawConstructionToConstruction,
+  shapeRoleSchema,
 } from "./constructionSchemas";
 export type { RawConstruction, RawConstructionExpression } from "./constructionSchemas";
 export {
@@ -37,6 +38,7 @@ export {
   addPerpendicularLine,
   addMidpoint,
   moveFreePoint,
+  setConstructionShapeRole,
   translateShape,
 } from "./edit";
 export { evaluateConstruction } from "./evaluate";
@@ -56,6 +58,7 @@ export type {
   EvaluationDiagnostic,
   Point2,
   ScenePoint,
+  ShapeRole,
   WorldPoint,
 } from "./model";
 export { toScenePoint, toWorldPoint } from "./model";

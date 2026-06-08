@@ -34,7 +34,9 @@ export function renderSceneToSvgString(scene: RenderScene, options: SvgRendererO
   for (const item of scene.items) {
     const isSelected = selectedIds ? selectedIds.has(item.id) : item.id === selectedId;
     const baseClass =
-      item.kind === "point" ? `primitive ${item.kind} ${item.pointRole ?? "free"}` : `primitive ${item.kind}`;
+      item.kind === "point"
+        ? `primitive ${item.kind} ${item.pointRole ?? "free"}`
+        : `primitive ${item.kind} ${item.shapeRole ?? "primary"}`;
     const className = isSelected ? `${baseClass} selected` : baseClass;
     const id = escapeXmlAttribute(item.id);
 
@@ -51,11 +53,11 @@ export function renderSceneToSvgString(scene: RenderScene, options: SvgRendererO
       parts.push("  </g>");
     } else if (style.kind === "shape" && item.kind === "line") {
       parts.push(
-        `  <line class="${className}" x1="${item.from.x}" y1="${item.from.y}" x2="${item.to.x}" y2="${item.to.y}" stroke="${style.stroke}" stroke-width="${style.lineWidth}" fill="none" data-id="${id}" />`,
+        `  <line class="${className}" x1="${item.from.x}" y1="${item.from.y}" x2="${item.to.x}" y2="${item.to.y}" stroke="${style.stroke}" stroke-width="${style.lineWidth}" stroke-dasharray="${style.lineDash.join(" ")}" opacity="${style.opacity}" fill="none" data-id="${id}" />`,
       );
     } else if (style.kind === "shape" && item.kind === "circle") {
       parts.push(
-        `  <circle class="${className}" cx="${item.center.x}" cy="${item.center.y}" r="${item.radius}" stroke="${style.stroke}" stroke-width="${style.lineWidth}" fill="none" data-id="${id}" />`,
+        `  <circle class="${className}" cx="${item.center.x}" cy="${item.center.y}" r="${item.radius}" stroke="${style.stroke}" stroke-width="${style.lineWidth}" stroke-dasharray="${style.lineDash.join(" ")}" opacity="${style.opacity}" fill="none" data-id="${id}" />`,
       );
     }
   }

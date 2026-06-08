@@ -1,16 +1,18 @@
 import { Trash2 } from "lucide-react";
-import type { Construction, ConstructionId } from "@euclid/geometry";
+import type { Construction, ConstructionId, ShapeRole } from "@euclid/geometry";
 
 export function SelectionDetails({
   selectedIds,
   constructions,
   onDelete,
   canDelete,
+  onSetShapeRole,
 }: {
   selectedIds: ReadonlySet<ConstructionId>;
   constructions: readonly Construction[];
   onDelete: () => void;
   canDelete: boolean;
+  onSetShapeRole: (id: ConstructionId, shapeRole: ShapeRole) => void;
 }) {
   const selectedConstructions = constructions.filter((c) => selectedIds.has(c.id));
 
@@ -41,7 +43,7 @@ export function SelectionDetails({
       {selectedConstructions.length === 0 ? (
         <p className="empty-selection">No object selected</p>
       ) : selectedConstructions.length === 1 ? (
-        <ConstructionDetails construction={selectedConstructions[0]} />
+        <ConstructionDetails construction={selectedConstructions[0]} onSetShapeRole={onSetShapeRole} />
       ) : (
         <div className="multi-selection-summary">
           <p className="multi-selection-count">
@@ -61,7 +63,13 @@ export function SelectionDetails({
   );
 }
 
-function ConstructionDetails({ construction }: { construction: Construction }) {
+function ConstructionDetails({
+  construction,
+  onSetShapeRole,
+}: {
+  construction: Construction;
+  onSetShapeRole: (id: ConstructionId, shapeRole: ShapeRole) => void;
+}) {
   return (
     <dl className="details-list">
       <div>
@@ -76,9 +84,46 @@ function ConstructionDetails({ construction }: { construction: Construction }) {
         <dt>ID</dt>
         <dd>{construction.id}</dd>
       </div>
+      {isShapeConstruction(construction) && (
+        <div>
+          <dt>Role</dt>
+          <dd>
+            <select
+              className="shape-role-select"
+              value={construction.shapeRole ?? "primary"}
+              onChange={(event) => onSetShapeRole(construction.id, event.target.value as ShapeRole)}
+            >
+              <option value="primary">Primary</option>
+              <option value="auxiliary">Auxiliary</option>
+            </select>
+          </dd>
+        </div>
+      )}
       <ConstructionSpecificDetails construction={construction} />
     </dl>
   );
+}
+
+function isShapeConstruction(
+  construction: Construction,
+): construction is Extract<
+  Construction,
+  { kind: "line-through" | "circle-through" | "circle-three-points" | "parallel-line" | "perpendicular-line" }
+> {
+  switch (construction.kind) {
+    case "line-through":
+    case "circle-through":
+    case "circle-three-points":
+    case "parallel-line":
+    case "perpendicular-line":
+      return true;
+    case "free-point":
+    case "line-line-intersection":
+    case "line-circle-intersection":
+    case "circle-circle-intersection":
+    case "midpoint":
+      return false;
+  }
 }
 
 function ConstructionSpecificDetails({ construction }: { construction: Construction }) {

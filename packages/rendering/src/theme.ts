@@ -43,6 +43,12 @@ export const THEME = {
       opacity: 0.8,
     },
   },
+  shapeRoles: {
+    auxiliary: {
+      opacity: 0.38,
+      lineDash: [9, 7],
+    },
+  },
   typography: {
     fontSize: 18,
     fontWeight: 700,
@@ -57,6 +63,8 @@ export const SVG_THEME_STYLES = `
   svg.workspace-svg .primitive { cursor: pointer; outline: none; }
   svg.workspace-svg .primitive.line { stroke: ${THEME.colors.line}; stroke-width: 2.5; fill: none; pointer-events: stroke; }
   svg.workspace-svg .primitive.circle { fill: none; stroke: ${THEME.colors.circle}; stroke-width: 2.5; pointer-events: stroke; }
+  svg.workspace-svg .primitive.auxiliary { opacity: ${THEME.shapeRoles.auxiliary.opacity}; stroke-dasharray: ${THEME.shapeRoles.auxiliary.lineDash.join(" ")}; }
+  svg.workspace-svg .primitive.auxiliary.selected, svg.workspace-svg .primitive.auxiliary:focus-visible { opacity: 1; }
   svg.workspace-svg .primitive.point circle { fill: ${THEME.colors.pointFill}; stroke: ${THEME.colors.pointStroke}; stroke-width: calc(2.5px * var(--size-scale, 1)); }
   svg.workspace-svg .primitive.point.constructed circle { fill: ${THEME.colors.constructedPointFill}; stroke: ${THEME.colors.constructedPointStroke}; stroke-width: calc(3px * var(--size-scale, 1)); }
   svg.workspace-svg .primitive.point text { fill: ${THEME.colors.textFill}; font-size: calc(${THEME.typography.fontSize}px * var(--size-scale, 1)); font-weight: ${THEME.typography.fontWeight}; font-family: ${THEME.typography.fontFamily}; paint-order: stroke; stroke: ${THEME.colors.textStroke}; stroke-width: calc(${THEME.typography.textStrokeWidth}px * var(--size-scale, 1)); pointer-events: none; }

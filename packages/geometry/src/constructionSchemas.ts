@@ -21,6 +21,7 @@ export const point2Schema = z.object({
   x: z.number(),
   y: z.number(),
 });
+export const shapeRoleSchema = z.union([z.literal("primary"), z.literal("auxiliary")]);
 
 export const freePointExpressionSchema = z.object({
   kind: z.literal("free-point"),
@@ -99,14 +100,34 @@ export const freePointConstructionSchema = freePointExpressionSchema.extend({
 
 export const constructionSchema = z.discriminatedUnion("kind", [
   freePointConstructionSchema,
-  lineThroughExpressionSchema.extend({ id: z.string(), label: z.string() }),
-  circleThroughExpressionSchema.extend({ id: z.string(), label: z.string() }),
-  circleThreePointsExpressionSchema.extend({ id: z.string(), label: z.string() }),
+  lineThroughExpressionSchema.extend({
+    id: z.string(),
+    label: z.string(),
+    shapeRole: shapeRoleSchema.optional(),
+  }),
+  circleThroughExpressionSchema.extend({
+    id: z.string(),
+    label: z.string(),
+    shapeRole: shapeRoleSchema.optional(),
+  }),
+  circleThreePointsExpressionSchema.extend({
+    id: z.string(),
+    label: z.string(),
+    shapeRole: shapeRoleSchema.optional(),
+  }),
   lineLineIntersectionExpressionSchema.extend({ id: z.string(), label: z.string() }),
   lineCircleIntersectionExpressionSchema.extend({ id: z.string(), label: z.string() }),
   circleCircleIntersectionExpressionSchema.extend({ id: z.string(), label: z.string() }),
-  parallelLineExpressionSchema.extend({ id: z.string(), label: z.string() }),
-  perpendicularLineExpressionSchema.extend({ id: z.string(), label: z.string() }),
+  parallelLineExpressionSchema.extend({
+    id: z.string(),
+    label: z.string(),
+    shapeRole: shapeRoleSchema.optional(),
+  }),
+  perpendicularLineExpressionSchema.extend({
+    id: z.string(),
+    label: z.string(),
+    shapeRole: shapeRoleSchema.optional(),
+  }),
   midpointExpressionSchema.extend({ id: z.string(), label: z.string() }),
 ]);
 

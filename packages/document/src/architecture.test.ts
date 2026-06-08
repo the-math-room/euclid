@@ -80,6 +80,32 @@ describe("document architecture", () => {
     });
   });
 
+  it("parses optional shape roles on line and curve constructions", () => {
+    const document: EuclidDocument = {
+      schemaVersion: 1,
+      title: "Auxiliary construction",
+      program: {
+        constructions: [
+          { id: "A", kind: "free-point", label: "A", position: toWorldPoint({ x: 0, y: 0 }) },
+          { id: "B", kind: "free-point", label: "B", position: toWorldPoint({ x: 1, y: 0 }) },
+          {
+            id: "circle-a-b",
+            kind: "circle-through",
+            label: "helper",
+            center: "A",
+            pointOnCircle: "B",
+            shapeRole: "auxiliary",
+          },
+        ],
+      },
+    };
+
+    expect(parseEuclidDocument(serializeEuclidDocument(document))).toEqual({
+      ok: true,
+      document,
+    });
+  });
+
   it("rejects unsupported construction kinds", () => {
     const invalidConstruction: Construction = {
       id: "line-ab",

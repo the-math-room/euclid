@@ -22,10 +22,12 @@ export type CanvasRenderingContext2DLike = {
   fillText(text: string, x: number, y: number): void;
   save(): void;
   restore(): void;
+  setLineDash?(segments: readonly number[]): void;
   // Properties
   strokeStyle: string | CanvasGradient | CanvasPattern;
   fillStyle: string | CanvasGradient | CanvasPattern;
   lineWidth: number;
+  globalAlpha?: number;
   font: string;
   textAlign: CanvasTextAlign;
   textBaseline: CanvasTextBaseline;
@@ -77,6 +79,11 @@ export function drawSceneToCanvas(
     if (style.kind === "shape") {
       ctx.strokeStyle = style.stroke;
       ctx.lineWidth = style.lineWidth;
+      const previousAlpha = ctx.globalAlpha;
+      if (previousAlpha !== undefined) {
+        ctx.globalAlpha = style.opacity;
+      }
+      ctx.setLineDash?.(style.lineDash);
 
       ctx.beginPath();
       if (item.kind === "line") {
@@ -86,6 +93,10 @@ export function drawSceneToCanvas(
         ctx.arc(item.center.x, item.center.y, item.radius, 0, 2 * Math.PI);
       }
       ctx.stroke();
+      ctx.setLineDash?.([]);
+      if (previousAlpha !== undefined) {
+        ctx.globalAlpha = previousAlpha;
+      }
     } else if (style.kind === "point" && item.kind === "point") {
       // Point circle
       ctx.beginPath();

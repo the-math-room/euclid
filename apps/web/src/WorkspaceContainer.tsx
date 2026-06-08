@@ -341,6 +341,7 @@ export function WorkspaceContainer({
           constructions={construction.program.constructions}
           onDelete={construction.handleDeleteSelected}
           canDelete={construction.canDeleteSelected}
+          onSetShapeRole={construction.handleSetShapeRole}
         />
       </aside>
 

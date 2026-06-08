@@ -1,4 +1,5 @@
 import { toScenePoint, type ScenePoint } from "@euclid/geometry";
+import type { ShapeRole } from "@euclid/geometry";
 import type { RenderGridLine, RenderItem, RenderLabel, RenderScene } from "./scene";
 
 type PointItem = Extract<RenderItem, { kind: "point" }>;
@@ -64,15 +65,18 @@ export function lineItem({
   from,
   to,
   supportLine = [from, to],
+  shapeRole,
 }: Readonly<{
   id: string;
   from: ScenePoint;
   to: ScenePoint;
   supportLine?: readonly [ScenePoint, ScenePoint];
+  shapeRole?: ShapeRole;
 }>): LineItem {
   return {
     id,
     kind: "line",
+    ...(shapeRole === undefined ? {} : { shapeRole }),
     from,
     to,
     supportLine,
@@ -83,14 +87,17 @@ export function circleItem({
   id,
   center,
   radius,
+  shapeRole,
 }: Readonly<{
   id: string;
   center: ScenePoint;
   radius: number;
+  shapeRole?: ShapeRole;
 }>): CircleItem {
   return {
     id,
     kind: "circle",
+    ...(shapeRole === undefined ? {} : { shapeRole }),
     center,
     radius,
   };

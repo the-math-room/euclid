@@ -296,6 +296,7 @@ describe("evaluateConstruction", () => {
       id: "circle-abc",
       kind: "circle",
       label: "Circle(ABC)",
+      shapeRole: "primary",
       center: { x: 1, y: 1 },
       pointOnCircle: { x: 0, y: 0 },
     });

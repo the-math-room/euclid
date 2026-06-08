@@ -7,6 +7,7 @@ export type Point2 = Readonly<{
 
 export type WorldPoint = Point2 & { readonly __brand: "world" };
 export type ScenePoint = Point2 & { readonly __brand: "scene" };
+export type ShapeRole = "primary" | "auxiliary";
 
 export function toWorldPoint(p: Point2): WorldPoint {
   return p as WorldPoint;
@@ -31,12 +32,14 @@ export type Construction =
       id: ConstructionId;
       kind: "line-through";
       label: string;
+      shapeRole?: ShapeRole;
       points: readonly [ConstructionId, ConstructionId];
     }>
   | Readonly<{
       id: ConstructionId;
       kind: "circle-through";
       label: string;
+      shapeRole?: ShapeRole;
       center: ConstructionId;
       pointOnCircle: ConstructionId;
     }>
@@ -44,6 +47,7 @@ export type Construction =
       id: ConstructionId;
       kind: "circle-three-points";
       label: string;
+      shapeRole?: ShapeRole;
       points: readonly [ConstructionId, ConstructionId, ConstructionId];
     }>
   | Readonly<{
@@ -72,6 +76,7 @@ export type Construction =
       id: ConstructionId;
       kind: "parallel-line";
       label: string;
+      shapeRole?: ShapeRole;
       line: ConstructionId;
       point: ConstructionId;
     }>
@@ -79,6 +84,7 @@ export type Construction =
       id: ConstructionId;
       kind: "perpendicular-line";
       label: string;
+      shapeRole?: ShapeRole;
       line: ConstructionId;
       point: ConstructionId;
     }>
@@ -100,12 +106,14 @@ export type EvaluatedPrimitive =
       id: ConstructionId;
       kind: "line";
       label: string;
+      shapeRole: ShapeRole;
       through: readonly [WorldPoint, WorldPoint];
     }>
   | Readonly<{
       id: ConstructionId;
       kind: "circle";
       label: string;
+      shapeRole: ShapeRole;
       center: WorldPoint;
       pointOnCircle: WorldPoint;
     }>;

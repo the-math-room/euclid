@@ -53,6 +53,7 @@ When changing behavior, inspect files in this order:
 ### Extension Pattern
 
 - When adding a construction, follow `docs/how-to/add-a-construction.md`.
+- When adding authored presentation intent to existing shape constructions, follow `docs/how-to/add-authored-shape-presentation.md`.
 - Update model, dependency extraction, exact meaning, approximate realization, and tests together.
 - Keep dependency graph semantics explicit. Do not rely on source order as the meaning of a document.
 

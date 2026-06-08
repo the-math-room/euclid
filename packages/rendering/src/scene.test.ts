@@ -78,6 +78,27 @@ describe("sceneForEvaluation", () => {
     expect(line).not.toHaveProperty("through");
   });
 
+  it("carries auxiliary shape roles into render scene items", () => {
+    const evaluation = evaluateConstruction({
+      constructions: [
+        { id: "A", kind: "free-point", label: "A", position: toWorldPoint({ x: 0, y: 0 }) },
+        { id: "B", kind: "free-point", label: "B", position: toWorldPoint({ x: 1, y: 0 }) },
+        {
+          id: "line-ab",
+          kind: "line-through",
+          label: "AB",
+          points: ["A", "B"],
+          shapeRole: "auxiliary",
+        },
+      ],
+    });
+
+    const scene = sceneForEvaluation(evaluation, screenViewFor(evaluation, { width: 100, height: 100 }));
+    const line = scene.items.find((item) => item.id === "line-ab");
+
+    expect(line).toEqual(expect.objectContaining({ kind: "line", shapeRole: "auxiliary" }));
+  });
+
   it("marks constructed point render items separately from free points", () => {
     const evaluation = evaluateConstruction({
       constructions: [

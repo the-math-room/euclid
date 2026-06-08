@@ -17,6 +17,8 @@ export type ResolvedItemStyle =
       kind: "shape"; // line or circle
       stroke: string;
       lineWidth: number;
+      opacity: number;
+      lineDash: readonly number[];
     }>;
 
 export type StyleOptions = Readonly<{
@@ -71,20 +73,26 @@ export function resolveItemStyle(item: RenderItem, options: StyleOptions = {}): 
   if (item.kind === "line") {
     const stroke = isActive ? THEME.colors.lineActive : THEME.colors.line;
     const lineWidth = isActive ? 4 : 2.5;
+    const isAuxiliary = item.shapeRole === "auxiliary";
     return {
       kind: "shape",
       stroke,
       lineWidth,
+      opacity: isActive ? 1 : isAuxiliary ? THEME.shapeRoles.auxiliary.opacity : 1,
+      lineDash: isAuxiliary ? THEME.shapeRoles.auxiliary.lineDash : [],
     };
   }
 
   if (item.kind === "circle") {
     const stroke = isActive ? THEME.colors.circleActive : THEME.colors.circle;
     const lineWidth = isActive ? 4 : 2.5;
+    const isAuxiliary = item.shapeRole === "auxiliary";
     return {
       kind: "shape",
       stroke,
       lineWidth,
+      opacity: isActive ? 1 : isAuxiliary ? THEME.shapeRoles.auxiliary.opacity : 1,
+      lineDash: isAuxiliary ? THEME.shapeRoles.auxiliary.lineDash : [],
     };
   }
 

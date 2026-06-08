@@ -138,8 +138,16 @@ Run:
 npm run check
 ```
 
+## How-To Guides
+
+Start here:
+
+- `docs/how-to/add-a-construction.md` — use when adding a new construction meaning.
+- `docs/how-to/add-authored-shape-presentation.md` — use when adding user-authored visual intent to existing shape constructions.
+
 ## Journal (Most Recent First)
 
+- `docs/journal/2026-06-08-authored-shape-presentation-and-selection-routing.md` — added primary/auxiliary shape roles as authored presentation intent and fixed select-mode session routing.
 - `docs/journal/2026-06-08-executable-architecture-and-readme-routing.md` — converted recent boundary principles into split architecture tests and refocused READMEs for LLM attention routing.
 - `docs/journal/2026-06-08-construction-edit-boundary-and-branded-fixtures.md` — moved free-point construction into the geometry edit boundary and cleaned branded coordinate fixture casts.
 - `docs/journal/2026-06-07-day-3-summary.md` — Day 3 big-picture summary covering type boundaries, parse discipline, algebraic interpreters, assessment, rendering, and deployment hygiene.

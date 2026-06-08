@@ -428,7 +428,8 @@ function RenderItemView({
   onSelect: (modifiers?: { ctrlKey?: boolean; shiftKey?: boolean }) => void;
   sizeScale: number;
 }) {
-  const roleClass = item.kind === "point" ? ` ${item.pointRole ?? "free"}` : "";
+  const roleClass =
+    item.kind === "point" ? ` ${item.pointRole ?? "free"}` : ` ${item.shapeRole ?? "primary"}`;
   const className = selected
     ? `primitive ${item.kind}${roleClass} selected`
     : `primitive ${item.kind}${roleClass}`;

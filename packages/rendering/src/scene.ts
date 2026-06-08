@@ -1,4 +1,11 @@
-import { type Evaluation, type Point2, type ScenePoint, toScenePoint, toWorldPoint } from "@euclid/geometry";
+import {
+  type Evaluation,
+  type Point2,
+  type ScenePoint,
+  type ShapeRole,
+  toScenePoint,
+  toWorldPoint,
+} from "@euclid/geometry";
 import { layoutPointLabels, type LabelCandidateName, type Rect } from "./labelLayout";
 import { THEME } from "./theme";
 import { SCENE_GEOMETRY_EPSILON } from "./tolerance";
@@ -27,6 +34,7 @@ export type RenderItem =
   | Readonly<{
       id: string;
       kind: "line";
+      shapeRole?: ShapeRole;
       from: ScenePoint;
       to: ScenePoint;
       supportLine: readonly [ScenePoint, ScenePoint];
@@ -34,6 +42,7 @@ export type RenderItem =
   | Readonly<{
       id: string;
       kind: "circle";
+      shapeRole?: ShapeRole;
       center: ScenePoint;
       radius: number;
     }>;
@@ -92,6 +101,7 @@ export function sceneForEvaluation(
       lines.push({
         id: primitive.id,
         kind: "line",
+        shapeRole: primitive.shapeRole,
         from,
         to,
         supportLine: [a, b],
@@ -102,6 +112,7 @@ export function sceneForEvaluation(
       circles.push({
         id: primitive.id,
         kind: "circle",
+        shapeRole: primitive.shapeRole,
         center,
         radius: distance(center, edge),
       });

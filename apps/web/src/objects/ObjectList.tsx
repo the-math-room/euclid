@@ -27,11 +27,28 @@ export function ObjectList({
               }
             >
               <span>{construction.label}</span>
-              <code>{construction.kind}</code>
+              <code>
+                {construction.kind}
+                {shapeRoleFor(construction) === "auxiliary" ? " · auxiliary" : ""}
+              </code>
             </button>
           </li>
         ))}
       </ol>
     </section>
   );
+}
+
+function shapeRoleFor(construction: Construction): "primary" | "auxiliary" {
+  if (
+    construction.kind === "line-through" ||
+    construction.kind === "circle-through" ||
+    construction.kind === "circle-three-points" ||
+    construction.kind === "parallel-line" ||
+    construction.kind === "perpendicular-line"
+  ) {
+    return construction.shapeRole ?? "primary";
+  }
+
+  return "primary";
 }

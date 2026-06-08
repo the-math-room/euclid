@@ -12,9 +12,16 @@ import {
   deleteConstructions,
   evaluateConstruction,
   moveFreePoint,
+  setConstructionShapeRole,
   translateShape,
 } from "@euclid/geometry";
-import type { ConstructionId, ConstructionProgram, ScenePoint, WorldPoint } from "@euclid/geometry";
+import type {
+  ConstructionId,
+  ConstructionProgram,
+  ScenePoint,
+  ShapeRole,
+  WorldPoint,
+} from "@euclid/geometry";
 import { unprojectPoint, worldFrameFor, type IntersectionHit, type ViewCamera } from "@euclid/rendering";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { firstRegisteredTool } from "./tools";
@@ -48,6 +55,7 @@ export type ConstructionController = Readonly<{
   handleUndo: () => void;
   handleRedo: () => void;
   handleDeleteSelected: () => void;
+  handleSetShapeRole: (id: ConstructionId, shapeRole: ShapeRole) => void;
   handleAddPoint: (sceneCoords: ScenePoint) => void;
   handleAddIntersection: (hit: IntersectionHit) => void;
   handleBeginPointDrag: (id: ConstructionId) => void;
@@ -183,7 +191,7 @@ export function useConstructionController({
         return;
       }
 
-      const session = toolSessionRegistry[activeTool];
+      const session = activeTool === "select" ? undefined : toolSessionRegistry[activeTool];
       if (session) {
         const context = {
           program,
@@ -422,6 +430,16 @@ export function useConstructionController({
     clearSelection(setSelectedIds, setLastSelectedId);
   }, [selectedIds.size, deleteSelectionIds, program.constructions, updateProgram]);
 
+  const handleSetShapeRole = useCallback((id: ConstructionId, shapeRole: ShapeRole) => {
+    setHistory((prev) => {
+      const nextProgram = setConstructionShapeRole(prev.present, id, shapeRole);
+      if (nextProgram === prev.present) {
+        return prev;
+      }
+      return pushState(prev, nextProgram);
+    });
+  }, []);
+
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
@@ -491,6 +509,7 @@ export function useConstructionController({
     handleUndo,
     handleRedo,
     handleDeleteSelected,
+    handleSetShapeRole,
     handleAddPoint,
     handleAddIntersection,
     handleBeginPointDrag,

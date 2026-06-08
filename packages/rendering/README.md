@@ -38,6 +38,7 @@ Read this when changing viewport math, render-scene construction, label placemen
 - Hit-testing helpers should return typed command-shaped data so the app does not re-infer construction operands.
 - Label layout is part of scene construction, not a React concern.
 - Canvas and SVG output should share style resolution rather than drifting in separate defaults.
+- Shape roles such as auxiliary/primary are interpreted here as visual style, not as geometry semantics.
 - Camera operations are algebraic camera updates, not SVG transform shortcuts.
 - Public exports in `src/index.ts` must be explicit and intentional.
 

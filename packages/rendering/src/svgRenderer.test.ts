@@ -47,12 +47,12 @@ describe("svg renderer", () => {
 
     // Line
     expect(svgStr).toContain(
-      '<line class="primitive line" x1="10" y1="10" x2="90" y2="90" stroke="#246a73" stroke-width="2.5" fill="none" data-id="ln-B" />',
+      '<line class="primitive line primary" x1="10" y1="10" x2="90" y2="90" stroke="#246a73" stroke-width="2.5" stroke-dasharray="" opacity="1" fill="none" data-id="ln-B" />',
     );
 
     // Circle
     expect(svgStr).toContain(
-      '<circle class="primitive circle" cx="200" cy="200" r="50" stroke="#ba4a3a" stroke-width="2.5" fill="none" data-id="cr-C" />',
+      '<circle class="primitive circle primary" cx="200" cy="200" r="50" stroke="#ba4a3a" stroke-width="2.5" stroke-dasharray="" opacity="1" fill="none" data-id="cr-C" />',
     );
   });
 
@@ -60,7 +60,7 @@ describe("svg renderer", () => {
     const svgStr = renderSceneToSvgString(mockScene, { selectedId: "pt-A" });
     expect(svgStr).toContain('<g class="primitive point free selected" data-id="pt-A">');
     expect(svgStr).toContain(
-      '<line class="primitive line" x1="10" y1="10" x2="90" y2="90" stroke="#246a73" stroke-width="2.5" fill="none" data-id="ln-B" />',
+      '<line class="primitive line primary" x1="10" y1="10" x2="90" y2="90" stroke="#246a73" stroke-width="2.5" stroke-dasharray="" opacity="1" fill="none" data-id="ln-B" />',
     );
   });
 
@@ -75,10 +75,29 @@ describe("svg renderer", () => {
     });
     expect(svgStr).toContain('<g class="primitive point free selected" data-id="pt-A">');
     expect(svgStr).toContain(
-      '<line class="primitive line" x1="10" y1="10" x2="90" y2="90" stroke="#246a73" stroke-width="2.5" fill="none" data-id="ln-B" />',
+      '<line class="primitive line primary" x1="10" y1="10" x2="90" y2="90" stroke="#246a73" stroke-width="2.5" stroke-dasharray="" opacity="1" fill="none" data-id="ln-B" />',
     );
     expect(svgStr).toContain(
-      '<circle class="primitive circle selected" cx="200" cy="200" r="50" stroke="#e3c057" stroke-width="4" fill="none" data-id="cr-C" />',
+      '<circle class="primitive circle primary selected" cx="200" cy="200" r="50" stroke="#e3c057" stroke-width="4" stroke-dasharray="" opacity="1" fill="none" data-id="cr-C" />',
+    );
+  });
+
+  it("includes auxiliary shape styling", () => {
+    const scene = renderScene({
+      size: { width: 100, height: 100 },
+      items: [
+        lineItem({
+          id: "helper-line",
+          from: scenePoint(10, 20),
+          to: scenePoint(90, 20),
+          shapeRole: "auxiliary",
+        }),
+      ],
+    });
+    const svgStr = renderSceneToSvgString(scene);
+
+    expect(svgStr).toContain(
+      '<line class="primitive line auxiliary" x1="10" y1="20" x2="90" y2="20" stroke="#246a73" stroke-width="2.5" stroke-dasharray="9 7" opacity="0.38" fill="none" data-id="helper-line" />',
     );
   });
 

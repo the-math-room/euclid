@@ -41,6 +41,7 @@ Read this before changing any construction semantics.
 - Meaning and realization are separate. A construction may have meaning but no current primitive.
 - Evaluation must use explicit dependency graph planning; source order is not semantic order.
 - Add construction variants as discriminated-union cases, then update dependencies, meaning, realization, explanation, schemas, edits, and tests together.
+- `shapeRole` is authored presentation intent for line/circle-producing constructions. Keep it on construction syntax and realized primitives; do not put it in exact construction expressions.
 - Zod is allowed in `constructionSchemas.ts`; do not import it into evaluation, realization, or edit modules.
 - Construction-adding edits return `{ program, id, changed }`.
 - No-op edits should preserve the original program reference.

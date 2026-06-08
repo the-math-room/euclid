@@ -101,6 +101,7 @@ function realizeLineThrough(
     id: construction.id,
     kind: "line",
     label: construction.label,
+    shapeRole: construction.shapeRole ?? "primary",
     through: [a.position, b.position],
   };
 }
@@ -126,6 +127,7 @@ function realizeCircleThrough(
     id: construction.id,
     kind: "circle",
     label: construction.label,
+    shapeRole: construction.shapeRole ?? "primary",
     center: center.position,
     pointOnCircle: pointOnCircle.position,
   };
@@ -170,6 +172,7 @@ function realizeCircleThreePoints(
     id: construction.id,
     kind: "circle",
     label: construction.label,
+    shapeRole: construction.shapeRole ?? "primary",
     center,
     pointOnCircle: ap,
   };
@@ -268,6 +271,7 @@ function realizeParallelLine(
     id: construction.id,
     kind: "line",
     label: construction.label,
+    shapeRole: construction.shapeRole ?? "primary",
     through: [point.position, p2],
   };
 }
@@ -296,6 +300,7 @@ function realizePerpendicularLine(
     id: construction.id,
     kind: "line",
     label: construction.label,
+    shapeRole: construction.shapeRole ?? "primary",
     through: [point.position, p2],
   };
 }

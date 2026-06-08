@@ -316,6 +316,23 @@ button {
   overflow-wrap: anywhere;
 }
 
+.shape-role-select {
+  width: 100%;
+  min-height: 32px;
+  padding: 5px 8px;
+  color: #f6f2ec;
+  background: rgb(255 255 255 / 0.06);
+  border: 1px solid rgb(255 255 255 / 0.16);
+  border-radius: 6px;
+  font: inherit;
+}
+
+.shape-role-select:focus,
+.shape-role-select:hover {
+  border-color: #e3c057;
+  outline: none;
+}
+
 .workspace {
   min-width: 0;
   min-height: 100vh;

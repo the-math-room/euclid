@@ -39,6 +39,7 @@ describe("SelectionDetails Component", () => {
           constructions={constructions}
           onDelete={vi.fn()}
           canDelete={true}
+          onSetShapeRole={vi.fn()}
         />,
       );
     });
@@ -71,11 +72,53 @@ describe("SelectionDetails Component", () => {
           constructions={constructions}
           onDelete={vi.fn()}
           canDelete={false}
+          onSetShapeRole={vi.fn()}
         />,
       );
     });
 
     expect(container.querySelector<HTMLButtonElement>(".delete-button")?.disabled).toBe(true);
+
+    await act(async () => {
+      root?.unmount();
+    });
+  });
+
+  it("lets selected shape constructions change role", async () => {
+    const onSetShapeRole = vi.fn();
+    const constructions: readonly Construction[] = [
+      {
+        id: "line-ab",
+        kind: "line-through",
+        label: "AB",
+        points: ["A", "B"],
+      },
+    ];
+
+    let root: Root | undefined;
+    await act(async () => {
+      root = createRoot(container);
+      root.render(
+        <SelectionDetails
+          selectedIds={new Set(["line-ab"])}
+          constructions={constructions}
+          onDelete={vi.fn()}
+          canDelete={true}
+          onSetShapeRole={onSetShapeRole}
+        />,
+      );
+    });
+
+    const select = container.querySelector<HTMLSelectElement>(".shape-role-select");
+    expect(select?.value).toBe("primary");
+
+    await act(async () => {
+      if (!select) return;
+      select.value = "auxiliary";
+      select.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+
+    expect(onSetShapeRole).toHaveBeenCalledWith("line-ab", "auxiliary");
 
     await act(async () => {
       root?.unmount();

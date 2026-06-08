@@ -32,6 +32,7 @@ function createMockContext(): CanvasRenderingContext2DLike & { calls: string[]; 
   let strokeStyle: string | CanvasGradient | CanvasPattern = "";
   let fillStyle: string | CanvasGradient | CanvasPattern = "";
   let lineWidth = 1;
+  let globalAlpha = 1;
   const context: CanvasRenderingContext2DLike & { calls: string[]; styleCalls: string[] } = {
     calls,
     styleCalls,
@@ -47,9 +48,11 @@ function createMockContext(): CanvasRenderingContext2DLike & { calls: string[]; 
     fillText: vi.fn((t, x, y) => calls.push(`fillText(${t},${x},${y})`)),
     save: vi.fn(() => calls.push("save")),
     restore: vi.fn(() => calls.push("restore")),
+    setLineDash: vi.fn((segments) => styleCalls.push(`lineDash(${segments.join(",")})`)),
     strokeStyle: "",
     fillStyle: "",
     lineWidth: 1,
+    globalAlpha: 1,
     font: "",
     textAlign: "left",
     textBaseline: "middle",
@@ -75,6 +78,13 @@ function createMockContext(): CanvasRenderingContext2DLike & { calls: string[]; 
       set: (value) => {
         lineWidth = value;
         styleCalls.push(`lineWidth(${value})`);
+      },
+    },
+    globalAlpha: {
+      get: () => globalAlpha,
+      set: (value) => {
+        globalAlpha = value;
+        styleCalls.push(`alpha(${value})`);
       },
     },
   });
@@ -132,5 +142,27 @@ describe("canvas renderer", () => {
     expect(ctx.styleCalls).toContain("strokeStyle(#246a73)");
     expect(ctx.styleCalls).toContain("lineWidth(3)");
     expect(ctx.arc).toHaveBeenCalledWith(50, 50, 5, 0, 2 * Math.PI);
+  });
+
+  it("applies auxiliary shape styles", () => {
+    const ctx = createMockContext();
+    drawSceneToCanvas(
+      ctx,
+      renderScene({
+        size: { width: 100, height: 100 },
+        items: [
+          lineItem({
+            id: "helper-line",
+            from: scenePoint(0, 50),
+            to: scenePoint(100, 50),
+            shapeRole: "auxiliary",
+          }),
+        ],
+      }),
+    );
+
+    expect(ctx.styleCalls).toContain("alpha(0.38)");
+    expect(ctx.styleCalls).toContain("lineDash(9,7)");
+    expect(ctx.styleCalls).toContain("lineDash()");
   });
 });
