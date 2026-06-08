@@ -18,6 +18,7 @@ import type {
   ConstructionId,
   ConstructionProgram,
   MeasurementEvaluation,
+  MeasurementIntent,
   SegmentLengthAssertion,
 } from "@euclid/geometry";
 import { evaluateGoal, mapGoalIds, resolveGoalMapping } from "@euclid/assessment";
@@ -77,6 +78,7 @@ export function WorkspaceContainer({
 }: WorkspaceContainerProps) {
   const [isAuthoringOpen, setIsAuthoringOpen] = useState(false);
   const [measurementExpressionDraft, setMeasurementExpressionDraft] = useState("x");
+  const [measurementIntentDraft, setMeasurementIntentDraft] = useState<MeasurementIntent>("asserted");
   const [measurementVariableDraft, setMeasurementVariableDraft] = useState("x");
   const [measurementVariableValueDraft, setMeasurementVariableValueDraft] = useState("");
 
@@ -367,6 +369,8 @@ export function WorkspaceContainer({
           measurementEvaluation={measurementEvaluation}
           expressionDraft={measurementExpressionDraft}
           onChangeExpressionDraft={setMeasurementExpressionDraft}
+          intentDraft={measurementIntentDraft}
+          onChangeIntentDraft={setMeasurementIntentDraft}
           variableDraft={measurementVariableDraft}
           onChangeVariableDraft={setMeasurementVariableDraft}
           variableValueDraft={measurementVariableValueDraft}
@@ -422,6 +426,8 @@ function MeasurementPanel({
   measurementEvaluation,
   expressionDraft,
   onChangeExpressionDraft,
+  intentDraft,
+  onChangeIntentDraft,
   variableDraft,
   onChangeVariableDraft,
   variableValueDraft,
@@ -437,6 +443,8 @@ function MeasurementPanel({
   measurementEvaluation: MeasurementEvaluation;
   expressionDraft: string;
   onChangeExpressionDraft: (value: string) => void;
+  intentDraft: MeasurementIntent;
+  onChangeIntentDraft: (value: MeasurementIntent) => void;
   variableDraft: string;
   onChangeVariableDraft: (value: string) => void;
   variableValueDraft: string;
@@ -446,6 +454,7 @@ function MeasurementPanel({
   onUpsertSegmentMeasurement: (
     points: readonly [ConstructionId, ConstructionId],
     length: number | string,
+    intent: MeasurementIntent,
   ) => void;
   onRemoveSegmentMeasurement: (id: string) => void;
 }) {
@@ -467,7 +476,11 @@ function MeasurementPanel({
     if (!canAttachMeasurement) {
       return;
     }
-    onUpsertSegmentMeasurement(selectedPointIds as [ConstructionId, ConstructionId], expressionDraft.trim());
+    onUpsertSegmentMeasurement(
+      selectedPointIds as [ConstructionId, ConstructionId],
+      expressionDraft.trim(),
+      intentDraft,
+    );
   };
 
   return (
@@ -506,6 +519,16 @@ function MeasurementPanel({
         <label className="measurement-field measurement-expression-field">
           <span>Segment</span>
           <input value={expressionDraft} onChange={(event) => onChangeExpressionDraft(event.target.value)} />
+        </label>
+        <label className="measurement-field measurement-intent-field">
+          <span>Intent</span>
+          <select
+            value={intentDraft}
+            onChange={(event) => onChangeIntentDraft(event.target.value as MeasurementIntent)}
+          >
+            <option value="asserted">Assert</option>
+            <option value="driving">Drive</option>
+          </select>
         </label>
         <button
           type="button"
@@ -550,6 +573,7 @@ function MeasurementList({
           <li key={measurement.id} className={`measurement-item ${evaluated?.status ?? "unresolved"}`}>
             <span>
               {measurement.label ?? `${measurement.from}${measurement.to}`} = {measurement.length}
+              <small>{measurement.intent ?? "asserted"}</small>
             </span>
             <code>{evaluated ? `${formatMeasurementValue(evaluated.actualUnitLength)}u` : "unrealized"}</code>
             <button
@@ -560,6 +584,9 @@ function MeasurementList({
             >
               x
             </button>
+            {evaluated?.diagnostic && (
+              <p className="measurement-diagnostic">{evaluated.diagnostic.message}</p>
+            )}
           </li>
         );
       })}

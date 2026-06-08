@@ -92,6 +92,7 @@ describe("measurement expressions", () => {
       actualUnitLength: 2,
       expressionValue: 2,
       status: "satisfied",
+      intent: "asserted",
     });
     expect(result.diagnostics).toEqual([]);
   });
@@ -117,5 +118,34 @@ describe("measurement expressions", () => {
         code: "measurement:unassigned-variable",
       }),
     ]);
+  });
+
+  it("carries driving intent without solving constraints", () => {
+    const program: ConstructionProgram = {
+      constructions: [
+        { id: "A", kind: "free-point", label: "A", position: toWorldPoint({ x: 0, y: 0 }) },
+        { id: "B", kind: "free-point", label: "B", position: toWorldPoint({ x: 4, y: 0 }) },
+      ],
+      measurements: [
+        {
+          id: "length-a-b",
+          kind: "segment-length",
+          from: "A",
+          to: "B",
+          length: 2,
+          intent: "driving",
+        },
+      ],
+    };
+
+    const result = evaluateMeasurements(program, evaluateConstruction(program));
+
+    expect(result.segments[0]).toMatchObject({
+      intent: "driving",
+      status: "mismatch",
+    });
+    expect(result.diagnostics[0]).toMatchObject({
+      code: "measurement:length-mismatch",
+    });
   });
 });

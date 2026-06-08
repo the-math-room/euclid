@@ -7,7 +7,7 @@ Read this before changing any construction semantics.
 ## Owns
 
 - `Construction`, `ConstructionProgram`, construction expressions, evaluated primitives, diagnostics.
-- Measurement settings, authored segment length assertions, algebraic measurement expressions, and their pure evaluation.
+- Measurement settings, authored segment length assertions, assertion/driving intent, algebraic measurement expressions, and their pure evaluation.
 - Branded world/scene coordinate types and constructors.
 - Shared construction schemas for JSON/content boundaries.
 - Dependency extraction and dependency graph evaluation.
@@ -46,6 +46,7 @@ Read this before changing any construction semantics.
 - Add construction variants as discriminated-union cases, then update dependencies, meaning, realization, explanation, schemas, edits, and tests together.
 - `shapeRole` is authored presentation intent for line/circle-producing constructions. Keep it on construction syntax and realized primitives; do not put it in exact construction expressions.
 - Segment length assertions and measurement settings are authored geometric state. Keep their data shape and evaluation in geometry; assessment, rendering, and label layout may interpret evaluated results but should not own them.
+- `intent: "driving"` records that a future solver may use the measurement as a constraint. Until solver behavior exists, driving measurements still only evaluate and report diagnostics.
 - Zod is allowed in `constructionSchemas.ts`; do not import it into evaluation, realization, or edit modules.
 - Construction-adding edits return `{ program, id, changed }`.
 - Edits that rebuild a `ConstructionProgram` must preserve program-level metadata such as measurements.

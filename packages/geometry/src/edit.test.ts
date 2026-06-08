@@ -159,14 +159,25 @@ describe("construction edits", () => {
     };
 
     const created = upsertSegmentLengthAssertion(program, segmentLengthAssertion("A", "B", "x"));
-    const updated = upsertSegmentLengthAssertion(created.program, segmentLengthAssertion("B", "A", "2x"));
+    const updated = upsertSegmentLengthAssertion(
+      created.program,
+      segmentLengthAssertion("B", "A", "2x", "driving"),
+    );
 
     expect(created.changed).toBe(true);
     expect(created.program.measurements).toEqual([
       { id: "length-a-b", kind: "segment-length", from: "A", to: "B", length: "x", label: "AB" },
     ]);
     expect(updated.program.measurements).toEqual([
-      { id: "length-a-b", kind: "segment-length", from: "B", to: "A", length: "2x", label: "BA" },
+      {
+        id: "length-a-b",
+        kind: "segment-length",
+        from: "B",
+        to: "A",
+        length: "2x",
+        intent: "driving",
+        label: "BA",
+      },
     ]);
   });
 

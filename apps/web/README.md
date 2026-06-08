@@ -43,6 +43,7 @@ Read this when changing React composition, workspace controls, browser event han
 - Keep React as an interpreter. If a change needs new construction meaning, add it in `@euclid/geometry` first.
 - Do not construct authored geometry records directly in app command code. Use geometry edit helpers.
 - Measurement UI must call geometry edit helpers and consume geometry measurement evaluation; do not parse or validate measurement expressions in React.
+- Driving measurement intent is authored in the app, but solver behavior belongs in geometry. The app should show diagnostics rather than moving geometry itself.
 - Third-party macro tools should be data interpreted by `@euclid/geometry` macro expansion, not app-side construction assembly.
 - To add a third-party macro tool, add one `*.ts` file under `src/construction/third-party-tools/` exporting a `ThirdPartyMacroTool`; do not edit the central registries.
 - Do not import geometry naming internals such as `generateNextPointLabel` into app code.

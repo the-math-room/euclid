@@ -28,6 +28,7 @@ export const point2Schema = z.object({
 });
 export const shapeRoleSchema = z.union([z.literal("primary"), z.literal("auxiliary")]);
 export const measurementExpressionSchema = z.union([z.number().finite(), z.string()]);
+export const measurementIntentSchema = z.union([z.literal("asserted"), z.literal("driving")]);
 export const measurementSettingsSchema = z.object({
   unitLength: z.number().finite().positive().optional(),
   variables: z.record(z.string(), z.number().finite()).optional(),
@@ -39,6 +40,7 @@ export const segmentLengthAssertionSchema = z.object({
   from: z.string(),
   to: z.string(),
   length: measurementExpressionSchema,
+  intent: measurementIntentSchema.optional(),
   label: z.string().optional(),
 }) satisfies z.ZodType<SegmentLengthAssertion>;
 

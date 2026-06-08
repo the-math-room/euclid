@@ -4,6 +4,7 @@ import type {
   ConstructionProgram,
   MeasurementExpression,
   MeasurementId,
+  MeasurementIntent,
   Point2,
   SegmentLengthAssertion,
   ShapeRole,
@@ -637,6 +638,7 @@ function sameSegmentLengthAssertion(a: SegmentLengthAssertion, b: SegmentLengthA
     a.from === b.from &&
     a.to === b.to &&
     a.length === b.length &&
+    (a.intent ?? "asserted") === (b.intent ?? "asserted") &&
     a.label === b.label
   );
 }
@@ -649,6 +651,7 @@ export function segmentLengthAssertion(
   from: ConstructionId,
   to: ConstructionId,
   length: MeasurementExpression,
+  intent: MeasurementIntent = "asserted",
 ): SegmentLengthAssertion {
   return {
     id: segmentLengthAssertionId(from, to),
@@ -656,6 +659,7 @@ export function segmentLengthAssertion(
     from,
     to,
     length,
+    ...(intent === "asserted" ? {} : { intent }),
     label: `${from}${to}`,
   };
 }

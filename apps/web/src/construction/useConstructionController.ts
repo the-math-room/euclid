@@ -24,6 +24,7 @@ import type {
   ConstructionId,
   ConstructionProgram,
   MeasurementId,
+  MeasurementIntent,
   ScenePoint,
   ShapeRole,
   WorldPoint,
@@ -67,6 +68,7 @@ export type ConstructionController = Readonly<{
   handleUpsertSegmentMeasurement: (
     points: readonly [ConstructionId, ConstructionId],
     length: number | string,
+    intent: MeasurementIntent,
   ) => void;
   handleRemoveSegmentMeasurement: (id: MeasurementId) => void;
   handleAddPoint: (sceneCoords: ScenePoint) => void;
@@ -510,10 +512,14 @@ export function useConstructionController({
   }, []);
 
   const handleUpsertSegmentMeasurement = useCallback(
-    (points: readonly [ConstructionId, ConstructionId], length: number | string) => {
+    (
+      points: readonly [ConstructionId, ConstructionId],
+      length: number | string,
+      intent: MeasurementIntent,
+    ) => {
       const result = upsertSegmentLengthAssertion(
         program,
-        segmentLengthAssertion(points[0], points[1], length),
+        segmentLengthAssertion(points[0], points[1], length, intent),
       );
       if (!result.changed) {
         return;

@@ -126,6 +126,7 @@ describe("document architecture", () => {
             from: "A",
             to: "B",
             length: "2x + 1",
+            intent: "driving",
             label: "AB",
           },
         ],
@@ -154,6 +155,32 @@ describe("document architecture", () => {
     ).toEqual({
       ok: false,
       diagnostics: ["Document program.measurementSettings.unitLength must be a positive finite number."],
+    });
+  });
+
+  it("rejects malformed segment length assertion intent", () => {
+    expect(
+      parseEuclidDocument(
+        JSON.stringify({
+          ...seedDocument,
+          program: {
+            constructions: seedDocument.program.constructions,
+            measurements: [
+              {
+                id: "length-a-b",
+                kind: "segment-length",
+                from: "A",
+                to: "B",
+                length: 1,
+                intent: "maybe",
+              },
+            ],
+          },
+        }),
+      ),
+    ).toEqual({
+      ok: false,
+      diagnostics: ["Document program.measurements[0].intent must be asserted or driving."],
     });
   });
 

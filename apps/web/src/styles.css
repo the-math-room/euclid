@@ -359,7 +359,8 @@ button {
   text-transform: uppercase;
 }
 
-.measurement-field input {
+.measurement-field input,
+.measurement-field select {
   width: 100%;
   min-height: 32px;
   padding: 5px 8px;
@@ -371,7 +372,9 @@ button {
 }
 
 .measurement-field input:focus,
-.measurement-field input:hover {
+.measurement-field input:hover,
+.measurement-field select:focus,
+.measurement-field select:hover {
   border-color: #e3c057;
   outline: none;
 }
@@ -385,6 +388,10 @@ button {
 
 .measurement-row:has(.variable-name-field) {
   grid-template-columns: minmax(44px, 0.5fr) minmax(70px, 1fr) auto;
+}
+
+.measurement-row:has(.measurement-intent-field) {
+  grid-template-columns: minmax(0, 1fr) minmax(74px, 0.55fr) auto;
 }
 
 .measurement-action {
@@ -433,7 +440,16 @@ button {
 }
 
 .measurement-item span {
+  display: grid;
+  gap: 2px;
   overflow-wrap: anywhere;
+}
+
+.measurement-item small {
+  color: #8ba4a7;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
 }
 
 .measurement-item code {
@@ -465,6 +481,14 @@ button {
 .measurement-remove:hover {
   color: #ff5252;
   border-color: #ff5252;
+}
+
+.measurement-diagnostic {
+  grid-column: 1 / -1;
+  margin: -2px 0 0;
+  color: #fca5a5;
+  font-size: 0.74rem;
+  line-height: 1.3;
 }
 
 .workspace {

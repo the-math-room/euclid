@@ -232,6 +232,10 @@ function diagnosticForMeasurementError(error: z.ZodError, path: string): string 
     return `${issuePath} must be a finite number or string expression.`;
   }
 
+  if (field === "intent") {
+    return `${issuePath} must be asserted or driving.`;
+  }
+
   if (field === "label") {
     return `${issuePath} must be a string when present.`;
   }

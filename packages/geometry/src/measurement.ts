@@ -30,6 +30,7 @@ export type MeasurementDiagnostic = Readonly<{
 
 export type EvaluatedSegmentLengthAssertion = Readonly<{
   assertion: SegmentLengthAssertion;
+  intent: "asserted" | "driving";
   from: WorldPoint;
   to: WorldPoint;
   actualWorldLength: number;
@@ -70,6 +71,7 @@ export function evaluateMeasurements(
   const tolerance = options?.tolerance ?? defaultMeasurementTolerance;
 
   for (const assertion of program.measurements ?? []) {
+    const intent = assertion.intent ?? "asserted";
     const from = points.get(assertion.from);
     const to = points.get(assertion.to);
     if (!from || !to) {
@@ -93,6 +95,7 @@ export function evaluateMeasurements(
       diagnostics.push(diagnostic);
       segments.push({
         assertion,
+        intent,
         from,
         to,
         actualWorldLength,
@@ -113,6 +116,7 @@ export function evaluateMeasurements(
       diagnostics.push(diagnostic);
       segments.push({
         assertion,
+        intent,
         from,
         to,
         actualWorldLength,
@@ -135,6 +139,7 @@ export function evaluateMeasurements(
       diagnostics.push(diagnostic);
       segments.push({
         assertion,
+        intent,
         from,
         to,
         actualWorldLength,
@@ -158,6 +163,7 @@ export function evaluateMeasurements(
       diagnostics.push(diagnostic);
       segments.push({
         assertion,
+        intent,
         from,
         to,
         actualWorldLength,
@@ -173,6 +179,7 @@ export function evaluateMeasurements(
 
     segments.push({
       assertion,
+      intent,
       from,
       to,
       actualWorldLength,

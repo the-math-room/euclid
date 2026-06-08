@@ -10,6 +10,7 @@ export type ScenePoint = Point2 & { readonly __brand: "scene" };
 export type ShapeRole = "primary" | "auxiliary";
 export type MeasurementId = string;
 export type MeasurementExpression = number | string;
+export type MeasurementIntent = "asserted" | "driving";
 
 export type MeasurementSettings = Readonly<{
   unitLength?: number;
@@ -36,6 +37,7 @@ export type SegmentLengthAssertion = Readonly<{
   from: ConstructionId;
   to: ConstructionId;
   length: MeasurementExpression;
+  intent?: MeasurementIntent;
   label?: string;
 }>;
 
